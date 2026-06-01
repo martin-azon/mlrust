@@ -1,4 +1,9 @@
 //! Shared parameter traits and marker types.
+
+/// Number of coefficients in each polynomial.
+///
+/// ML-KEM and ML-DSA both operate over degree-255 polynomials, represented by
+/// `N = 256` coefficients modulo `x^256 + 1`.
 pub const N: usize = 256;
 
 /// Parameters for coefficient arithmetic over Z_q.

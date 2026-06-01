@@ -1,3 +1,10 @@
+//! Generic modular-arithmetic helper functions.
+//!
+//! This module provides thin wrappers around the [`RingParams`] trait.
+//! The actual modulus-specific arithmetic is implemented by concrete
+//! parameter types such as `Q3329` and `Q8380417`.
+
+
 use crate::params::RingParams;
 
 /// Add modulo q, returning an internal reduced representative.

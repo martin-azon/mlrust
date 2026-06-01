@@ -1,11 +1,25 @@
+//! Error type for reusable `mlrust-core` operations.
+//!
+//! The errors in this module describe failures in low-level shared utilities,
+//! such as malformed encodings, invalid buffer lengths, or bounded rejection
+//! sampling failures. Algorithm-specific errors should be defined in the
+//! ML-KEM and ML-DSA crates.
+
+
 use core::fmt;
 
+/// Error type for low-level reusable `mlrust-core` operations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PqcCoreError {
+    /// An input slice or byte string has an invalid length.
     InvalidLength,
+    /// A caller-provided output buffer is too small.
     BufferTooSmall,
+    /// A byte sequence does not match the expected encoding format.
     InvalidEncoding,
+    /// A byte sequence decodes to a value outside the required canonical range.
     NonCanonicalEncoding,
+    /// Rejection sampling failed to produce enough output within a bounded loop.
     RejectionSamplingFailed,
 }
 

@@ -69,7 +69,6 @@ mod tests {
 
     #[test]
     fn montgomery_reduce_matches_reference() {
-        const R: i64 = 1 << 16;
         const R_INV: i64 = 169; // (2^16)^(-1) mod 3329
 
         for a in -2_000_000..2_000_000 {
