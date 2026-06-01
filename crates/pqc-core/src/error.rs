@@ -6,7 +6,7 @@ pub enum PqcCoreError {
     BufferTooSmall,
     InvalidEncoding,
     NonCanonicalEncoding,
-    RejectionSamplingFailed
+    RejectionSamplingFailed,
 }
 
 impl fmt::Display for PqcCoreError {
