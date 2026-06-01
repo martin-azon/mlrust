@@ -186,4 +186,384 @@ impl<P: RingParams> Poly<P> {
         out.sub_assign(rhs);
         out
     }
+
+    /// Multiplies two polynomials using slow schoolbook negacyclic multiplication.
+    ///
+    /// This computes multiplication in:
+    ///
+    /// ```text
+    /// Z_q[x] / (x^N + 1)
+    /// ```
+    ///
+    /// Since `x^N = -1` in this quotient ring, terms of degree `N` or larger wrap
+    /// around with a negative sign:
+    ///
+    /// ```text
+    /// x^{N+k} = -x^k
+    /// ```
+    ///
+    /// This function is primarily intended as a correctness reference for testing
+    /// NTT-based multiplication. It is not intended for performance-critical code.
+    pub fn schoolbook_mul_negacyclic(&self, other: &Self) -> Self {
+        let mut acc = [0i64; N];
+
+        for i in 0..N {
+            for j in 0..N {
+                let prod = (self.coeffs[i] as i64) * (other.coeffs[j] as i64);
+                let degree = i + j;
+
+                if degree < N {
+                    acc[degree] += prod;
+                }
+                else {
+                    acc[degree - N] -= prod;
+                }
+            }
+        }
+
+        let mut coeffs= [0i32; N];
+        for i in 0..N {
+            // We use rem_euclid instead of P::freeze because the current function is mostly for debug purposes.
+            // When working with P::freeze, there might issues due to working internally with huge values.
+            coeffs[i] = acc[i].rem_euclid(P::Q as i64) as i32;
+        }
+
+        Self::from_coeffs(coeffs)
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::params::{Q3329, Q8380417};
+
+    fn reference_mod(a: i64, q: i32) -> i32 {
+        a.rem_euclid(q as i64) as i32
+    }
+
+    fn sparse_poly<P: RingParams>(terms: &[(usize, i32)]) -> Poly<P> {
+        let mut coeffs = [0i32; N];
+
+        for &(i, c) in terms {
+            coeffs[i] = c;
+        }
+
+        Poly::from_coeffs(coeffs)
+    }
+
+    fn assert_sparse_coeffs_mod_q<P: RingParams>(poly: &Poly<P>, expected_terms: &[(usize, i64)]) {
+        let mut expected = [0i32; N];
+
+        for &(i, c) in expected_terms {
+            expected[i] = reference_mod(c, P::Q);
+        }
+
+        for i in 0..N {
+            assert_eq!(
+                P::freeze(poly.coeffs()[i]),
+                expected[i],
+                "coefficient mismatch at index {i}"
+            );
+        }
+    }
+
+    #[test]
+    fn zero_has_all_zero_coefficients() {
+        let p = Poly::<Q3329>::zero();
+
+        assert!(p.coeffs().iter().all(|&c| c == 0));
+    }
+
+    #[test]
+    fn from_coeffs_roundtrip() {
+        let mut coeffs = [0i32; N];
+        coeffs[0] = 1;
+        coeffs[1] = -2;
+        coeffs[255] = 42;
+
+        let p = Poly::<Q3329>::from_coeffs(coeffs);
+
+        assert_eq!(p.into_coeffs(), coeffs);
+    }
+
+    #[test]
+    fn add_matches_reference_q3329() {
+        let mut a_coeffs = [0i32; N];
+        let mut b_coeffs = [0i32; N];
+
+        for i in 0..N {
+            a_coeffs[i] = i as i32 - 100;
+            b_coeffs[i] = 2 * i as i32 - 300;
+        }
+
+        let a = Poly::<Q3329>::from_coeffs(a_coeffs);
+        let b = Poly::<Q3329>::from_coeffs(b_coeffs);
+        let c = a.add(&b);
+
+        for i in 0..N {
+            let expected = reference_mod((a_coeffs[i] + b_coeffs[i]) as i64, Q3329::Q);
+            assert_eq!(Q3329::freeze(c.coeffs()[i]), expected, "i = {i}");
+        }
+    }
+
+    #[test]
+    fn sub_matches_reference_q3329() {
+        let mut a_coeffs = [0i32; N];
+        let mut b_coeffs = [0i32; N];
+
+        for i in 0..N {
+            a_coeffs[i] = (i as i32 % 37) - 18;
+            b_coeffs[i] = (3 * i as i32 % 53) - 26;
+        }
+
+        let a = Poly::<Q3329>::from_coeffs(a_coeffs);
+        let b = Poly::<Q3329>::from_coeffs(b_coeffs);
+        let c = a.sub(&b);
+
+        for i in 0..N {
+            let expected = reference_mod((a_coeffs[i] - b_coeffs[i]) as i64, Q3329::Q);
+            assert_eq!(Q3329::freeze(c.coeffs()[i]), expected, "i = {i}");
+        }
+    }
+
+    #[test]
+    fn negacyclic_mul_simple_wraparound_q3329() {
+        let mut a_coeffs = [0i32; N];
+        let mut b_coeffs = [0i32; N];
+
+        // x^255 * x = x^256 = -1 mod (x^256 + 1)
+        a_coeffs[255] = 1;
+        b_coeffs[1] = 1;
+
+        let a = Poly::<Q3329>::from_coeffs(a_coeffs);
+        let b = Poly::<Q3329>::from_coeffs(b_coeffs);
+
+        let c = a.schoolbook_mul_negacyclic(&b);
+        assert_eq!(Q3329::freeze(c.coeffs()[0]), Q3329::Q - 1);
+
+        for i in 1..N {
+            assert_eq!(Q3329::freeze(c.coeffs()[i]), 0, "i = {i}");
+        }
+    }
+
+    #[test]
+    fn negacyclic_mul_simple_wraparound_q8380417() {
+        let mut a_coeffs = [0i32; N];
+        let mut b_coeffs = [0i32; N];
+
+        a_coeffs[255] = 1;
+        b_coeffs[1] = 1;
+
+        let a = Poly::<Q8380417>::from_coeffs(a_coeffs);
+        let b = Poly::<Q8380417>::from_coeffs(b_coeffs);
+
+        let c = a.schoolbook_mul_negacyclic(&b);
+
+        assert_eq!(Q8380417::freeze(c.coeffs()[0]), Q8380417::Q - 1);
+
+        for i in 1..N {
+            assert_eq!(Q8380417::freeze(c.coeffs()[i]), 0, "i = {i}");
+        }
+    }
+
+    #[test]
+    fn negacyclic_mul_sparse_wraparound_many_terms_q3329() {
+        let a = sparse_poly::<Q3329>(&[
+            (0, 12),
+            (1, -7),
+            (127, 5),
+            (200, -9),
+            (255, 4),
+        ]);
+
+        let b = sparse_poly::<Q3329>(&[
+            (0, -3),
+            (2, 8),
+            (56, -6),
+            (128, 7),
+            (255, -5),
+        ]);
+
+        let c = a.schoolbook_mul_negacyclic(&b);
+
+        assert_sparse_coeffs_mod_q::<Q3329>(
+            &c,
+            &[
+                (0, -125),
+                (1, -11),
+                (2, 96),
+                (3, -56),
+                (55, 24),
+                (56, -72),
+                (57, 42),
+                (72, 63),
+                (126, 25),
+                (127, -43),
+                (128, 84),
+                (129, -9),
+                (183, -30),
+                (199, -45),
+                (200, 27),
+                (202, -72),
+                (254, 20),
+                (255, -37),
+            ],
+        );
+    }
+
+    #[test]
+    fn negacyclic_mul_collisions_and_cancellations_q3329() {
+        let a = sparse_poly::<Q3329>(&[
+            (10, 3),
+            (50, -4),
+            (240, 8),
+            (255, -2),
+        ]);
+
+        let b = sparse_poly::<Q3329>(&[
+            (90, 5),
+            (50, 6),
+            (30, -7),
+            (20, 11),
+        ]);
+
+        let c = a.schoolbook_mul_negacyclic(&b);
+
+        assert_sparse_coeffs_mod_q::<Q3329>(
+            &c,
+            &[
+                (4, -88),
+                (14, 56),
+                (19, 22),
+                (29, -14),
+                (30, 33),
+                (34, -48),
+                (40, -21),
+                (49, 12),
+                (60, 18),
+                (70, -44),
+                (74, -40),
+                (80, 28),
+                (89, 10),
+                (100, -9),
+                (140, -20),
+            ],
+        );
+    }
+
+    #[test]
+    fn negacyclic_mul_high_canonical_coefficients_q3329() {
+        let q = Q3329::Q;
+
+        let a = sparse_poly::<Q3329>(&[
+            (0, q - 1), // -1 mod q
+            (255, 2),
+        ]);
+
+        let b = sparse_poly::<Q3329>(&[
+            (0, q - 2), // -2 mod q
+            (1, 3),
+        ]);
+
+        let c = a.schoolbook_mul_negacyclic(&b);
+
+        // (q-1 + 2x^255)(q-2 + 3x)
+        //
+        // Interpreting q-1 = -1 and q-2 = -2:
+        //
+        // constant term:
+        //   (-1)(-2) + (2)(3)x^256
+        //   = 2 - 6
+        //   = -4
+        //
+        // x term:
+        //   (-1)(3)
+        //   = -3
+        //
+        // x^255 term:
+        //   2(-2)
+        //   = -4
+        assert_sparse_coeffs_mod_q::<Q3329>(
+            &c,
+            &[
+                (0, -4),
+                (1, -3),
+                (255, -4),
+            ],
+        );
+    }
+
+    #[test]
+    fn negacyclic_mul_sparse_wraparound_many_terms_q8380417() {
+        let a = sparse_poly::<Q8380417>(&[
+            (0, 12),
+            (1, -7),
+            (127, 5),
+            (200, -9),
+            (255, 4),
+        ]);
+
+        let b = sparse_poly::<Q8380417>(&[
+            (0, -3),
+            (2, 8),
+            (56, -6),
+            (128, 7),
+            (255, -5),
+        ]);
+
+        let c = a.schoolbook_mul_negacyclic(&b);
+
+        assert_sparse_coeffs_mod_q::<Q8380417>(
+            &c,
+            &[
+                (0, -125),
+                (1, -11),
+                (2, 96),
+                (3, -56),
+                (55, 24),
+                (56, -72),
+                (57, 42),
+                (72, 63),
+                (126, 25),
+                (127, -43),
+                (128, 84),
+                (129, -9),
+                (183, -30),
+                (199, -45),
+                (200, 27),
+                (202, -72),
+                (254, 20),
+                (255, -37),
+            ],
+        );
+    }
+
+    /*
+    #[test]
+    fn negacyclic_mul_high_canonical_coefficients_q8380417() {
+        let q = Q8380417::Q;
+
+        let a = sparse_poly::<Q8380417>(&[
+            (0, q - 1), // -1 mod q
+            (255, 2),
+        ]);
+
+        let b = sparse_poly::<Q8380417>(&[
+            (0, q - 2), // -2 mod q
+            (1, 3),
+        ]);
+
+        let c = a.schoolbook_mul_negacyclic(&b);
+
+        assert_sparse_coeffs_mod_q::<Q8380417>(
+            &c,
+            &[
+                (0, -4),
+                (1, -3),
+                (255, -4),
+            ],
+        );
+    }
+    */
 }
