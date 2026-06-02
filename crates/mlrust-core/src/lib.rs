@@ -27,7 +27,7 @@ pub mod error;
 pub mod params;
 
 pub mod field;
-//pub mod ntt;
+pub mod ntt;
 pub mod poly;
 //pub mod encode;
 //pub mod symmetric;
@@ -36,4 +36,3 @@ pub mod ct;
 
 pub use error::PqcCoreError;
 pub use params::{N, RingParams, NttParams};
-//pub use poly::{Poly, PolyVec, Matrix};

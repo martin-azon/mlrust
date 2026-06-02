@@ -53,7 +53,7 @@ pub trait NttParams: RingParams {
     const ZETAS: &'static [i32];
 
     /// Inverse NTT constants.
-    const INV_ZETAS: &'static [i32];
+    const BASE_MUL_ZETAS: &'static [i32];
 
     /// Final inverse-NTT scaling factor.
     const INV_NTT_SCALE: i32;

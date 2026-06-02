@@ -5,13 +5,13 @@
 //! Concrete modulus implementations are kept private.
 
 mod reduce;
-mod q3329;
-mod q8380417;
+pub mod q3329;
+pub mod q8380417;
 
 pub use reduce::{
     add_mod,
-    sub_mod,
-    mul_montgomery,
+    caddq,
     freeze,
-    caddq
+    mul_montgomery,
+    sub_mod
 };
