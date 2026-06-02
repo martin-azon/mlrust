@@ -5,7 +5,7 @@
 //!
 //! - [`Poly`], a polynomial with `N = 256` signed coefficients;
 //! - [`PolyVec`], a fixed-size vector of polynomials;
-//! - [`Matrix`], a fixed-size matrix of polynomial vectors.
+//! - [`PolyMat`], a fixed-size matrix of polynomial vectors.
 //!
 //! The arithmetic is generic over [`crate::params::RingParams`], so the same
 //! types can be used with different coefficient moduli, such as `q = 3329`
@@ -18,6 +18,8 @@
 
 mod poly;
 mod polyvec;
-mod matrix;
+mod polymat;
 
 pub use poly::Poly;
+pub use polyvec::PolyVec;
+pub use polymat::PolyMat;
