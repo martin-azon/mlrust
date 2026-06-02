@@ -53,6 +53,7 @@ pub struct Poly<P: RingParams> {
 }
 
 impl<P: RingParams> Poly<P> {
+
     /// Returns the zero polynomial.
     ///
     /// All coefficients are initialized to `0`.
@@ -62,6 +63,7 @@ impl<P: RingParams> Poly<P> {
     /// ```ignore
     /// let p = Poly::<Q3329>::zero();
     /// ```
+    #[must_use]
     pub const fn zero() -> Self {
         Self {
             coeffs: [0i32; N],
@@ -69,12 +71,14 @@ impl<P: RingParams> Poly<P> {
         }
     }
 
+
     /// Creates a polynomial from a fixed-size coefficient array.
     ///
     /// This function does not reduce or canonicalize the coefficients. The
     /// caller is responsible for ensuring that the input coefficients are in
     /// the expected range, or for calling [`Poly::reduce`] or [`Poly::freeze`]
     /// afterwards.
+    #[must_use]
     pub const fn from_coeffs(coeffs: [i32; N]) -> Self {
         Self {
             coeffs,
@@ -82,13 +86,16 @@ impl<P: RingParams> Poly<P> {
         }
     }
 
+
     /// Returns an immutable reference to the coefficient array.
     ///
     /// The returned coefficients may be in an internal reduced representation,
     /// not necessarily in canonical range `[0, q)`.
+    #[must_use]
     pub fn coeffs(&self) -> &[i32; N] {
         &self.coeffs
     }
+
 
     /// Returns a mutable reference to the coefficient array.
     ///
@@ -96,17 +103,21 @@ impl<P: RingParams> Poly<P> {
     /// that need direct coefficient access.
     ///
     /// The caller must preserve any invariants required by later operations.
+    #[must_use]
     pub fn coeffs_mut(&mut self) -> &mut [i32; N] {
         &mut self.coeffs
     }
+
 
     /// Consumes the polynomial and returns its coefficient array.
     ///
     /// This is useful for tests, encoding routines, or APIs that need ownership
     /// of the raw coefficients.
+    #[must_use]
     pub fn into_coeffs(self) -> [i32; N] {
         self.coeffs
     }
+
 
     /// Reduces every coefficient using the parameter set's Barrett reduction.
     ///
@@ -121,6 +132,7 @@ impl<P: RingParams> Poly<P> {
         }
     }
 
+
     /// Canonicalizes every coefficient into the range `[0, q)`.
     ///
     /// This should be used before serialization, byte encoding, or tests that
@@ -130,6 +142,7 @@ impl<P: RingParams> Poly<P> {
             *c = P::freeze(*c)
         }
     }
+
 
     /// Adds another polynomial to this polynomial in place.
     ///
@@ -147,6 +160,7 @@ impl<P: RingParams> Poly<P> {
         }
     }
 
+
     /// Subtracts another polynomial from this polynomial in place.
     ///
     /// Each coefficient is updated as:
@@ -163,17 +177,20 @@ impl<P: RingParams> Poly<P> {
         }
     }
 
+
     /// Returns the coefficientwise sum of two polynomials.
     ///
     /// This does not modify either input polynomial.
     ///
     /// Internally, this copies `self`, applies [`Poly::add_assign`], and returns
     /// the result.
-    pub fn add(& self, rhs: &Self) -> Self {
+    #[must_use]
+    pub fn add(&self, rhs: &Self) -> Self {
         let mut out = *self;
         out.add_assign(rhs);
         out
     }
+
 
     /// Returns the coefficientwise difference of two polynomials.
     ///
@@ -181,11 +198,13 @@ impl<P: RingParams> Poly<P> {
     ///
     /// Internally, this copies `self`, applies [`Poly::sub_assign`], and returns
     /// the result.
-    pub fn sub(& self, rhs: &Self) -> Self {
+    #[must_use]
+    pub fn sub(&self, rhs: &Self) -> Self {
         let mut out = *self;
         out.sub_assign(rhs);
         out
     }
+
 
     /// Multiplies two polynomials using slow schoolbook negacyclic multiplication.
     ///

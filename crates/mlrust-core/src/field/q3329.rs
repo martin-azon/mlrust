@@ -19,7 +19,7 @@ impl RingParams for Q3329 {
     }
 
     fn barrett_reduce(a: i32) -> i32 {
-        let t = (BARRETT_V * a + (1 << 25)) >> 26;
+        let t = (((BARRETT_V as i64) * (a as i64) + (1_i64 << 25)) >> 26) as i32;
         a - t * Self::Q
     }
 }
