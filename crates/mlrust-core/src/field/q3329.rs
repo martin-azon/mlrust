@@ -1,3 +1,33 @@
+//! Finite-field arithmetic for the ML-KEM modulus `q = 3329`.
+//!
+//! This module implements [`RingParams`] for [`Q3329`], the coefficient field
+//! used by ML-KEM.
+//!
+//! The implementation provides:
+//!
+//! - Montgomery reduction with radix `R = 2^16`;
+//! - Barrett reduction for bounded coefficient cleanup;
+//! - Montgomery conversion through `R2 = R^2 mod q`;
+//! - tests for canonicalization, conditional correction, Barrett reduction,
+//!   and Montgomery reduction.
+//!
+//! Coefficients are represented as signed `i32` values. The arithmetic routines
+//! are intended for the bounded ranges that occur in ML-KEM polynomial and NTT
+//! operations, not as arbitrary-precision modular arithmetic.
+//!
+//! The Montgomery constant satisfies:
+//!
+//! ```text
+//! Q_INV = -q^{-1} mod 2^16 = -3327
+//! ```
+//!
+//! and the Montgomery conversion constant is:
+//!
+//! ```text
+//! R2 = R^2 mod q = 1353
+//! ```
+
+
 use crate::params::{RingParams, Q3329};
 
 /// Barrett reduction constant: V approximates 2**26 / 3329

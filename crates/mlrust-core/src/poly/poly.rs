@@ -30,7 +30,7 @@
 
 
 use core::marker::PhantomData;
-use crate::params::{N, RingParams};
+use crate::params::{N, RingParams, NttOps, NttDomainMul};
 
 
 /// Polynomial over the ring `Z_q[x] / (x^N + 1)`.
@@ -250,6 +250,31 @@ impl<P: RingParams> Poly<P> {
         Self::from_coeffs(coeffs)
     }
 }
+
+
+impl<P: NttOps> Poly<P> {
+    /// Applies the forward NTT in place
+    pub fn ntt(&mut self) {
+        P::ntt_in_place(self.coeffs_mut());
+    }
+
+    /// Applies the inverse NTT in place
+    pub fn inv_ntt(&mut self) {
+        P::inv_ntt_in_place(self.coeffs_mut());
+    }
+}
+
+
+impl<P: NttDomainMul> Poly<P> {
+    /// Multiplies two NTT-domain polynomials and returns the product.
+    #[must_use]
+    pub fn mul_ntt(&self, rhs: &Self) -> Self {
+        let mut prod = [0i32; N];
+        P::mul_ntt(self.coeffs(), rhs.coeffs(), &mut prod);
+        Poly::<P>::from_coeffs(prod)
+    }
+}
+
 
 
 #[cfg(test)]

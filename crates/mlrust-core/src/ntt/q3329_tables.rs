@@ -8,8 +8,13 @@
 /// Each entry is:
 ///
 /// ```text
-/// zeta^BitRev_7(i) * R mod q.
+/// zeta^BitRev_7(i) * R mod q,
 /// ```
+///
+/// where:
+/// q = 3329
+/// R mod q = 2285
+/// zeta = 17
 pub const FIPS_ZETAS_MONT: [i32; 128] = [
     2285, 2571, 2970, 1812, 1493, 1422, 287, 202,
     3158, 622, 1577, 182, 962, 2127, 1855, 1468,
@@ -101,16 +106,6 @@ mod tests {
 
     fn mont_encode(x: i32) -> i32 {
         ((x as i64) * (R_MOD_Q as i64)).rem_euclid(Q as i64) as i32
-    }
-
-    #[test]
-    fn fips_zetas_mont_has_correct_length() {
-        assert_eq!(FIPS_ZETAS_MONT.len(), 128);
-    }
-
-    #[test]
-    fn fips_basemul_zetas_mont_has_correct_length() {
-        assert_eq!(FIPS_BASEMUL_ZETAS_MONT.len(), 128);
     }
 
     #[test]

@@ -8,9 +8,18 @@
 pub const N: usize = 256;
 
 
+/// Ring marker for ML-KEM coefficient arithmetic: q = 3329.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Q3329 {}
+
+
+/// Ring marker for ML-DSA coefficient arithmetic: q = 8380417.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Q8380417 {}
+
+
 /// Parameters for coefficient arithmetic over Z_q.
 pub trait RingParams: Copy + Clone + 'static {
-
 
     /// Modulus q.
     const Q: i32;
@@ -86,25 +95,31 @@ pub trait NttParams: RingParams {
 }
 
 
+/// Forward and inverse NTT operations for a parameter set.
+pub trait NttOps: NttParams {
+    /// Applies the forward NTT in place.
+    ///
+    /// The input is interpreted as an ordinary coefficient-domain polynomial.
+    /// The output is in the NTT/Montgomery domain.
+    fn ntt_in_place(a: &mut [i32; N]);
+
+    /// Applies the inverse NTT in place.
+    ///
+    /// The input is interpreted as an NTT/Montgomery-domain polynomial.
+    /// The output is converted back to ordinary coefficient representation.
+    fn inv_ntt_in_place(a: &mut [i32; N]);
+}
+
+
 /// Multiplication rule for polynomials represented in the NTT domain.
 ///
 /// Different schemes may use different multiplication structures in the NTT
 /// domain. ML-KEM uses degree-1 base multiplication blocks, while ML-DSA uses
 /// coefficientwise Montgomery multiplication.
-pub trait NttDomainMul: NttParams {
+pub trait NttDomainMul: NttOps {
     /// Multiplies two NTT-domain polynomials.
     ///
     /// The inputs `lhs` and `rhs` are interpreted as already transformed into
     /// the NTT domain. The result is written to `out`.
     fn mul_ntt(lhs: &[i32; N], rhs: &[i32; N], out: &mut [i32; N]);
 }
-
-
-/// Ring marker for ML-KEM coefficient arithmetic: q = 3329.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Q3329 {}
-
-
-/// Ring marker for ML-DSA coefficient arithmetic: q = 8380417.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Q8380417 {}

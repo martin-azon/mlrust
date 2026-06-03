@@ -1,3 +1,34 @@
+//! Finite-field arithmetic for the ML-DSA modulus `q = 8380417`.
+//!
+//! This module implements [`RingParams`] for [`Q8380417`], the coefficient
+//! field used by ML-DSA.
+//!
+//! The implementation provides:
+//!
+//! - Montgomery reduction with radix `R = 2^32`;
+//! - Dilithium/ML-DSA-style bounded reduction for `i32` coefficients;
+//! - Montgomery conversion through `R2 = R^2 mod q`;
+//! - tests for canonicalization, conditional correction, Barrett-style
+//!   reduction, and Montgomery reduction.
+//!
+//! Coefficients are represented as signed `i32` values, while products are
+//! passed to Montgomery reduction as `i64` values. This is necessary because
+//! products modulo `q = 8380417` do not generally fit in `i32`.
+//!
+//! The Montgomery constant satisfies:
+//!
+//! ```text
+//! Q_INV = q^{-1} mod 2^32 = 58728449
+//! ```
+//!
+//! The `R2` value must be set to:
+//!
+//! ```text
+//! R2 = R^2 mod q = 2365951
+//! ```
+
+
+
 use crate::params::{RingParams, Q8380417};
 
 impl RingParams for Q8380417 {
@@ -5,7 +36,7 @@ impl RingParams for Q8380417 {
 
     const Q_INV: i32 = 58_728_449;
 
-    const R2: i32 = 1; // placeholder, TO BE MODIFIED!!!
+    const R2: i32 = 2365951;
 
     fn montgomery_reduce(a: i64) -> i32 {
         let t = (a as i32).wrapping_mul(Self::Q_INV);

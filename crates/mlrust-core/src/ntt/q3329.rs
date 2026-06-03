@@ -2,8 +2,8 @@
 
 
 use super::q3329_tables::{FIPS_ZETAS_MONT, FIPS_BASEMUL_ZETAS_MONT, INV_NTT_SCALE_MONT};
-use crate::params::{N, RingParams, NttParams, NttDomainMul, Q3329};
-use crate::poly::Poly;
+use crate::params::{N, RingParams, NttParams, NttOps, NttDomainMul, Q3329};
+use crate::field::{mul_montgomery, add_mod, sub_mod};
 
 
 impl NttParams for Q3329 {
@@ -12,17 +12,10 @@ impl NttParams for Q3329 {
 }
 
 
-/// Helper function for performing a product in the Montgomery representation
-#[inline]
-fn mul_mont<P: RingParams>(a_mont: i32, b_mont: i32) -> i32 {
-    P::montgomery_reduce((a_mont as i64) * (b_mont as i64))
-}
-
-
 /// Applies the forward NTT in place.
-pub fn ntt_in_place<P: NttParams>(a: &mut [i32; N]) {
+pub fn ntt_in_place_q3329(a: &mut [i32; N]) {
     for coeff in a.iter_mut() {
-        *coeff = P::to_montgomery(*coeff)
+        *coeff = Q3329::to_montgomery(*coeff);
     }
 
 
@@ -33,15 +26,15 @@ pub fn ntt_in_place<P: NttParams>(a: &mut [i32; N]) {
         let mut start = 0;
 
         while start < N {
-            let zeta_mont = P::ZETAS_MONT[i];
+            let zeta_mont = Q3329::ZETAS_MONT[i];
             i += 1;
 
             for j in start..(start + len) {
-                let t = mul_mont::<P>(zeta_mont, a[j + len]);
+                let t = mul_montgomery::<Q3329>(zeta_mont, a[j + len]);
                 let u = a[j];
 
-                a[j + len] = P::barrett_reduce(u - t);
-                a[j] = P::barrett_reduce(u + t);
+                a[j + len] = sub_mod::<Q3329>(u, t);
+                a[j] = add_mod::<Q3329>(u, t);
             }
             start += 2 * len;
         }
@@ -51,24 +44,24 @@ pub fn ntt_in_place<P: NttParams>(a: &mut [i32; N]) {
 
 
 /// Applies the inverse NTT in place.
-pub fn inv_ntt_in_place<P: NttParams>(a: &mut [i32; N]) {
+pub fn inv_ntt_in_place_q3329(a: &mut [i32; N]) {
     let mut i = 127usize;
     let mut len = 2usize;
 
     while len <= 128 {
-        let mut start = 0;
+        let mut start = 0usize;
 
-        while start < N {
-            let zeta_mont = P::ZETAS_MONT[i];
+        while start < 256 {
+            let zeta_mont = Q3329::ZETAS_MONT[i];
             i -= 1;
 
             for j in start..(start + len) {
                 let t = a[j];
                 let u = a[j + len];
 
-                a[j] = P::barrett_reduce(t + u);
-                let tmp = P::barrett_reduce(u - t);
-                a[j + len] = mul_mont::<P>(zeta_mont, tmp);
+                a[j] = add_mod::<Q3329>(t, u);
+                let tmp = sub_mod::<Q3329>(u, t);
+                a[j + len] = mul_montgomery::<Q3329>(zeta_mont, tmp);
             }
             start += 2 * len;
         }
@@ -76,11 +69,23 @@ pub fn inv_ntt_in_place<P: NttParams>(a: &mut [i32; N]) {
     }
 
     for coeff in a.iter_mut() {
-        *coeff = mul_mont::<P>(*coeff, P::INV_NTT_SCALE_MONT);
-        *coeff = P::from_montgomery(*coeff);
-        *coeff = P::freeze(*coeff);
+        *coeff = mul_montgomery::<Q3329>(*coeff, Q3329::INV_NTT_SCALE_MONT);
+        *coeff = Q3329::from_montgomery(*coeff);
+        *coeff = Q3329::freeze(*coeff);
     }
 }
+
+
+impl NttOps for Q3329 {
+    fn ntt_in_place(a: &mut [i32; N]) {
+        ntt_in_place_q3329(a)
+    }
+
+    fn inv_ntt_in_place(a: &mut [i32; N]) {
+        inv_ntt_in_place_q3329(a)
+    }
+}
+
 
 
 /// Base multiplication of two degree-1 polynomial fragments.
@@ -97,14 +102,14 @@ pub fn base_mul<P: RingParams>(
     b1: i32,
     zeta_mont: i32,
 ) -> (i32, i32) {
-    let a0b0 = mul_mont::<P>(a0, b0);
-    let a1b1 = mul_mont::<P>(a1, b1);
-    let za1b1 = mul_mont::<P>(zeta_mont, a1b1);
-    let deg0 = P::barrett_reduce(a0b0 + za1b1);
+    let a0b0 = mul_montgomery::<P>(a0, b0);
+    let a1b1 = mul_montgomery::<P>(a1, b1);
+    let za1b1 = mul_montgomery::<P>(zeta_mont, a1b1);
+    let deg0 = add_mod::<P>(a0b0, za1b1);
 
-    let a0b1 = mul_mont::<P>(a0, b1);
-    let a1b0 = mul_mont::<P>(a1, b0);
-    let deg1 = P::barrett_reduce(a0b1 + a1b0);
+    let a0b1 = mul_montgomery::<P>(a0, b1);
+    let a1b0 = mul_montgomery::<P>(a1, b0);
+    let deg1 = add_mod::<P>(a0b1, a1b0);
 
     (deg0, deg1)
 }
@@ -141,43 +146,36 @@ impl NttDomainMul for Q3329 {
 }
 
 
-impl<P: NttParams> Poly<P> {
-    /// Applies the forward NTT in place
-    pub fn ntt(&mut self) {
-        ntt_in_place::<P>(self.coeffs_mut());
-    }
-
-    /// Applies the inverse NTT in place
-    pub fn inv_ntt(&mut self) {
-        inv_ntt_in_place::<P>(self.coeffs_mut());
-    }
-}
-
-
-impl<P: NttDomainMul> Poly<P> {
-    /// Multiplies two NTT-domain polynomials and returns the product.
-    #[must_use]
-    pub fn mul_ntt(&self, rhs: &Self) -> Self {
-        let mut prod = [0i32; N];
-        P::mul_ntt(self.coeffs(), rhs.coeffs(), &mut prod);
-        Poly::<P>::from_coeffs(prod)
-    }
-}
-
-
 
 #[cfg(test)]
 mod tests {
     use crate::params::{N, Q3329, RingParams};
     use crate::poly::Poly;
 
+    fn freeze_poly(mut p: Poly<Q3329>) -> Poly<Q3329> {
+        p.freeze();
+        p
+    }
+
+    fn assert_poly_eq_canonical(
+        got: Poly<Q3329>,
+        expected: Poly<Q3329>,
+    ) {
+        let got = freeze_poly(got);
+        let expected = freeze_poly(expected);
+
+        assert_eq!(got, expected);
+    }
+
     fn make_pattern_poly(seed: i32) -> Poly<Q3329> {
         let mut coeffs = [0i32; N];
 
         for (i, coeff) in coeffs.iter_mut().enumerate() {
+            let i = i as i32;
+
             // Deliberately nontrivial but bounded pattern:
             // includes negative, positive, and repeated residues.
-            *coeff = ((seed + 17 * (i as i32) + 13 * (i as i32) * (i as i32)) % 997) - 498;
+            *coeff = ((seed + 17 * i + 13 * i * i) % 997) - 498;
         }
 
         Poly::from_coeffs(coeffs)
@@ -208,15 +206,6 @@ mod tests {
         }
 
         Poly::from_coeffs(coeffs)
-    }
-
-    #[test]
-    fn ntt_zero_stays_zero_q3329() {
-        let mut p = Poly::<Q3329>::zero();
-
-        p.ntt();
-
-        assert!(p.coeffs().iter().all(|&c| c == 0));
     }
 
     #[test]
@@ -264,6 +253,31 @@ mod tests {
     }
 
     #[test]
+    fn ntt_roundtrip_zero_q3329() {
+        let mut p = Poly::<Q3329>::zero();
+        let expected = p;
+
+        p.ntt();
+        p.inv_ntt();
+
+        assert_poly_eq_canonical(p, expected);
+    }
+
+    #[test]
+    fn ntt_roundtrip_constant_q3329() {
+        let mut coeffs = [0i32; N];
+        coeffs[0] = 1234;
+
+        let mut p = Poly::<Q3329>::from_coeffs(coeffs);
+        let expected = p;
+
+        p.ntt();
+        p.inv_ntt();
+
+        assert_poly_eq_canonical(p, expected);
+    }
+
+    #[test]
     fn ntt_roundtrip_sparse_edges_q3329() {
         let mut p = make_sparse_poly(&[
             (0, 1),
@@ -275,69 +289,43 @@ mod tests {
             (255, 123),
         ]);
 
-        let expected = p.freeze();
+        let expected = p;
 
         p.ntt();
         p.inv_ntt();
 
-        assert_eq!(p.freeze(), expected);
+        assert_poly_eq_canonical(p, expected);
     }
 
     #[test]
     fn ntt_roundtrip_dense_pattern_q3329() {
         let mut p = make_pattern_poly(91);
-        let expected = p.freeze();
+        let expected = p;
 
         p.ntt();
         p.inv_ntt();
 
-        assert_eq!(p.freeze(), expected);
+        assert_poly_eq_canonical(p, expected);
     }
 
     #[test]
     fn ntt_roundtrip_high_canonical_q3329() {
         let mut p = make_high_canonical_poly();
-        let expected = p.freeze();
+        let expected = p;
 
         p.ntt();
         p.inv_ntt();
 
-        assert_eq!(p.freeze(), expected);
+        assert_poly_eq_canonical(p, expected);
     }
 
     #[test]
-    fn inv_ntt_after_ntt_recovers_input_q3329() {
-        let mut coeffs = [0i32; N];
+    fn ntt_is_additive_q3329() {
+        let a = make_pattern_poly(11);
+        let b = make_pattern_poly(37);
 
-        for (i, coeff) in coeffs.iter_mut().enumerate() {
-            *coeff = ((17 * i as i32 + 23) % Q3329::Q) - 1000;
-        }
-
-        let mut p = Poly::<Q3329>::from_coeffs(coeffs);
-        let mut expected = p;
-        expected.freeze();
-
-        p.ntt();
-        p.inv_ntt();
-        p.freeze();
-
-        assert_eq!(p, expected);
-    }
-
-    #[test]
-    fn ntt_multiplication_matches_schoolbook_q3329() {
-        let mut a_coeffs = [0i32; N];
-        let mut b_coeffs = [0i32; N];
-
-        for i in 0..N {
-            a_coeffs[i] = (i as i32 % 7) - 3;
-            b_coeffs[i] = (i as i32 % 5) - 2;
-        }
-
-        let a = Poly::<Q3329>::from_coeffs(a_coeffs);
-        let b = Poly::<Q3329>::from_coeffs(b_coeffs);
-
-        let expected = a.schoolbook_mul_negacyclic(&b);
+        let mut lhs = a.add(&b);
+        lhs.ntt();
 
         let mut a_ntt = a;
         let mut b_ntt = b;
@@ -345,11 +333,48 @@ mod tests {
         a_ntt.ntt();
         b_ntt.ntt();
 
-        let mut got = a_ntt.mul_ntt(&b_ntt);
-        got.inv_ntt();
-        got.freeze();
+        let rhs = a_ntt.add(&b_ntt);
 
-        assert_eq!(got, expected);
+        assert_poly_eq_canonical(lhs, rhs);
+    }
+
+    #[test]
+    fn ntt_mul_by_zero_matches_schoolbook_q3329() {
+        let a = make_pattern_poly(123);
+        let zero = Poly::<Q3329>::zero();
+
+        let expected = a.schoolbook_mul_negacyclic(&zero);
+
+        let mut a_ntt = a;
+        let mut zero_ntt = zero;
+
+        a_ntt.ntt();
+        zero_ntt.ntt();
+
+        let mut got = a_ntt.mul_ntt(&zero_ntt);
+        got.inv_ntt();
+
+        assert_poly_eq_canonical(got, expected);
+    }
+
+    #[test]
+    fn ntt_mul_by_one_matches_schoolbook_q3329() {
+        let a = make_pattern_poly(123);
+
+        let one = make_sparse_poly(&[(0, 1)]);
+
+        let expected = a.schoolbook_mul_negacyclic(&one);
+
+        let mut a_ntt = a;
+        let mut one_ntt = one;
+
+        a_ntt.ntt();
+        one_ntt.ntt();
+
+        let mut got = a_ntt.mul_ntt(&one_ntt);
+        got.inv_ntt();
+
+        assert_poly_eq_canonical(got, expected);
     }
 
     #[test]
@@ -370,7 +395,7 @@ mod tests {
             (255, -5),
         ]);
 
-        let expected = a.schoolbook_mul_negacyclic(&b).freeze();
+        let expected = a.schoolbook_mul_negacyclic(&b);
 
         let mut a_ntt = a;
         let mut b_ntt = b;
@@ -381,7 +406,7 @@ mod tests {
         let mut got = a_ntt.mul_ntt(&b_ntt);
         got.inv_ntt();
 
-        assert_eq!(got.freeze(), expected);
+        assert_poly_eq_canonical(got, expected);
     }
 
     #[test]
@@ -389,7 +414,7 @@ mod tests {
         let a = make_pattern_poly(5);
         let b = make_pattern_poly(211);
 
-        let expected = a.schoolbook_mul_negacyclic(&b).freeze();
+        let expected = a.schoolbook_mul_negacyclic(&b);
 
         let mut a_ntt = a;
         let mut b_ntt = b;
@@ -400,7 +425,7 @@ mod tests {
         let mut got = a_ntt.mul_ntt(&b_ntt);
         got.inv_ntt();
 
-        assert_eq!(got.freeze(), expected);
+        assert_poly_eq_canonical(got, expected);
     }
 
     #[test]
@@ -415,7 +440,7 @@ mod tests {
             (255, Q3329::Q - 7),
         ]);
 
-        let expected = a.schoolbook_mul_negacyclic(&b).freeze();
+        let expected = a.schoolbook_mul_negacyclic(&b);
 
         let mut a_ntt = a;
         let mut b_ntt = b;
@@ -426,6 +451,6 @@ mod tests {
         let mut got = a_ntt.mul_ntt(&b_ntt);
         got.inv_ntt();
 
-        assert_eq!(got.freeze(), expected);
+        assert_poly_eq_canonical(got, expected);
     }
 }
