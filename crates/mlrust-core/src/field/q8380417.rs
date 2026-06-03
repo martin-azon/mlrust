@@ -5,6 +5,8 @@ impl RingParams for Q8380417 {
 
     const Q_INV: i32 = 58_728_449;
 
+    const R2: i32 = 1; // placeholder, TO BE MODIFIED!!!
+
     fn montgomery_reduce(a: i64) -> i32 {
         let t = (a as i32).wrapping_mul(Self::Q_INV);
         ((a - (t as i64) * (Self::Q as i64)) >> 32) as i32

@@ -6,8 +6,9 @@ const BARRETT_V: i32 = 20159;
 impl RingParams for Q3329 {
     const Q: i32 = 3_329;
 
-    // Signed Kyber/ML-KEM convention.
     const Q_INV: i32 = -3_327;
+
+    const R2: i32 = 1353;
 
     fn montgomery_reduce(a: i64) -> i32 {
         debug_assert!(a >= i32::MIN as i64);

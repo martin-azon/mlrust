@@ -1,72 +1,164 @@
-//! Precomputed NTT constants for the ML-KEM modulus q = 3329.
+//! NTT constants for the ML-KEM modulus q = 3329.
 //!
-//! These constants are taken from Appendix A of FIPS 203.
-//!
-//! `FIPS_ZETAS_BITREV` contains:
-//!
-//! ```text
-//! zeta^BitRev_7(i) mod q, for i = 0, ..., 127
-//! ```
-//!
-//! `FIPS_BASEMUL_ZETAS` contains:
-//!
-//! ```text
-//! zeta^(2*BitRev_7(i) + 1) mod q, for i = 0, ..., 127
-//! ```
-//!
-//! These are the FIPS mathematical representatives. They are not
-//! Montgomery-encoded constants.
+//! The tables in this module follow the FIPS 203 Appendix A exponent order,
+//! but their entries are stored in Montgomery representation.
 
 
-/// Values of `zeta^BitRev_7(i) mod q` for `i = 0, ..., 127`.
+/// FIPS 203 Appendix A zeta table converted to Montgomery representation.
+/// Each entry is:
 ///
-/// This is the first table from Appendix A of FIPS 203.
-pub const FIPS_ZETAS_BITREV: &[i32] = &[
-    1, 1729, 2580, 3289, 2642, 630, 1897, 848,
-    1062, 1919, 193, 797, 2786, 3260, 569, 1746,
-    296, 2447, 1339, 1476, 3046, 56, 2240, 1333,
-    1426, 2094, 535, 2882, 2393, 2879, 1974, 821,
-    289, 331, 3253, 1756, 1197, 2304, 2277, 2055,
-    650, 1977, 2513, 632, 2865, 33, 1320, 1915,
-    2319, 1435, 807, 452, 1438, 2868, 1534, 2402,
-    2647, 2617, 1481, 648, 2474, 3110, 1227, 910,
-    17, 2761, 583, 2649, 1637, 723, 2288, 1100,
-    1409, 2662, 3281, 233, 756, 2156, 3015, 3050,
-    1703, 1651, 2789, 1789, 1847, 952, 1461, 2687,
-    939, 2308, 2437, 2388, 733, 2337, 268, 641,
-    1584, 2298, 2037, 3220, 375, 2549, 2090, 1645,
-    1063, 319, 2773, 757, 2099, 561, 2466, 2594,
-    2804, 1092, 403, 1026, 1143, 2150, 2775, 886,
-    1722, 1212, 1874, 1029, 2110, 2935, 885, 2154,
+/// ```text
+/// zeta^BitRev_7(i) * R mod q.
+/// ```
+pub const FIPS_ZETAS_MONT: [i32; 128] = [
+    2285, 2571, 2970, 1812, 1493, 1422, 287, 202,
+    3158, 622, 1577, 182, 962, 2127, 1855, 1468,
+    573, 2004, 264, 383, 2500, 1458, 1727, 3199,
+    2648, 1017, 732, 608, 1787, 411, 3124, 1758,
+    1223, 652, 2777, 1015, 2036, 1491, 3047, 1785,
+    516, 3321, 3009, 2663, 1711, 2167, 126, 1469,
+    2476, 3239, 3058, 830, 107, 1908, 3082, 2378,
+    2931, 961, 1821, 2604, 448, 2264, 677, 2054,
+    2226, 430, 555, 843, 2078, 871, 1550, 105,
+    422, 587, 177, 3094, 3038, 2869, 1574, 1653,
+    3083, 778, 1159, 3182, 2552, 1483, 2727, 1119,
+    1739, 644, 2457, 349, 418, 329, 3173, 3254,
+    817, 1097, 603, 610, 1322, 2044, 1864, 384,
+    2114, 3193, 1218, 1994, 2455, 220, 2142, 1670,
+    2144, 1799, 2051, 794, 1819, 2475, 2459, 478,
+    3221, 3021, 996, 991, 958, 1869, 1522, 1628,
 ];
 
 
-/// Values of `zeta^(2*BitRev_7(i) + 1) mod q` for `i = 0, ..., 127`.
+/// FIPS 203 Appendix A base-multiplication zeta table converted to
+/// Montgomery representation.
 ///
-/// This is the second table from Appendix A of FIPS 203.
+/// Each entry is:
 ///
-/// FIPS writes this table using signed representatives for alternating
-/// positive and negative values. For example, `-17` represents `3312 mod 3329`.
-pub const FIPS_BASEMUL_ZETAS: &[i32] = &[
-    17, -17, 2761, -2761, 583, -583, 2649, -2649,
-    1637, -1637, 723, -723, 2288, -2288, 1100, -1100,
-    1409, -1409, 2662, -2662, 3281, -3281, 233, -233,
-    756, -756, 2156, -2156, 3015, -3015, 3050, -3050,
-    1703, -1703, 1651, -1651, 2789, -2789, 1789, -1789,
-    1847, -1847, 952, -952, 1461, -1461, 2687, -2687,
-    939, -939, 2308, -2308, 2437, -2437, 2388, -2388,
-    733, -733, 2337, -2337, 268, -268, 641, -641,
-    1584, -1584, 2298, -2298, 2037, -2037, 3220, -3220,
-    375, -375, 2549, -2549, 2090, -2090, 1645, -1645,
-    1063, -1063, 319, -319, 2773, -2773, 757, -757,
-    2099, -2099, 561, -561, 2466, -2466, 2594, -2594,
-    2804, -2804, 1092, -1092, 403, -403, 1026, -1026,
-    1143, -1143, 2150, -2150, 2775, -2775, 886, -886,
-    1722, -1722, 1212, -1212, 1874, -1874, 1029, -1029,
-    2110, -2110, 2935, -2935, 885, -885, 2154, -2154,
+/// ```text
+/// zeta^(2*BitRev_7(i) + 1) * R mod q.
+/// ```
+pub const FIPS_BASEMUL_ZETAS_MONT: [i32; 128] = [
+    2226, 1103, 430, 2899, 555, 2774, 843, 2486,
+    2078, 1251, 871, 2458, 1550, 1779, 105, 3224,
+    422, 2907, 587, 2742, 177, 3152, 3094, 235,
+    3038, 291, 2869, 460, 1574, 1755, 1653, 1676,
+    3083, 246, 778, 2551, 1159, 2170, 3182, 147,
+    2552, 777, 1483, 1846, 2727, 602, 1119, 2210,
+    1739, 1590, 644, 2685, 2457, 872, 349, 2980,
+    418, 2911, 329, 3000, 3173, 156, 3254, 75,
+    817, 2512, 1097, 2232, 603, 2726, 610, 2719,
+    1322, 2007, 2044, 1285, 1864, 1465, 384, 2945,
+    2114, 1215, 3193, 136, 1218, 2111, 1994, 1335,
+    2455, 874, 220, 3109, 2142, 1187, 1670, 1659,
+    2144, 1185, 1799, 1530, 2051, 1278, 794, 2535,
+    1819, 1510, 2475, 854, 2459, 870, 478, 2851,
+    3221, 108, 3021, 308, 996, 2333, 991, 2338,
+    958, 2371, 1869, 1460, 1522, 1807, 1628, 1701,
 ];
 
 
-/// Final scaling factor used by the inverse NTT.
-pub const INV_NTT_SCALE: i32 = 3303;         
+/// Final scaling factor converted to Montgomery representation.
+/// This is 128^(-1) * 2285 mod 3329 = 512
+pub const INV_NTT_SCALE_MONT: i32 = 512;
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const Q: i32 = 3_329;
+    const ZETA: i32 = 17;
+    const R_MOD_Q: i32 = 2_285;
+
+    fn bitrev7(x: usize) -> usize {
+        let mut y = 0usize;
+
+        for i in 0..7 {
+            y <<= 1;
+            y |= (x >> i) & 1;
+        }
+
+        y
+    }
+
+    fn mod_pow(base: i32, exp: usize) -> i32 {
+        let mut result = 1i64;
+        let mut base = (base as i64).rem_euclid(Q as i64);
+        let mut exp = exp;
+
+        while exp > 0 {
+            if exp & 1 == 1 {
+                result = (result * base).rem_euclid(Q as i64);
+            }
+
+            base = (base * base).rem_euclid(Q as i64);
+            exp >>= 1;
+        }
+
+        result as i32
+    }
+
+    fn mont_encode(x: i32) -> i32 {
+        ((x as i64) * (R_MOD_Q as i64)).rem_euclid(Q as i64) as i32
+    }
+
+    #[test]
+    fn fips_zetas_mont_has_correct_length() {
+        assert_eq!(FIPS_ZETAS_MONT.len(), 128);
+    }
+
+    #[test]
+    fn fips_basemul_zetas_mont_has_correct_length() {
+        assert_eq!(FIPS_BASEMUL_ZETAS_MONT.len(), 128);
+    }
+
+    #[test]
+    fn inv_ntt_scale_mont_is_correct() {
+        let inv_128 = 3303;
+        let expected = mont_encode(inv_128);
+
+        assert_eq!(INV_NTT_SCALE_MONT, expected);
+        assert_eq!(INV_NTT_SCALE_MONT, 512);
+    }
+
+    #[test]
+    fn fips_zetas_mont_match_formula() {
+        for i in 0..128 {
+            let exponent = bitrev7(i);
+            let zeta = mod_pow(ZETA, exponent);
+            let expected = mont_encode(zeta);
+
+            assert_eq!(
+                FIPS_ZETAS_MONT[i],
+                expected,
+                "wrong FIPS_ZETAS_MONT[{i}], exponent = {exponent}"
+            );
+        }
+    }
+
+    #[test]
+    fn fips_basemul_zetas_mont_match_formula() {
+        for i in 0..128 {
+            let exponent = 2 * bitrev7(i) + 1;
+            let zeta = mod_pow(ZETA, exponent);
+            let expected = mont_encode(zeta);
+
+            assert_eq!(
+                FIPS_BASEMUL_ZETAS_MONT[i],
+                expected,
+                "wrong FIPS_BASEMUL_ZETAS_MONT[{i}], exponent = {exponent}"
+            );
+        }
+    }
+
+    #[test]
+    fn bitrev7_known_values() {
+        assert_eq!(bitrev7(0), 0);
+        assert_eq!(bitrev7(1), 64);
+        assert_eq!(bitrev7(2), 32);
+        assert_eq!(bitrev7(3), 96);
+        assert_eq!(bitrev7(64), 1);
+        assert_eq!(bitrev7(127), 127);
+    }
+}
