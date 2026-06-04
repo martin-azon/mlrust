@@ -51,7 +51,7 @@ pub fn inv_ntt_in_place_q3329(a: &mut [i32; N]) {
     while len <= 128 {
         let mut start = 0usize;
 
-        while start < 256 {
+        while start < N {
             let zeta_mont = Q3329::ZETAS_MONT[i];
             i -= 1;
 
@@ -128,7 +128,7 @@ impl NttDomainMul for Q3329 {
         rhs: &[i32; N],
         out: &mut [i32; N],
     ) {
-        for i in 0..128 {
+        for i in 0..N/2 {
             let zeta_mont = FIPS_BASEMUL_ZETAS_MONT[i];
 
             let base_prod = base_mul::<Self>(

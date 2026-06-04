@@ -29,7 +29,7 @@ pub mod params;
 pub mod field;
 pub mod ntt;
 pub mod poly;
-//pub mod encode;
+pub mod encode;
 //pub mod symmetric;
 //pub mod sampling;
 pub mod ct;

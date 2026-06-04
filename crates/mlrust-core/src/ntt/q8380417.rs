@@ -23,7 +23,7 @@ pub fn ntt_in_place_q8380417(a: &mut [i32; N]) {
 
     while len >= 1 {
         let mut start = 0usize;
-        while start < 256 {
+        while start < N {
             m += 1;
             let zeta_mont = Q8380417::ZETAS_MONT[m];
             for j in start..(start + len) {
@@ -46,10 +46,10 @@ pub fn inv_ntt_in_place_q8380417(a: &mut [i32; N]) {
     let mut m = 256usize;
     let mut len = 1usize;
 
-    while len < 256 {
+    while len < N {
         let mut start = 0usize;
 
-        while start < 256 {
+        while start < N {
             m -= 1;
             let zeta_mont = - Q8380417::ZETAS_MONT[m];
 
@@ -97,7 +97,7 @@ impl NttDomainMul for Q8380417 {
         rhs: &[i32; N],
         out: &mut [i32; N],
     ) {
-        for i in 0..256 {
+        for i in 0..N {
             out[i] = mul_montgomery::<Self>(lhs[i], rhs[i]);
         }
 
