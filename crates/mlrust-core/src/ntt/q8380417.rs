@@ -13,7 +13,7 @@ impl NttParams for Q8380417 {
 
 
 /// Applies the forward NTT in place.
-pub fn ntt_in_place_q8380417(a: &mut [i32; N]) {
+fn ntt_in_place_q8380417(a: &mut [i32; N]) {
     for coeff in a.iter_mut() {
         *coeff = Q8380417::to_montgomery(*coeff);
     }
@@ -42,7 +42,7 @@ pub fn ntt_in_place_q8380417(a: &mut [i32; N]) {
 
 
 /// Applies the inverse NTT in place.
-pub fn inv_ntt_in_place_q8380417(a: &mut [i32; N]) {
+fn inv_ntt_in_place_q8380417(a: &mut [i32; N]) {
     let mut m = 256usize;
     let mut len = 1usize;
 

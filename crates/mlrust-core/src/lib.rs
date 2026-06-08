@@ -22,17 +22,15 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
+extern crate alloc;
 
 pub mod error;
 pub mod params;
 
+pub mod ct;
+pub mod encode;
 pub mod field;
 pub mod ntt;
 pub mod poly;
-pub mod encode;
-//pub mod symmetric;
-//pub mod sampling;
-pub mod ct;
-
-pub use error::PqcCoreError;
-pub use params::{N, RingParams, NttParams};
+pub mod sampling;
+pub mod symmetric;
