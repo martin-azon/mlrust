@@ -9,3 +9,4 @@ std = []
 
 
 [dependencies]
+mlrust-core = {path = "../mlrust-core"}
