@@ -85,7 +85,7 @@ pub(crate) struct KpkeKeypair<const EK_BYTES: usize, const DK_BYTES: usize> {
 /// The first 32 bytes of the SHA3-512 output are `rho`; the last 32 bytes are
 /// `sigma`.
 #[must_use]
-pub fn derive_k_pke_keygen_seeds(
+pub(crate) fn derive_k_pke_keygen_seeds(
     d: &[u8; 32],
     k: u8,
 ) -> ([u8; 32], [u8; 32]) {
@@ -151,7 +151,7 @@ fn kpke_keygen_internal<const K: usize, const ETA1: usize>(
 /// EK_BYTES = 384 * K + 32
 /// DK_BYTES = 384 * K
 /// ```
-pub fn kpke_keygen<
+pub(crate) fn kpke_keygen<
     const K: usize,
     const EK_BYTES: usize,
     const DK_BYTES: usize,
@@ -243,7 +243,7 @@ fn mu_to_message(mu: &Poly<Q3329>) -> [u8; 32] {
 ///
 /// The decoded `t_hat` coefficients are converted into this crate's
 /// NTT/Montgomery representation before NTT-domain multiplication.
-pub fn kpke_encrypt<
+pub(crate) fn kpke_encrypt<
     const K: usize,
     const EK_BYTES: usize,
     const CT_BYTES: usize,
@@ -348,7 +348,7 @@ pub fn kpke_encrypt<
 /// CT_BYTES = 32 * (DU * K + DV)
 /// ```
 #[must_use]
-pub fn kpke_decrypt<
+pub(crate) fn kpke_decrypt<
     const K: usize,
     const DK_BYTES: usize,
     const CT_BYTES: usize,
@@ -367,11 +367,11 @@ pub fn kpke_decrypt<
     let c1_len = 32 * DU * K;
 
     let mut u= decompress_q3329_polyvec::<K, DU>(
-        &byte_decode_polyvec_q3329::<K, DU>(&ciphertext.as_bytes()[.. c1_len])
+        &byte_decode_polyvec_q3329::<K, DU>(&ciphertext_bytes[.. c1_len])
     );
 
     let mut v = decompress_q3329_poly::<DV>(
-        &byte_decode_poly_q3329::<DV>(&ciphertext.as_bytes()[c1_len..])
+        &byte_decode_poly_q3329::<DV>(&ciphertext_bytes[c1_len..])
     );
 
     let s_hat = byte_decode_polyvec_q3329::<K, 12>(dk.as_bytes())
@@ -899,27 +899,25 @@ mod tests {
     //
     // ---------------------------------------------------------------
 
+    use std::vec::Vec;
 
-    const CCTV_512: &str =
-        include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
+    const CCTV_POLY_ENCODED_BYTES: usize = 384;
 
     fn hex_field<'a>(text: &'a str, name: &str) -> &'a str {
         for line in text.lines() {
             let line = line.trim();
 
-            if let Some(rest) = line.strip_prefix(name) {
-                let rest = rest.trim_start();
+            let Some((lhs, rhs)) = line.split_once('=') else {
+                continue;
+            };
 
-                if let Some(rest) = rest.strip_prefix('=') {
-                    return rest
-                        .trim()
-                        // Handles lines like:
-                        // A[0, 0] = { ... } = deadbeef...
-                        .rsplit(" = ")
-                        .next()
-                        .expect("field has a value")
-                        .trim();
-                }
+            if lhs.trim() == name {
+                return rhs
+                    .trim()
+                    .rsplit(" = ")
+                    .next()
+                    .expect("field has a value")
+                    .trim();
             }
         }
 
@@ -934,8 +932,136 @@ mod tests {
         })
     }
 
-    fn byte_encode_polymat_q3329<const K: usize>(
-        mat: &mlrust_core::poly::PolyMat<Q3329, K, K>,
+    /// CCTV intermediate vectors use the legacy derivation:
+    ///
+    /// ```text
+    /// G(d)
+    /// ```
+    ///
+    /// instead of the final FIPS-style derivation:
+    ///
+    /// ```text
+    /// G(d || k)
+    /// ```
+    ///
+    /// This helper is test-only and must not replace the production derivation.
+    #[must_use]
+    fn derive_kpke_keygen_seeds_cctv_legacy(
+        d: &[u8; 32],
+    ) -> ([u8; 32], [u8; 32]) {
+        let mut rho = [0u8; 32];
+        let mut sigma = [0u8; 32];
+
+        g(d, &mut rho, &mut sigma);
+
+        (rho, sigma)
+    }
+
+    /// CCTV-compatible algebraic K-PKE key generation.
+    ///
+    /// This differs from production key generation only in the seed derivation:
+    /// it uses `G(d)` instead of `G(d || k)`.
+    #[must_use]
+    fn kpke_keygen_internal_cctv_legacy<const K: usize, const ETA1: usize>(
+        d: &[u8; 32],
+    ) -> KpkeInternalKeypair<K> {
+        let (rho, sigma) = derive_kpke_keygen_seeds_cctv_legacy(d);
+
+        let a_hat = expand_a_hat::<K>(&rho);
+
+        let mut s_hat = sample_secret_vector::<K, ETA1>(&sigma, 0);
+        let mut e_hat = sample_error_vector::<K, ETA1>(&sigma, K as u8);
+
+        s_hat.ntt();
+        e_hat.ntt();
+
+        let t_hat = compute_t_hat::<K>(&a_hat, &s_hat, &e_hat);
+
+        KpkeInternalKeypair {
+            rho,
+            s_hat,
+            t_hat,
+        }
+    }
+
+    /// CCTV-compatible serialized K-PKE key generation.
+    ///
+    /// This is a test-only adapter for the CCTV intermediate vectors.
+    #[must_use]
+    fn kpke_keygen_cctv_legacy<
+        const K: usize,
+        const EK_BYTES: usize,
+        const DK_BYTES: usize,
+        const ETA1: usize,
+    >(
+        d: &[u8; 32],
+    ) -> KpkeKeypair<EK_BYTES, DK_BYTES> {
+        assert_eq!(EK_BYTES, K * CCTV_POLY_ENCODED_BYTES + 32);
+        assert_eq!(DK_BYTES, K * CCTV_POLY_ENCODED_BYTES);
+
+        let internal_key = kpke_keygen_internal_cctv_legacy::<K, ETA1>(d);
+
+        let t_hat = internal_key.t_hat.coeffs_from_montgomery();
+        let s_hat = internal_key.s_hat.coeffs_from_montgomery();
+
+        let mut encaps_key = [0u8; EK_BYTES];
+        let mut decaps_key = [0u8; DK_BYTES];
+
+        byte_encode_polyvec_q3329::<K, 12>(
+            &t_hat,
+            &mut encaps_key[..K * CCTV_POLY_ENCODED_BYTES],
+        );
+
+        encaps_key[K * CCTV_POLY_ENCODED_BYTES..].copy_from_slice(&internal_key.rho);
+
+        byte_encode_polyvec_q3329::<K, 12>(&s_hat, &mut decaps_key);
+
+        let ek_pke = KpkeEncryptionKey::from_bytes(encaps_key);
+        let dk_pke = KpkeDecryptionKey::from_bytes(decaps_key);
+
+        KpkeKeypair { ek_pke, dk_pke }
+    }
+
+    #[must_use]
+    fn kpke_keygen512_cctv_legacy(d: &[u8; 32]) -> KpkeKeypair<800, 768> {
+        kpke_keygen_cctv_legacy::<2, 800, 768, 3>(d)
+    }
+
+    #[must_use]
+    fn kpke_keygen768_cctv_legacy(d: &[u8; 32]) -> KpkeKeypair<1184, 1152> {
+        kpke_keygen_cctv_legacy::<3, 1184, 1152, 2>(d)
+    }
+
+    #[must_use]
+    fn kpke_keygen1024_cctv_legacy(d: &[u8; 32]) -> KpkeKeypair<1568, 1536> {
+        kpke_keygen_cctv_legacy::<4, 1568, 1536, 2>(d)
+    }
+    
+
+    use mlrust_core::params::RingParams;
+    use mlrust_core::poly::PolyMat;
+
+    fn poly_coeffs_from_montgomery(poly: &Poly<Q3329>) -> Poly<Q3329> {
+        let mut coeffs = *poly.coeffs();
+
+        for coeff in coeffs.iter_mut() {
+            *coeff = Q3329::freeze(Q3329::from_montgomery(*coeff));
+        }
+
+        Poly::<Q3329>::from_coeffs(coeffs)
+    }
+
+    fn byte_encode_poly_q3329_from_montgomery(poly: &Poly<Q3329>) -> [u8; 384] {
+        let poly = poly_coeffs_from_montgomery(poly);
+
+        let mut out = [0u8; 384];
+        byte_encode_poly_q3329::<12>(&poly, &mut out);
+
+        out
+    }
+
+    fn byte_encode_polymat_q3329_from_montgomery<const K: usize>(
+        mat: &PolyMat<Q3329, K, K>,
     ) -> Vec<u8> {
         let mut out = vec![0u8; K * K * 384];
 
@@ -944,20 +1070,45 @@ mod tests {
                 let start = (i * K + j) * 384;
                 let end = start + 384;
 
-                let poly = mat
-                    .get(i, j)
-                    .expect("matrix entry exists");
+                let poly = mat.get(i, j).expect("matrix entry exists");
+                let encoded = byte_encode_poly_q3329_from_montgomery(poly);
 
-                byte_encode_poly_q3329::<12>(poly, &mut out[start..end]);
+                out[start..end].copy_from_slice(&encoded);
             }
         }
 
         out
     }
 
-    
+    fn hex_field_nth<'a>(text: &'a str, name: &str, n: usize) -> &'a str {
+        let mut count = 0usize;
+
+        for line in text.lines() {
+            let line = line.trim();
+
+            let Some((lhs, rhs)) = line.split_once('=') else {
+                continue;
+            };
+
+            if lhs.trim() == name {
+                if count == n {
+                    return rhs
+                        .trim()
+                        .rsplit(" = ")
+                        .next()
+                        .expect("field has a value")
+                        .trim();
+                }
+
+                count += 1;
+            }
+        }
+
+        panic!("missing CCTV field occurrence {n}: {name}");
+    }
+
     #[test]
-    fn cctv_kpke512_rho_sigma_match() {
+    fn cctv_kpke512_rho_sigma_match_legacy_derivation() {
         const V: &str =
             include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
 
@@ -965,19 +1116,50 @@ mod tests {
         let expected_rho = hex_array::<32>(hex_field(V, "ρ"));
         let expected_sigma = hex_array::<32>(hex_field(V, "σ"));
 
-        let (rho, sigma) = derive_k_pke_keygen_seeds(&d, 2);
+        let (rho, sigma) = derive_kpke_keygen_seeds_cctv_legacy(&d);
 
         assert_eq!(rho, expected_rho, "rho mismatch");
         assert_eq!(sigma, expected_sigma, "sigma mismatch");
     }
 
+    #[test]
+    fn cctv_kpke512_a_00_matches_legacy_derivation() {
+        const V: &str =
+            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
 
+        let d = hex_array::<32>(hex_field(V, "d"));
+        let expected_a00 = hex_array::<384>(hex_field(V, "A[0, 0]"));
 
+        let (rho, _) = derive_kpke_keygen_seeds_cctv_legacy(&d);
+        let a_hat = expand_a_hat::<2>(&rho);
 
-    /*
+        let got = byte_encode_poly_q3329_from_montgomery(
+            a_hat.get(0, 0).expect("A[0,0] exists"),
+        );
+
+        assert_eq!(got, expected_a00);
+    }
 
     #[test]
-    fn cctv_kpke_keygen512_matches_intermediate_vector() {
+    fn cctv_kpke512_a_matrix_matches_legacy_derivation() {
+        const V: &str =
+            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
+
+        let d = hex_array::<32>(hex_field(V, "d"));
+        let expected_a = hex::decode(hex_field(V, "A")).expect("valid A hex");
+
+        assert_eq!(expected_a.len(), 2 * 2 * 384);
+
+        let (rho, _) = derive_kpke_keygen_seeds_cctv_legacy(&d);
+        let a_hat = expand_a_hat::<2>(&rho);
+
+        let got = byte_encode_polymat_q3329_from_montgomery::<2>(&a_hat);
+
+        assert_eq!(got, expected_a);
+    }
+
+    #[test]
+    fn cctv_kpke_keygen512_matches_intermediate_vector_legacy_derivation() {
         const V: &str =
             include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
 
@@ -985,15 +1167,14 @@ mod tests {
         let expected_ek = hex_array::<800>(hex_field(V, "ek"));
         let expected_dk_pke = hex_array::<768>(hex_field(V, "dkPKE"));
 
-        let kp = kpke_keygen512(&d);
+        let kp = kpke_keygen512_cctv_legacy(&d);
 
         assert_eq!(kp.ek_pke.as_bytes(), &expected_ek);
         assert_eq!(kp.dk_pke.as_bytes(), &expected_dk_pke);
     }
 
-
     #[test]
-    fn cctv_kpke_keygen768_matches_intermediate_vector() {
+    fn cctv_kpke_keygen768_matches_intermediate_vector_legacy_derivation() {
         const V: &str =
             include_str!("../tests/vectors/cctv/intermediate/ML-KEM-768.txt");
 
@@ -1001,14 +1182,14 @@ mod tests {
         let expected_ek = hex_array::<1184>(hex_field(V, "ek"));
         let expected_dk_pke = hex_array::<1152>(hex_field(V, "dkPKE"));
 
-        let kp = kpke_keygen768(&d);
+        let kp = kpke_keygen768_cctv_legacy(&d);
 
         assert_eq!(kp.ek_pke.as_bytes(), &expected_ek);
         assert_eq!(kp.dk_pke.as_bytes(), &expected_dk_pke);
     }
 
     #[test]
-    fn cctv_kpke_keygen1024_matches_intermediate_vector() {
+    fn cctv_kpke_keygen1024_matches_intermediate_vector_legacy_derivation() {
         const V: &str =
             include_str!("../tests/vectors/cctv/intermediate/ML-KEM-1024.txt");
 
@@ -1016,57 +1197,137 @@ mod tests {
         let expected_ek = hex_array::<1568>(hex_field(V, "ek"));
         let expected_dk_pke = hex_array::<1536>(hex_field(V, "dkPKE"));
 
-        let kp = kpke_keygen1024(&d);
+        let kp = kpke_keygen1024_cctv_legacy(&d);
 
         assert_eq!(kp.ek_pke.as_bytes(), &expected_ek);
         assert_eq!(kp.dk_pke.as_bytes(), &expected_dk_pke);
     }
 
-    */
+    #[test]
+    fn cctv_kpke_encrypt512_matches_intermediate_vector() {
+        const V: &str =
+            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
 
+        let ek = hex_array::<800>(hex_field(V, "ek"));
+        let message = hex_array::<32>(hex_field(V, "m"));
+        let randomness = hex_array::<32>(hex_field_nth(V, "r", 0));
+        let expected_ciphertext = hex_array::<768>(hex_field(V, "c"));
 
+        let ek = KpkeEncryptionKey::<800>::from_bytes(ek);
+        let ciphertext = kpke_encrypt512(&ek, &message, &randomness);
 
+        assert_eq!(ciphertext.as_bytes(), &expected_ciphertext);
+    }
 
+    #[test]
+    fn cctv_kpke_encrypt768_matches_intermediate_vector() {
+        const V: &str =
+            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-768.txt");
 
+        let ek = hex_array::<1184>(hex_field(V, "ek"));
+        let message = hex_array::<32>(hex_field(V, "m"));
+        let randomness = hex_array::<32>(hex_field_nth(V, "r", 0));
+        let expected_ciphertext = hex_array::<1088>(hex_field(V, "c"));
 
+        let ek = KpkeEncryptionKey::<1184>::from_bytes(ek);
+        let ciphertext = kpke_encrypt768(&ek, &message, &randomness);
 
+        assert_eq!(ciphertext.as_bytes(), &expected_ciphertext);
+    }
 
+    #[test]
+    fn cctv_kpke_encrypt1024_matches_intermediate_vector() {
+        const V: &str =
+            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-1024.txt");
 
+        let ek = hex_array::<1568>(hex_field(V, "ek"));
+        let message = hex_array::<32>(hex_field(V, "m"));
+        let randomness = hex_array::<32>(hex_field_nth(V, "r", 0));
+        let expected_ciphertext = hex_array::<1568>(hex_field(V, "c"));
 
+        let ek = KpkeEncryptionKey::<1568>::from_bytes(ek);
+        let ciphertext = kpke_encrypt1024(&ek, &message, &randomness);
 
+        assert_eq!(ciphertext.as_bytes(), &expected_ciphertext);
+    }
 
+    #[test]
+    fn cctv_kpke_decrypt512_matches_intermediate_vector() {
+        const V: &str =
+            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
 
+        let dk_pke = hex_array::<768>(hex_field(V, "dkPKE"));
+        let ciphertext = hex_array::<768>(hex_field(V, "c"));
+        let expected_message = hex_array::<32>(hex_field(V, "m"));
 
+        let dk_pke = KpkeDecryptionKey::<768>::from_bytes(dk_pke);
+        let ciphertext = Ciphertext::<768>::from_bytes(ciphertext);
 
+        let message = kpke_decrypt512(&dk_pke, &ciphertext);
 
+        assert_eq!(message, expected_message);
+    }
 
+    #[test]
+    fn cctv_kpke_decrypt768_matches_intermediate_vector() {
+        const V: &str =
+            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-768.txt");
 
+        let dk_pke = hex_array::<1152>(hex_field(V, "dkPKE"));
+        let ciphertext = hex_array::<1088>(hex_field(V, "c"));
+        let expected_message = hex_array::<32>(hex_field(V, "m"));
 
+        let dk_pke = KpkeDecryptionKey::<1152>::from_bytes(dk_pke);
+        let ciphertext = Ciphertext::<1088>::from_bytes(ciphertext);
 
+        let message = kpke_decrypt768(&dk_pke, &ciphertext);
 
+        assert_eq!(message, expected_message);
+    }
 
+    #[test]
+    fn cctv_kpke_decrypt1024_matches_intermediate_vector() {
+        const V: &str =
+            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-1024.txt");
 
+        let dk_pke = hex_array::<1536>(hex_field(V, "dkPKE"));
+        let ciphertext = hex_array::<1568>(hex_field(V, "c"));
+        let expected_message = hex_array::<32>(hex_field(V, "m"));
 
+        let dk_pke = KpkeDecryptionKey::<1536>::from_bytes(dk_pke);
+        let ciphertext = Ciphertext::<1568>::from_bytes(ciphertext);
 
+        let message = kpke_decrypt1024(&dk_pke, &ciphertext);
 
+        assert_eq!(message, expected_message);
+    }
 
+    #[test]
+    fn cctv_kpke512_keygen_encrypt_decrypt_match_intermediate_vector() {
+        const V: &str =
+            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
 
+        let d = hex_array::<32>(hex_field(V, "d"));
+        let message = hex_array::<32>(hex_field(V, "m"));
+        let randomness = hex_array::<32>(hex_field_nth(V, "r", 0));
 
+        let expected_ek = hex_array::<800>(hex_field(V, "ek"));
+        let expected_dk_pke = hex_array::<768>(hex_field(V, "dkPKE"));
+        let expected_ciphertext = hex_array::<768>(hex_field(V, "c"));
 
+        let kp = kpke_keygen512_cctv_legacy(&d);
 
+        assert_eq!(kp.ek_pke.as_bytes(), &expected_ek);
+        assert_eq!(kp.dk_pke.as_bytes(), &expected_dk_pke);
 
+        let ciphertext = kpke_encrypt512(&kp.ek_pke, &message, &randomness);
 
+        assert_eq!(ciphertext.as_bytes(), &expected_ciphertext);
 
+        let recovered = kpke_decrypt512(&kp.dk_pke, &ciphertext);
 
-
-
-
-
-
-
-
-
-
+        assert_eq!(recovered, message);
+    }
 
 
 
