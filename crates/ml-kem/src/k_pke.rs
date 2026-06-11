@@ -12,13 +12,14 @@ use mlrust_core::params::Q3329;
 use mlrust_core::poly::{Poly, PolyVec};
 use mlrust_core::symmetric::ml_kem::g;
 use mlrust_core::encode::ml_kem::{
+    byte_encode_poly_q3329,
     byte_decode_poly_q3329,
     byte_encode_polyvec_q3329,
     byte_decode_polyvec_q3329,
-    decompress_q3329_poly,
     compress_q3329_poly,
-    byte_encode_poly_q3329,
-    compress_q3329_polyvec
+    decompress_q3329_poly,
+    compress_q3329_polyvec,
+    decompress_q3329_polyvec
 };
 
 use crate::internal::{
@@ -31,7 +32,9 @@ use crate::internal::{
     expand_a_hat_transposed
 };
 
-use crate::keys::{EncapsulationKey, DecapsulationKey, Ciphertext};
+use crate::keys::{Ciphertext, KpkeEncryptionKey, KpkeDecryptionKey};
+
+//use alloc;
 
 
 /// Internal algebraic K-PKE keypair before serialization.
@@ -57,9 +60,15 @@ pub(crate) struct KpkeInternalKeypair<const K: usize> {
 /// `384 * K`.
 #[derive(Clone, PartialEq, Eq)]
 pub(crate) struct KpkeKeypair<const EK_BYTES: usize, const DK_BYTES: usize> {
-    pub(crate) ek_pke: EncapsulationKey<EK_BYTES>,
-    pub(crate) dk_pke: DecapsulationKey<DK_BYTES>,
+    pub(crate) ek_pke: KpkeEncryptionKey<EK_BYTES>,
+    pub(crate) dk_pke: KpkeDecryptionKey<DK_BYTES>,
 }
+
+
+
+// -----------------------------------------------------
+// KeyGen - Encryption - Decryption
+// -----------------------------------------------------
 
 
 /// Derives the public matrix seed `rho` and secret sampling seed `sigma`.
@@ -175,8 +184,8 @@ pub fn kpke_keygen<
         &mut decaps_key
     );
 
-    let ek_pke = EncapsulationKey::from_bytes(encaps_key);
-    let dk_pke = DecapsulationKey::from_bytes(decaps_key);
+    let ek_pke =  KpkeEncryptionKey::from_bytes(encaps_key);
+    let dk_pke =  KpkeDecryptionKey::from_bytes(decaps_key);
 
     KpkeKeypair{ek_pke, dk_pke}
 }
@@ -184,10 +193,22 @@ pub fn kpke_keygen<
 
 /// Computes `Decompress_1(ByteDecode_1(m))`
 #[must_use]
-pub(crate) fn message_to_mu(m: &[u8; 32]) -> Poly<Q3329> {
-    let decoded = byte_decode_poly_q3329::<1>(m);
-    decompress_q3329_poly::<1>(&decoded)
+fn message_to_mu(m: &[u8; 32]) -> Poly<Q3329> {
+    decompress_q3329_poly::<1>( &byte_decode_poly_q3329::<1>(m) )
 }
+
+
+/// Computes `ByteEncode_1(Compress_1(m))`
+#[must_use]
+fn mu_to_message(mu: &Poly<Q3329>) -> [u8; 32] {
+    let mut out = [0u8; 32];
+    byte_encode_poly_q3329::<1>(
+        &compress_q3329_poly::<1>(mu),
+        &mut out
+    );
+    out
+}
+
 
 
 /// Encrypts a 32-byte message using K-PKE.
@@ -222,7 +243,7 @@ pub(crate) fn message_to_mu(m: &[u8; 32]) -> Poly<Q3329> {
 ///
 /// The decoded `t_hat` coefficients are converted into this crate's
 /// NTT/Montgomery representation before NTT-domain multiplication.
-fn kpke_encrypt<
+pub fn kpke_encrypt<
     const K: usize,
     const EK_BYTES: usize,
     const CT_BYTES: usize,
@@ -231,7 +252,7 @@ fn kpke_encrypt<
     const DU: usize,
     const DV: usize,
 > (
-    ek: &EncapsulationKey<EK_BYTES>,
+    ek: & KpkeEncryptionKey<EK_BYTES>,
     message: &[u8; 32],
     randomness: &[u8; 32],
 ) -> Ciphertext<CT_BYTES> {
@@ -292,20 +313,79 @@ fn kpke_encrypt<
 }
 
 
+/// Decrypts a K-PKE ciphertext.
+///
+/// This implements the K-PKE decryption step:
+///
+/// ```text
+/// u' = Decompress_DU(ByteDecode_DU(c1))
+/// v' = Decompress_DV(ByteDecode_DV(c2))
+/// w  = v' - NTT^{-1}(s_hat · NTT(u'))
+/// m  = ByteEncode_1(Compress_1(w))
+/// ```
+///
+/// where:
+///
+/// ```text
+/// c = c1 || c2
+/// dk_pke = ByteEncode_12(s_hat)
+/// ```
+///
+/// # Representation
+///
+/// The decoded secret vector `s_hat` is converted from ordinary representatives
+/// into this crate's Montgomery representation before NTT-domain multiplication.
+///
+/// The decoded/decompressed `u'` is in the ordinary coefficient domain and is
+/// transformed with the forward NTT before multiplication.
+///
+/// # Panics
+///
+/// Panics if the provided byte-size constants do not match the K-PKE sizes:
+///
+/// ```text
+/// DK_BYTES = 384 * K
+/// CT_BYTES = 32 * (DU * K + DV)
+/// ```
+#[must_use]
+pub fn kpke_decrypt<
+    const K: usize,
+    const DK_BYTES: usize,
+    const CT_BYTES: usize,
+    const DU: usize,
+    const DV: usize,
+> (
+    dk: & KpkeDecryptionKey<DK_BYTES>,
+    ciphertext: &Ciphertext<CT_BYTES>
+) -> [u8; 32] {
+    const POLY_ENCODED_BYTES: usize = 384;
 
+    assert_eq!(DK_BYTES, K * POLY_ENCODED_BYTES);
+    assert_eq!(CT_BYTES, 32 * (DU * K + DV));
 
+    let ciphertext_bytes = ciphertext.as_bytes();
+    let c1_len = 32 * DU * K;
 
+    let mut u= decompress_q3329_polyvec::<K, DU>(
+        &byte_decode_polyvec_q3329::<K, DU>(&ciphertext.as_bytes()[.. c1_len])
+    );
 
+    let mut v = decompress_q3329_poly::<DV>(
+        &byte_decode_poly_q3329::<DV>(&ciphertext.as_bytes()[c1_len..])
+    );
 
+    let s_hat = byte_decode_polyvec_q3329::<K, 12>(dk.as_bytes())
+        .coeffs_to_montgomery();
 
+    u.ntt();
 
+    let mut scalar_prod = s_hat.dot_ntt(&u);
+    scalar_prod.inv_ntt();
 
+    v.sub_assign(&scalar_prod);
 
-
-
-
-
-
+    mu_to_message(&v)
+}
 
 
 
@@ -336,7 +416,7 @@ pub(crate) fn kpke_keygen1024(d: &[u8; 32]) -> KpkeKeypair<1568, 1536> {
 /// Encrypts using the K-PKE parameters underlying ML-KEM-512.
 #[must_use]
 pub(crate) fn kpke_encrypt512(
-    ek: &EncapsulationKey<800>,
+    ek: & KpkeEncryptionKey<800>,
     message: &[u8; 32],
     randomness: &[u8; 32],
 ) -> Ciphertext<768> {
@@ -346,7 +426,7 @@ pub(crate) fn kpke_encrypt512(
 /// Encrypts using the K-PKE parameters underlying ML-KEM-768.
 #[must_use]
 pub(crate) fn kpke_encrypt768(
-    ek: &EncapsulationKey<1184>,
+    ek: & KpkeEncryptionKey<1184>,
     message: &[u8; 32],
     randomness: &[u8; 32],
 ) -> Ciphertext<1088> {
@@ -356,11 +436,39 @@ pub(crate) fn kpke_encrypt768(
 /// Encrypts using the K-PKE parameters underlying ML-KEM-1024.
 #[must_use]
 pub(crate) fn kpke_encrypt1024(
-    ek: &EncapsulationKey<1568>,
+    ek: & KpkeEncryptionKey<1568>,
     message: &[u8; 32],
     randomness: &[u8; 32],
 ) -> Ciphertext<1568> {
     kpke_encrypt::<4, 1568, 1568, 2, 2, 11, 5>(ek, message, randomness)
+}
+
+
+/// Decrypts using the K-PKE parameters underlying ML-KEM-512.
+#[must_use]
+pub(crate) fn kpke_decrypt512(
+    dk: & KpkeDecryptionKey<768>,
+    ciphertext: &Ciphertext<768>,
+) -> [u8; 32] {
+    kpke_decrypt::<2, 768, 768, 10, 4>(dk, ciphertext)
+}
+
+/// Decrypts using the K-PKE parameters underlying ML-KEM-768.
+#[must_use]
+pub(crate) fn kpke_decrypt768(
+    dk: & KpkeDecryptionKey<1152>,
+    ciphertext: &Ciphertext<1088>,
+) -> [u8; 32] {
+    kpke_decrypt::<3, 1152, 1088, 10, 4>(dk, ciphertext)
+}
+
+/// Decrypts using the K-PKE parameters underlying ML-KEM-1024.
+#[must_use]
+pub(crate) fn kpke_decrypt1024(
+    dk: & KpkeDecryptionKey<1536>,
+    ciphertext: &Ciphertext<1568>,
+) -> [u8; 32] {
+    kpke_decrypt::<4, 1536, 1568, 11, 5>(dk, ciphertext)
 }
 
 
@@ -626,4 +734,356 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn mu_to_message_inverts_message_to_mu_for_zero_message() {
+        let message = [0u8; 32];
+
+        let mu = message_to_mu(&message);
+        let recovered = mu_to_message(&mu);
+
+        assert_eq!(recovered, message);
+    }
+
+    #[test]
+    fn mu_to_message_inverts_message_to_mu_for_all_ones_message() {
+        let message = [0xffu8; 32];
+
+        let mu = message_to_mu(&message);
+        let recovered = mu_to_message(&mu);
+
+        assert_eq!(recovered, message);
+    }
+
+    #[test]
+    fn mu_to_message_inverts_message_to_mu_for_patterned_message() {
+        let mut message = [0u8; 32];
+
+        for (i, byte) in message.iter_mut().enumerate() {
+            *byte = (17 * i + 91) as u8;
+        }
+
+        let mu = message_to_mu(&message);
+        let recovered = mu_to_message(&mu);
+
+        assert_eq!(recovered, message);
+    }
+
+    #[test]
+    fn kpke_decrypt512_recovers_encrypted_message() {
+        let d = [0x42u8; 32];
+        let randomness = [0x99u8; 32];
+
+        let mut message = [0u8; 32];
+        for (i, byte) in message.iter_mut().enumerate() {
+            *byte = (11 * i + 7) as u8;
+        }
+
+        let kp = kpke_keygen512(&d);
+        let c = kpke_encrypt512(&kp.ek_pke, &message, &randomness);
+        let recovered = kpke_decrypt512(&kp.dk_pke, &c);
+
+        assert_eq!(recovered, message);
+    }
+
+    #[test]
+    fn kpke_decrypt768_recovers_encrypted_message() {
+        let d = [0x42u8; 32];
+        let randomness = [0x99u8; 32];
+
+        let mut message = [0u8; 32];
+        for (i, byte) in message.iter_mut().enumerate() {
+            *byte = (13 * i + 3) as u8;
+        }
+
+        let kp = kpke_keygen768(&d);
+        let c = kpke_encrypt768(&kp.ek_pke, &message, &randomness);
+        let recovered = kpke_decrypt768(&kp.dk_pke, &c);
+
+        assert_eq!(recovered, message);
+    }
+
+    #[test]
+    fn kpke_decrypt1024_recovers_encrypted_message() {
+        let d = [0x42u8; 32];
+        let randomness = [0x99u8; 32];
+
+        let mut message = [0u8; 32];
+        for (i, byte) in message.iter_mut().enumerate() {
+            *byte = (19 * i + 5) as u8;
+        }
+
+        let kp = kpke_keygen1024(&d);
+        let c = kpke_encrypt1024(&kp.ek_pke, &message, &randomness);
+        let recovered = kpke_decrypt1024(&kp.dk_pke, &c);
+
+        assert_eq!(recovered, message);
+    }
+
+    #[test]
+    fn kpke_decrypt512_recovers_zero_message() {
+        let d = [0x42u8; 32];
+        let message = [0u8; 32];
+        let randomness = [0x99u8; 32];
+
+        let kp = kpke_keygen512(&d);
+        let c = kpke_encrypt512(&kp.ek_pke, &message, &randomness);
+        let recovered = kpke_decrypt512(&kp.dk_pke, &c);
+
+        assert_eq!(recovered, message);
+    }
+
+    #[test]
+    fn kpke_decrypt512_recovers_all_ones_message() {
+        let d = [0x42u8; 32];
+        let message = [0xffu8; 32];
+        let randomness = [0x99u8; 32];
+
+        let kp = kpke_keygen512(&d);
+        let c = kpke_encrypt512(&kp.ek_pke, &message, &randomness);
+        let recovered = kpke_decrypt512(&kp.dk_pke, &c);
+
+        assert_eq!(recovered, message);
+    }
+
+    #[test]
+    fn kpke_decrypt512_works_for_different_randomness_values() {
+        let d = [0x42u8; 32];
+
+        let mut message = [0u8; 32];
+        for (i, byte) in message.iter_mut().enumerate() {
+            *byte = (23 * i + 1) as u8;
+        }
+
+        let r0 = [0x11u8; 32];
+        let r1 = [0x22u8; 32];
+
+        let kp = kpke_keygen512(&d);
+
+        let c0 = kpke_encrypt512(&kp.ek_pke, &message, &r0);
+        let c1 = kpke_encrypt512(&kp.ek_pke, &message, &r1);
+
+        assert_ne!(c0.as_bytes(), c1.as_bytes());
+
+        let recovered0 = kpke_decrypt512(&kp.dk_pke, &c0);
+        let recovered1 = kpke_decrypt512(&kp.dk_pke, &c1);
+
+        assert_eq!(recovered0, message);
+        assert_eq!(recovered1, message);
+    }
+
+    #[test]
+    fn kpke_encrypt_decrypt512_is_deterministic_for_fixed_inputs() {
+        let d = [0x13u8; 32];
+        let message = [0x37u8; 32];
+        let randomness = [0x59u8; 32];
+
+        let kp = kpke_keygen512(&d);
+
+        let c0 = kpke_encrypt512(&kp.ek_pke, &message, &randomness);
+        let c1 = kpke_encrypt512(&kp.ek_pke, &message, &randomness);
+
+        assert_eq!(c0.as_bytes(), c1.as_bytes());
+
+        let recovered = kpke_decrypt512(&kp.dk_pke, &c0);
+
+        assert_eq!(recovered, message);
+    }
+
+
+
+    // ---------------------------------------------------------------
+    // Comparing results with CCTV/ML-KEM/intermediate, available at
+    //
+    // https://github.com/C2SP/CCTV/tree/main/ML-KEM/intermediate
+    //
+    // ---------------------------------------------------------------
+
+
+    const CCTV_512: &str =
+        include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
+
+    fn hex_field<'a>(text: &'a str, name: &str) -> &'a str {
+        for line in text.lines() {
+            let line = line.trim();
+
+            if let Some(rest) = line.strip_prefix(name) {
+                let rest = rest.trim_start();
+
+                if let Some(rest) = rest.strip_prefix('=') {
+                    return rest
+                        .trim()
+                        // Handles lines like:
+                        // A[0, 0] = { ... } = deadbeef...
+                        .rsplit(" = ")
+                        .next()
+                        .expect("field has a value")
+                        .trim();
+                }
+            }
+        }
+
+        panic!("missing CCTV field: {name}");
+    }
+
+    fn hex_array<const N: usize>(hex_str: &str) -> [u8; N] {
+        let bytes = hex::decode(hex_str).expect("valid hex");
+
+        bytes.try_into().unwrap_or_else(|bytes: Vec<u8>| {
+            panic!("wrong length: expected {N} bytes, got {}", bytes.len())
+        })
+    }
+
+    fn byte_encode_polymat_q3329<const K: usize>(
+        mat: &mlrust_core::poly::PolyMat<Q3329, K, K>,
+    ) -> Vec<u8> {
+        let mut out = vec![0u8; K * K * 384];
+
+        for i in 0..K {
+            for j in 0..K {
+                let start = (i * K + j) * 384;
+                let end = start + 384;
+
+                let poly = mat
+                    .get(i, j)
+                    .expect("matrix entry exists");
+
+                byte_encode_poly_q3329::<12>(poly, &mut out[start..end]);
+            }
+        }
+
+        out
+    }
+
+    
+    #[test]
+    fn cctv_kpke512_rho_sigma_match() {
+        const V: &str =
+            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
+
+        let d = hex_array::<32>(hex_field(V, "d"));
+        let expected_rho = hex_array::<32>(hex_field(V, "ρ"));
+        let expected_sigma = hex_array::<32>(hex_field(V, "σ"));
+
+        let (rho, sigma) = derive_k_pke_keygen_seeds(&d, 2);
+
+        assert_eq!(rho, expected_rho, "rho mismatch");
+        assert_eq!(sigma, expected_sigma, "sigma mismatch");
+    }
+
+
+
+
+    /*
+
+    #[test]
+    fn cctv_kpke_keygen512_matches_intermediate_vector() {
+        const V: &str =
+            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
+
+        let d = hex_array::<32>(hex_field(V, "d"));
+        let expected_ek = hex_array::<800>(hex_field(V, "ek"));
+        let expected_dk_pke = hex_array::<768>(hex_field(V, "dkPKE"));
+
+        let kp = kpke_keygen512(&d);
+
+        assert_eq!(kp.ek_pke.as_bytes(), &expected_ek);
+        assert_eq!(kp.dk_pke.as_bytes(), &expected_dk_pke);
+    }
+
+
+    #[test]
+    fn cctv_kpke_keygen768_matches_intermediate_vector() {
+        const V: &str =
+            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-768.txt");
+
+        let d = hex_array::<32>(hex_field(V, "d"));
+        let expected_ek = hex_array::<1184>(hex_field(V, "ek"));
+        let expected_dk_pke = hex_array::<1152>(hex_field(V, "dkPKE"));
+
+        let kp = kpke_keygen768(&d);
+
+        assert_eq!(kp.ek_pke.as_bytes(), &expected_ek);
+        assert_eq!(kp.dk_pke.as_bytes(), &expected_dk_pke);
+    }
+
+    #[test]
+    fn cctv_kpke_keygen1024_matches_intermediate_vector() {
+        const V: &str =
+            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-1024.txt");
+
+        let d = hex_array::<32>(hex_field(V, "d"));
+        let expected_ek = hex_array::<1568>(hex_field(V, "ek"));
+        let expected_dk_pke = hex_array::<1536>(hex_field(V, "dkPKE"));
+
+        let kp = kpke_keygen1024(&d);
+
+        assert_eq!(kp.ek_pke.as_bytes(), &expected_ek);
+        assert_eq!(kp.dk_pke.as_bytes(), &expected_dk_pke);
+    }
+
+    */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

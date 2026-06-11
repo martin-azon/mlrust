@@ -18,6 +18,7 @@
 
 use crate::params::RingParams;
 use super::{Poly, PolyVec};
+use crate::params::NttDomainMul;
 
 
 /// Fixed-size matrix of polynomials.
@@ -201,6 +202,35 @@ impl<P: RingParams, const ROWS: usize, const COLS: usize> PolyMat<P, ROWS, COLS>
     }
 }
 
+
+impl<P: NttDomainMul, const ROWS: usize, const COLS: usize> PolyMat<P, ROWS, COLS> {
+    /// Multiplies this polynomial matrix by a polynomial vector in the
+    /// NTT/Montgomery domain.
+    ///
+    /// This computes:
+    ///
+    /// ```text
+    /// out[i] = sum_j self[i, j] * vec[j]
+    /// ```
+    ///
+    /// where all products are NTT-domain products.
+    ///
+    /// # Representation
+    ///
+    /// The matrix entries and vector entries must already be in the
+    /// NTT/Montgomery domain. The returned vector is also in the
+    /// NTT/Montgomery domain.
+    #[must_use]
+    pub fn mul_vec_ntt(&self, vec: &PolyVec<P, COLS>) -> PolyVec<P, ROWS> {
+        let mut polys = [Poly::<P>::zero(); ROWS];
+
+        for i in 0..ROWS {
+            polys[i] = self.rows[i].dot_ntt(vec);
+        }
+
+        PolyVec::from_polys(polys)
+    }
+}
 
 
 #[cfg(test)]

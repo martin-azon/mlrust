@@ -2,6 +2,12 @@
 //!
 //! This module defines fixed-size wrappers for ML-KEM encapsulation keys,
 //! decapsulation keys, ciphertexts, and shared secrets.
+//! 
+//! The generic wrappers enforce byte lengths at the type level. The public
+//! aliases correspond to the final ML-KEM object sizes. The same wrappers may
+//! also be reused internally for K-PKE objects, whose decapsulation-key lengths
+//! are smaller than final ML-KEM decapsulation-key lengths.
+
 
 use crate::params::{
     ML_KEM_512_CIPHERTEXT_BYTES,
@@ -22,6 +28,20 @@ use crate::params::{
 // Defining generic structs for each of the keys
 // --------------------------------------------------------------------
 
+
+/// Fixed-size serialized K-PKE encryption key.
+#[derive(Clone, PartialEq, Eq)]
+pub(crate) struct KpkeEncryptionKey<const N: usize> {
+    bytes: [u8; N],
+}
+
+/// Fixed-size serialized K-PKE decryption key.
+#[derive(Clone, PartialEq, Eq)]
+pub(crate) struct KpkeDecryptionKey<const N: usize> {
+    bytes: [u8; N],
+}
+
+
 /// Fixed-size ML-KEM encapsulation key.
 #[derive(Clone, PartialEq, Eq)]
 pub struct EncapsulationKey<const N: usize> {
@@ -36,7 +56,7 @@ pub struct DecapsulationKey<const N: usize> {
 }
 
 
-/// Fixed-size ML-KEM ciphertext.
+/// Fixed-size KPKE / ML-KEM ciphertext.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Ciphertext<const N: usize> {
     bytes: [u8; N],
@@ -44,7 +64,7 @@ pub struct Ciphertext<const N: usize> {
 
 
 /// ML-KEM shared secret.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct SharedSecret {
     bytes: [u8; ML_KEM_SHARED_SECRET_BYTES],
 }
@@ -54,6 +74,24 @@ pub struct SharedSecret {
 // --------------------------------------------------------------------
 // Defining key types for each of the instantiations of ML-KEM
 // --------------------------------------------------------------------
+
+/// KPKE-512 encryption key.
+pub(crate) type Kpke512EncryptionKey = KpkeEncryptionKey<800>;
+
+/// KPKE-512 decryption key.
+pub(crate) type Kpke512DecryptionKey = KpkeDecryptionKey<768>;
+
+/// KPKE-768 encryption key.
+pub(crate) type Kpke768EncryptionKey = KpkeEncryptionKey<1184>;
+
+/// KPKE-768 decryption key.
+pub(crate) type Kpke768DecryptionKey = KpkeDecryptionKey<1152>;
+
+/// KPKE-1024 encryption key.
+pub(crate) type Kpke1024EncryptionKey = KpkeEncryptionKey<1568>;
+
+/// KPKE-1024 decryption key.
+pub(crate) type Kpke1024DecryptionKey = KpkeDecryptionKey<1536>;
 
 /// ML-KEM-512 encapsulation key.
 pub type MlKem512EncapsulationKey =
@@ -96,6 +134,48 @@ pub type MlKem1024Ciphertext =
 // --------------------------------------------------------------------
 // Generic traits for each of the keys
 // --------------------------------------------------------------------
+
+impl<const N: usize> KpkeEncryptionKey<N> {
+    /// Creates an encryption key from its serialized bytes
+    #[must_use]
+    pub(crate) const fn from_bytes(bytes: [u8; N]) -> Self {
+        Self { bytes }
+    }
+
+    /// Returns the serialized encryption key
+    #[must_use]
+    pub(crate) const fn as_bytes(&self) -> &[u8; N] {
+        &self.bytes
+    }
+
+    /// Consumes the key and returns the serialized bytes
+    #[must_use]
+    pub(crate) const fn into_bytes(self) -> [u8; N] {
+        self.bytes
+    }
+}
+
+impl<const N: usize> KpkeDecryptionKey<N> {
+    /// Creates an decryption key from its serialized bytes
+    #[must_use]
+    pub(crate) const fn from_bytes(bytes: [u8; N]) -> Self {
+        Self { bytes }
+    }
+
+    /// Returns the serialized decryption key
+    #[must_use]
+    pub(crate) const fn as_bytes(&self) -> &[u8; N] {
+        &self.bytes
+    }
+
+    /// Consumes the key and returns the serialized bytes
+    #[must_use]
+    pub(crate) const fn into_bytes(self) -> [u8; N] {
+        self.bytes
+    }
+}
+
+
 
 impl<const N: usize> EncapsulationKey<N> {
     /// Creates an encapsulation key from its serialized bytes

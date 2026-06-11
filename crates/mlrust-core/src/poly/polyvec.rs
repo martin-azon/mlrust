@@ -18,7 +18,7 @@
 //! `[0, q)` are required.
 
 
-use crate::params::RingParams;
+use crate::params::{NttDomainMul, RingParams, NttOps};
 use super::Poly;
 
 
@@ -91,14 +91,34 @@ impl<P: RingParams, const K: usize> PolyVec<P, K> {
     }
 
 
+    /// Returns an immutable reference to the polynomial at index `index`.
+    ///
+    /// Returns `None` if `index >= K`.
+    #[must_use]
+    pub fn get(&self, row: usize) -> Option<&Poly<P>> {
+        self.polys.get(row)
+    }
+
+
+    /// Returns a mutable reference to the polynomial at index `index`.
+    ///
+    /// Returns `None` if `index >= K`.
+    #[must_use]
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Poly<P>> {
+        self.polys.get_mut(index)
+    }
+
+
     /// Reduces every coefficient of every polynomial.
     ///
-    /// Use [`PolyVec::freeze`] when canonical representatives are required.
+    /// Use [`PolyVec::freeze`] when canonical
+    /// representatives are required.
     pub fn reduce(&mut self) {
         for pol in &mut self.polys {
             pol.reduce()
         }
     }
+
 
     /// Canonicalizes every coefficient of every polynomial into `[0, q)`.
     pub fn freeze(&mut self) {
@@ -140,7 +160,7 @@ impl<P: RingParams, const K: usize> PolyVec<P, K> {
     ///
     /// This does not modify either input vector.
     ///
-    /// Internally, this copies `self`, applies [`PolyVec::sub_assign`], and
+    /// Internally, this copies `self`, applies [`PolyVec::add_assign`], and
     /// returns the result.
     #[must_use]
     pub fn add(&self, rhs: &Self) -> Self {
@@ -163,8 +183,88 @@ impl<P: RingParams, const K: usize> PolyVec<P, K> {
         out
     }
 
+    /// Converts an NTT-domain polynomial vector from Montgomery representation
+    /// to ordinary coefficient representatives.
+    ///
+    /// This does not apply an inverse NTT. It only changes the Montgomery
+    /// representation of each stored coefficient.
+    #[must_use]
+    pub fn coeffs_from_montgomery(&self) -> Self {
+        let mut out = *self;
+
+        for poly in out.polys_mut() {
+            for coeff in poly.coeffs_mut() {
+                *coeff = P::freeze(P::from_montgomery(*coeff));
+            }
+        }
+
+        out
+    }
+
+    /// Converts ordinary coefficient representatives to Montgomery representation.
+    ///
+    /// This does not apply an NTT. It only changes the representation of each
+    /// stored coefficient from `x` to `xR mod q`.
+    #[must_use]
+    pub fn coeffs_to_montgomery(&self) -> Self {
+        let mut out = *self;
+
+        for poly in out.polys_mut() {
+            for coeff in poly.coeffs_mut() {
+                *coeff = P::to_montgomery(P::freeze(*coeff));
+            }
+        }
+
+        out
+    }
 }
 
+
+impl<P: NttOps, const K: usize> PolyVec<P, K> {
+    /// Computes the NTT transform of all entries of the considered vector.
+    pub fn ntt(&mut self) {
+        for poly in self.polys_mut() {
+            poly.ntt();
+        }
+    }
+
+
+    /// Computes the inverse NTT transform of all entries of the considered vector.
+    pub fn inv_ntt(&mut self) {
+        for poly in self.polys_mut() {
+            poly.inv_ntt();
+        }
+    }
+}
+
+
+impl<P: NttDomainMul, const K: usize> PolyVec<P, K> {
+    /// Computes the NTT-domain scalar product of two polynomial vectors.
+    ///
+    /// This computes:
+    ///
+    /// ```text
+    /// sum_i self[i] * other[i]
+    /// ```
+    ///
+    /// where each product is an NTT-domain polynomial product.
+    ///
+    /// # Representation
+    ///
+    /// Both vectors must already be in the NTT/Montgomery domain. The returned
+    /// polynomial is also in the NTT/Montgomery domain.
+    #[must_use]
+    pub fn dot_ntt(&self, other: &PolyVec<P, K>) -> Poly<P> {
+        let mut acc = Poly::<P>::zero();
+
+        for i in 0..K {
+            let prod = self.polys[i].mul_ntt(&other.polys[i]);
+            acc.add_assign(&prod);
+        }
+
+        acc
+    }
+}
 
 #[cfg(test)]
 mod tests {
