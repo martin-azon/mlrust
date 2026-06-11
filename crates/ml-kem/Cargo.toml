@@ -10,3 +10,4 @@ std = []
 
 [dependencies]
 mlrust-core = {path = "../mlrust-core"}
+rand = "0.10.1"
