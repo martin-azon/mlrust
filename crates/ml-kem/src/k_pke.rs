@@ -32,37 +32,13 @@ use crate::internal::{
     expand_a_hat_transposed
 };
 
-use crate::keys::{Ciphertext, KpkeEncryptionKey, KpkeDecryptionKey};
-
-//use alloc;
-
-
-/// Internal algebraic K-PKE keypair before serialization.
-///
-/// This type is useful for testing and for separating the algebraic key
-/// generation logic from FIPS byte encoding.
-///
-/// # Representation
-///
-/// Both `s_hat` and `t_hat` are in the NTT/Montgomery domain.
-#[derive(Clone, PartialEq, Eq)]
-pub(crate) struct KpkeInternalKeypair<const K: usize> {
-    pub(crate) rho: [u8; 32],
-    pub(crate) s_hat: PolyVec<Q3329, K>,
-    pub(crate) t_hat: PolyVec<Q3329, K>,
-}
-
-
-/// Serialized K-PKE keypair.
-///
-/// This is not the final ML-KEM keypair. In particular, `dk_pke` is the
-/// serialized K-PKE secret key `ByteEncode_12(s_hat)`, whose length is
-/// `384 * K`.
-#[derive(Clone, PartialEq, Eq)]
-pub(crate) struct KpkeKeypair<const EK_BYTES: usize, const DK_BYTES: usize> {
-    pub(crate) ek_pke: KpkeEncryptionKey<EK_BYTES>,
-    pub(crate) dk_pke: KpkeDecryptionKey<DK_BYTES>,
-}
+use crate::keys::{
+    KpkeEncryptionKey,
+    KpkeDecryptionKey,
+    KpkeInternalKeypair,
+    KpkeKeypair,
+    Ciphertext,
+};
 
 
 
@@ -148,29 +124,29 @@ fn kpke_keygen_internal<const K: usize, const ETA1: usize>(
 /// Panics if the provided byte-size constants do not match the K-PKE sizes:
 ///
 /// ```text
-/// EK_BYTES = 384 * K + 32
-/// DK_BYTES = 384 * K
+/// EK_PKE_BYTES = 384 * K + 32
+/// DK_PKE_BYTES = 384 * K
 /// ```
 pub(crate) fn kpke_keygen<
     const K: usize,
-    const EK_BYTES: usize,
-    const DK_BYTES: usize,
+    const EK_PKE_BYTES: usize,
+    const DK_PKE_BYTES: usize,
     const ETA1: usize
 > (
     d: &[u8; 32]
-) -> KpkeKeypair<EK_BYTES, DK_BYTES> {
+) -> KpkeKeypair<EK_PKE_BYTES, DK_PKE_BYTES> {
     const POLY_ENCODED_BYTES: usize = 384;
 
-    assert_eq!(EK_BYTES, K * POLY_ENCODED_BYTES + 32);
-    assert_eq!(DK_BYTES, K * POLY_ENCODED_BYTES);
+    assert_eq!(EK_PKE_BYTES, K * POLY_ENCODED_BYTES + 32);
+    assert_eq!(DK_PKE_BYTES, K * POLY_ENCODED_BYTES);
 
     let internal_key = kpke_keygen_internal::<K, ETA1>(d);
 
     let t_hat = internal_key.t_hat.coeffs_from_montgomery();
     let s_hat = internal_key.s_hat.coeffs_from_montgomery();
 
-    let mut encaps_key = [0u8; EK_BYTES];
-    let mut decaps_key = [0u8; DK_BYTES];
+    let mut encaps_key = [0u8; EK_PKE_BYTES];
+    let mut decaps_key = [0u8; DK_PKE_BYTES];
 
     byte_encode_polyvec_q3329::<K, 12>(
         &t_hat,
@@ -245,20 +221,20 @@ fn mu_to_message(mu: &Poly<Q3329>) -> [u8; 32] {
 /// NTT/Montgomery representation before NTT-domain multiplication.
 pub(crate) fn kpke_encrypt<
     const K: usize,
-    const EK_BYTES: usize,
+    const EK_PKE_BYTES: usize,
     const CT_BYTES: usize,
     const ETA1: usize,
     const ETA2: usize,
     const DU: usize,
     const DV: usize,
 > (
-    ek: & KpkeEncryptionKey<EK_BYTES>,
+    ek: & KpkeEncryptionKey<EK_PKE_BYTES>,
     message: &[u8; 32],
     randomness: &[u8; 32],
 ) -> Ciphertext<CT_BYTES> {
     const POLY_ENCODED_BYTES: usize = 384;
 
-    assert_eq!(EK_BYTES, K * POLY_ENCODED_BYTES + 32);
+    assert_eq!(EK_PKE_BYTES, K * POLY_ENCODED_BYTES + 32);
     assert_eq!(CT_BYTES, 32 * (DU * K + DV));
 
     let mut output = [0u8; CT_BYTES];
@@ -344,23 +320,23 @@ pub(crate) fn kpke_encrypt<
 /// Panics if the provided byte-size constants do not match the K-PKE sizes:
 ///
 /// ```text
-/// DK_BYTES = 384 * K
+/// DK_PKE_BYTES = 384 * K
 /// CT_BYTES = 32 * (DU * K + DV)
 /// ```
 #[must_use]
 pub(crate) fn kpke_decrypt<
     const K: usize,
-    const DK_BYTES: usize,
+    const DK_PKE_BYTES: usize,
     const CT_BYTES: usize,
     const DU: usize,
     const DV: usize,
 > (
-    dk: & KpkeDecryptionKey<DK_BYTES>,
+    dk: & KpkeDecryptionKey<DK_PKE_BYTES>,
     ciphertext: &Ciphertext<CT_BYTES>
 ) -> [u8; 32] {
     const POLY_ENCODED_BYTES: usize = 384;
 
-    assert_eq!(DK_BYTES, K * POLY_ENCODED_BYTES);
+    assert_eq!(DK_PKE_BYTES, K * POLY_ENCODED_BYTES);
     assert_eq!(CT_BYTES, 32 * (DU * K + DV));
 
     let ciphertext_bytes = ciphertext.as_bytes();
@@ -990,22 +966,22 @@ mod tests {
     #[must_use]
     fn kpke_keygen_cctv_legacy<
         const K: usize,
-        const EK_BYTES: usize,
-        const DK_BYTES: usize,
+        const EK_PKE_BYTES: usize,
+        const DK_PKE_BYTES: usize,
         const ETA1: usize,
     >(
         d: &[u8; 32],
-    ) -> KpkeKeypair<EK_BYTES, DK_BYTES> {
-        assert_eq!(EK_BYTES, K * CCTV_POLY_ENCODED_BYTES + 32);
-        assert_eq!(DK_BYTES, K * CCTV_POLY_ENCODED_BYTES);
+    ) -> KpkeKeypair<EK_PKE_BYTES, DK_PKE_BYTES> {
+        assert_eq!(EK_PKE_BYTES, K * CCTV_POLY_ENCODED_BYTES + 32);
+        assert_eq!(DK_PKE_BYTES, K * CCTV_POLY_ENCODED_BYTES);
 
         let internal_key = kpke_keygen_internal_cctv_legacy::<K, ETA1>(d);
 
         let t_hat = internal_key.t_hat.coeffs_from_montgomery();
         let s_hat = internal_key.s_hat.coeffs_from_montgomery();
 
-        let mut encaps_key = [0u8; EK_BYTES];
-        let mut decaps_key = [0u8; DK_BYTES];
+        let mut encaps_key = [0u8; EK_PKE_BYTES];
+        let mut decaps_key = [0u8; DK_PKE_BYTES];
 
         byte_encode_polyvec_q3329::<K, 12>(
             &t_hat,
@@ -1036,7 +1012,7 @@ mod tests {
     fn kpke_keygen1024_cctv_legacy(d: &[u8; 32]) -> KpkeKeypair<1568, 1536> {
         kpke_keygen_cctv_legacy::<4, 1568, 1536, 2>(d)
     }
-    
+
 
     use mlrust_core::params::RingParams;
     use mlrust_core::poly::PolyMat;
@@ -1328,23 +1304,4 @@ mod tests {
 
         assert_eq!(recovered, message);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }

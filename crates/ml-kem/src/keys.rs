@@ -8,7 +8,8 @@
 //! also be reused internally for K-PKE objects, whose decapsulation-key lengths
 //! are smaller than final ML-KEM decapsulation-key lengths.
 
-
+use mlrust_core::params::Q3329;
+use mlrust_core::poly::PolyVec;
 use crate::params::{
     ML_KEM_512_CIPHERTEXT_BYTES,
     ML_KEM_512_DECAPS_KEY_BYTES,
@@ -42,6 +43,30 @@ pub(crate) struct KpkeDecryptionKey<const N: usize> {
 }
 
 
+/// Internal algebraic K-PKE keypair before serialization.
+///
+/// This type is useful for testing and for separating the algebraic key
+/// generation logic from FIPS byte encoding.
+///
+/// # Representation
+///
+/// Both `s_hat` and `t_hat` are in the NTT/Montgomery domain.
+#[derive(Clone, PartialEq, Eq)]
+pub(crate) struct KpkeInternalKeypair<const K: usize> {
+    pub(crate) rho: [u8; 32],
+    pub(crate) s_hat: PolyVec<Q3329, K>,
+    pub(crate) t_hat: PolyVec<Q3329, K>,
+}
+
+
+/// Serialized K-PKE keypair. This is not the final ML-KEM keypair.
+#[derive(Clone, PartialEq, Eq)]
+pub(crate) struct KpkeKeypair<const EK_PKE_BYTES: usize, const DK_PKE_BYTES: usize> {
+    pub(crate) ek_pke: KpkeEncryptionKey<EK_PKE_BYTES>,
+    pub(crate) dk_pke: KpkeDecryptionKey<DK_PKE_BYTES>,
+}
+
+
 /// Fixed-size ML-KEM encapsulation key.
 #[derive(Clone, PartialEq, Eq)]
 pub struct EncapsulationKey<const N: usize> {
@@ -53,6 +78,14 @@ pub struct EncapsulationKey<const N: usize> {
 #[derive(Clone, PartialEq, Eq)]
 pub struct DecapsulationKey<const N: usize> {
     bytes: [u8; N],
+}
+
+
+/// ML-KEM Keypair.
+#[derive(Clone, PartialEq, Eq)]
+pub struct MlKemKeypair<const EK_BYTES: usize, const DK_BYTES: usize> {
+    pub ek: EncapsulationKey<EK_BYTES>,
+    pub dk: DecapsulationKey<DK_BYTES>,
 }
 
 
