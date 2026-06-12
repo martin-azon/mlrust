@@ -53,6 +53,31 @@ pub fn j(input: &[u8], output: &mut [u8; 32]) {
 }
 
 
+/// ML-KEM function `J` over two input slices.
+///
+/// Computes SHAKE256 over:
+///
+/// ```text
+/// left || right
+/// ```
+///
+/// and writes 32 bytes.
+pub fn j_concat(left: &[u8], right: &[u8], output: &mut [u8; 32]) {
+    use shake::{
+        digest::{ExtendableOutput, Update as XofUpdate, XofReader},
+        Shake256,
+    };
+
+    let mut hasher = Shake256::default();
+
+    XofUpdate::update(&mut hasher, left);
+    XofUpdate::update(&mut hasher, right);
+
+    let mut reader = hasher.finalize_xof();
+    reader.read(output);
+}
+
+
 /// ML-KEM hash function `G`.
 ///
 /// Computes SHA3-512 and splits the 64-byte digest into two 32-byte outputs.

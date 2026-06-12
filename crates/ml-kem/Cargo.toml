@@ -11,3 +11,4 @@ std = []
 [dependencies]
 mlrust-core = {path = "../mlrust-core"}
 hex = "0.4"
+getrandom = "0.4.2"

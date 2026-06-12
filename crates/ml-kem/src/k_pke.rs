@@ -9,7 +9,7 @@
 
 
 use mlrust_core::params::Q3329;
-use mlrust_core::poly::{Poly, PolyVec};
+use mlrust_core::poly::Poly;
 use mlrust_core::symmetric::ml_kem::g;
 use mlrust_core::encode::ml_kem::{
     byte_encode_poly_q3329,

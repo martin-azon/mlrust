@@ -84,8 +84,8 @@ pub struct DecapsulationKey<const N: usize> {
 /// ML-KEM Keypair.
 #[derive(Clone, PartialEq, Eq)]
 pub struct MlKemKeypair<const EK_BYTES: usize, const DK_BYTES: usize> {
-    pub ek: EncapsulationKey<EK_BYTES>,
-    pub dk: DecapsulationKey<DK_BYTES>,
+    pub(crate) ek: EncapsulationKey<EK_BYTES>,
+    pub(crate) dk: DecapsulationKey<DK_BYTES>,
 }
 
 
@@ -100,6 +100,35 @@ pub struct Ciphertext<const N: usize> {
 #[derive(Clone, PartialEq, Eq)]
 pub struct SharedSecret {
     bytes: [u8; ML_KEM_SHARED_SECRET_BYTES],
+}
+
+
+
+impl<const EK_BYTES: usize, const DK_BYTES: usize> MlKemKeypair<EK_BYTES, DK_BYTES>
+{
+    #[must_use]
+    pub const fn encapsulation_key(&self) -> &EncapsulationKey<EK_BYTES> {
+        &self.ek
+    }
+
+    #[must_use]
+    pub const fn decapsulation_key(&self) -> &DecapsulationKey<DK_BYTES> {
+        &self.dk
+    }
+
+    #[must_use]
+    pub const fn into_parts(
+        self,
+    ) -> (EncapsulationKey<EK_BYTES>, DecapsulationKey<DK_BYTES>) {
+        (self.ek, self.dk)
+    }
+
+    pub(crate) const fn from_parts(
+        ek: EncapsulationKey<EK_BYTES>,
+        dk: DecapsulationKey<DK_BYTES>,
+    ) -> Self {
+        Self { ek, dk }
+    }
 }
 
 
@@ -134,6 +163,10 @@ pub type MlKem512EncapsulationKey =
 pub type MlKem512DecapsulationKey =
     DecapsulationKey<ML_KEM_512_DECAPS_KEY_BYTES>;
 
+/// ML-KEM-512 keypair.
+pub type MlKem512Keypair =
+MlKemKeypair<ML_KEM_512_ENCAPS_KEY_BYTES, ML_KEM_512_DECAPS_KEY_BYTES>;
+
 /// ML-KEM-512 ciphertext.
 pub type MlKem512Ciphertext =
     Ciphertext<ML_KEM_512_CIPHERTEXT_BYTES>;
@@ -146,6 +179,10 @@ pub type MlKem768EncapsulationKey =
 pub type MlKem768DecapsulationKey =
     DecapsulationKey<ML_KEM_768_DECAPS_KEY_BYTES>;
 
+/// ML-KEM-768 keypair.
+pub type MlKem768Keypair =
+MlKemKeypair<ML_KEM_768_ENCAPS_KEY_BYTES, ML_KEM_768_DECAPS_KEY_BYTES>;
+
 /// ML-KEM-768 ciphertext.
 pub type MlKem768Ciphertext =
     Ciphertext<ML_KEM_768_CIPHERTEXT_BYTES>;
@@ -157,6 +194,10 @@ pub type MlKem1024EncapsulationKey =
 /// ML-KEM-1024 decapsulation key.
 pub type MlKem1024DecapsulationKey =
     DecapsulationKey<ML_KEM_1024_DECAPS_KEY_BYTES>;
+
+/// ML-KEM-1024 keypair.
+pub type MlKem1024Keypair =
+MlKemKeypair<ML_KEM_1024_ENCAPS_KEY_BYTES, ML_KEM_1024_DECAPS_KEY_BYTES>;
 
 /// ML-KEM-1024 ciphertext.
 pub type MlKem1024Ciphertext =
@@ -213,19 +254,19 @@ impl<const N: usize> KpkeDecryptionKey<N> {
 impl<const N: usize> EncapsulationKey<N> {
     /// Creates an encapsulation key from its serialized bytes
     #[must_use]
-    pub const fn from_bytes(bytes: [u8; N]) -> Self {
+    pub(crate) const fn from_bytes(bytes: [u8; N]) -> Self {
         Self { bytes }
     }
 
     /// Returns the serialized encapsulation key
     #[must_use]
-    pub const fn as_bytes(&self) -> &[u8; N] {
+    pub(crate) const fn as_bytes(&self) -> &[u8; N] {
         &self.bytes
     }
 
     /// Consumes the key and returns the serialized bytes
     #[must_use]
-    pub const fn into_bytes(self) -> [u8; N] {
+    pub(crate) const fn into_bytes(self) -> [u8; N] {
         self.bytes
     }
 }
@@ -235,19 +276,19 @@ impl<const N: usize> EncapsulationKey<N> {
 impl<const N: usize> DecapsulationKey<N> {
     /// Creates a decapsulation key from its serialized bytes.
     #[must_use]
-    pub const fn from_bytes(bytes: [u8; N]) -> Self {
+    pub(crate) const fn from_bytes(bytes: [u8; N]) -> Self {
         Self { bytes }
     }
 
     /// Returns the serialized decapsulation key.
     #[must_use]
-    pub const fn as_bytes(&self) -> &[u8; N] {
+    pub(crate) const fn as_bytes(&self) -> &[u8; N] {
         &self.bytes
     }
 
     /// Consumes the key and returns the serialized bytes.
     #[must_use]
-    pub const fn into_bytes(self) -> [u8; N] {
+    pub(crate) const fn into_bytes(self) -> [u8; N] {
         self.bytes
     }
 }
@@ -255,19 +296,19 @@ impl<const N: usize> DecapsulationKey<N> {
 impl<const N: usize> Ciphertext<N> {
     /// Creates a ciphertext from its serialized bytes.
     #[must_use]
-    pub const fn from_bytes(bytes: [u8; N]) -> Self {
+    pub(crate) const fn from_bytes(bytes: [u8; N]) -> Self {
         Self { bytes }
     }
 
     /// Returns the serialized ciphertext.
     #[must_use]
-    pub const fn as_bytes(&self) -> &[u8; N] {
+    pub(crate) const fn as_bytes(&self) -> &[u8; N] {
         &self.bytes
     }
 
     /// Consumes the ciphertext and returns the serialized bytes.
     #[must_use]
-    pub const fn into_bytes(self) -> [u8; N] {
+    pub(crate) const fn into_bytes(self) -> [u8; N] {
         self.bytes
     }
 }
@@ -275,19 +316,19 @@ impl<const N: usize> Ciphertext<N> {
 impl SharedSecret {
     /// Creates a shared secret from its bytes.
     #[must_use]
-    pub const fn from_bytes(bytes: [u8; ML_KEM_SHARED_SECRET_BYTES]) -> Self {
+    pub(crate) const fn from_bytes(bytes: [u8; ML_KEM_SHARED_SECRET_BYTES]) -> Self {
         Self { bytes }
     }
 
     /// Returns the shared secret bytes.
     #[must_use]
-    pub const fn as_bytes(&self) -> &[u8; ML_KEM_SHARED_SECRET_BYTES] {
+    pub(crate) const fn as_bytes(&self) -> &[u8; ML_KEM_SHARED_SECRET_BYTES] {
         &self.bytes
     }
 
     /// Consumes the shared secret and returns the bytes.
     #[must_use]
-    pub const fn into_bytes(self) -> [u8; ML_KEM_SHARED_SECRET_BYTES] {
+    pub(crate) const fn into_bytes(self) -> [u8; ML_KEM_SHARED_SECRET_BYTES] {
         self.bytes
     }
 }
