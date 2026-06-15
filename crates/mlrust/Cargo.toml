@@ -1,6 +1,24 @@
 [package]
-name = "pqc"
+name = "mlrust"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+ml_kem = { path = "../ml_kem", default-features = false }
+
+[features]
+default = ["std"]
+std = ["ml_kem/std"]
+
+
+
+#[dependencies]
+#ml-kem = { path = "../ml-kem", default-features = false }
+#ml-dsa = { path = "../ml-dsa", default-features = false }
+
+#[features]
+#default = ["std"]
+#std = [
+#    "ml-kem/std",
+#    "ml-dsa/std",
+#]
