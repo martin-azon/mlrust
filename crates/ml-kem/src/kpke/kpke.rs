@@ -22,7 +22,7 @@ use mlrust_core::encode::ml_kem::{
     decompress_q3329_polyvec
 };
 
-use crate::internal::{
+use crate::kpke::internal::{
     expand_a_hat,
     compute_t_hat,
     sample_polyvec_from_prf,
@@ -1086,7 +1086,7 @@ mod tests {
     #[test]
     fn cctv_kpke512_rho_sigma_match_legacy_derivation() {
         const V: &str =
-            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
+            include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
 
         let d = hex_array::<32>(hex_field(V, "d"));
         let expected_rho = hex_array::<32>(hex_field(V, "ρ"));
@@ -1101,7 +1101,7 @@ mod tests {
     #[test]
     fn cctv_kpke512_a_00_matches_legacy_derivation() {
         const V: &str =
-            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
+            include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
 
         let d = hex_array::<32>(hex_field(V, "d"));
         let expected_a00 = hex_array::<384>(hex_field(V, "A[0, 0]"));
@@ -1119,7 +1119,7 @@ mod tests {
     #[test]
     fn cctv_kpke512_a_matrix_matches_legacy_derivation() {
         const V: &str =
-            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
+            include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
 
         let d = hex_array::<32>(hex_field(V, "d"));
         let expected_a = hex::decode(hex_field(V, "A")).expect("valid A hex");
@@ -1137,7 +1137,7 @@ mod tests {
     #[test]
     fn cctv_kpke_keygen512_matches_intermediate_vector_legacy_derivation() {
         const V: &str =
-            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
+            include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
 
         let d = hex_array::<32>(hex_field(V, "d"));
         let expected_ek = hex_array::<800>(hex_field(V, "ek"));
@@ -1152,7 +1152,7 @@ mod tests {
     #[test]
     fn cctv_kpke_keygen768_matches_intermediate_vector_legacy_derivation() {
         const V: &str =
-            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-768.txt");
+            include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-768.txt");
 
         let d = hex_array::<32>(hex_field(V, "d"));
         let expected_ek = hex_array::<1184>(hex_field(V, "ek"));
@@ -1167,7 +1167,7 @@ mod tests {
     #[test]
     fn cctv_kpke_keygen1024_matches_intermediate_vector_legacy_derivation() {
         const V: &str =
-            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-1024.txt");
+            include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-1024.txt");
 
         let d = hex_array::<32>(hex_field(V, "d"));
         let expected_ek = hex_array::<1568>(hex_field(V, "ek"));
@@ -1182,7 +1182,7 @@ mod tests {
     #[test]
     fn cctv_kpke_encrypt512_matches_intermediate_vector() {
         const V: &str =
-            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
+            include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
 
         let ek = hex_array::<800>(hex_field(V, "ek"));
         let message = hex_array::<32>(hex_field(V, "m"));
@@ -1198,7 +1198,7 @@ mod tests {
     #[test]
     fn cctv_kpke_encrypt768_matches_intermediate_vector() {
         const V: &str =
-            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-768.txt");
+            include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-768.txt");
 
         let ek = hex_array::<1184>(hex_field(V, "ek"));
         let message = hex_array::<32>(hex_field(V, "m"));
@@ -1214,7 +1214,7 @@ mod tests {
     #[test]
     fn cctv_kpke_encrypt1024_matches_intermediate_vector() {
         const V: &str =
-            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-1024.txt");
+            include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-1024.txt");
 
         let ek = hex_array::<1568>(hex_field(V, "ek"));
         let message = hex_array::<32>(hex_field(V, "m"));
@@ -1230,7 +1230,7 @@ mod tests {
     #[test]
     fn cctv_kpke_decrypt512_matches_intermediate_vector() {
         const V: &str =
-            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
+            include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
 
         let dk_pke = hex_array::<768>(hex_field(V, "dkPKE"));
         let ciphertext = hex_array::<768>(hex_field(V, "c"));
@@ -1247,7 +1247,7 @@ mod tests {
     #[test]
     fn cctv_kpke_decrypt768_matches_intermediate_vector() {
         const V: &str =
-            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-768.txt");
+            include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-768.txt");
 
         let dk_pke = hex_array::<1152>(hex_field(V, "dkPKE"));
         let ciphertext = hex_array::<1088>(hex_field(V, "c"));
@@ -1264,7 +1264,7 @@ mod tests {
     #[test]
     fn cctv_kpke_decrypt1024_matches_intermediate_vector() {
         const V: &str =
-            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-1024.txt");
+            include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-1024.txt");
 
         let dk_pke = hex_array::<1536>(hex_field(V, "dkPKE"));
         let ciphertext = hex_array::<1568>(hex_field(V, "c"));
@@ -1281,7 +1281,7 @@ mod tests {
     #[test]
     fn cctv_kpke512_keygen_encrypt_decrypt_match_intermediate_vector() {
         const V: &str =
-            include_str!("../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
+            include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-512.txt");
 
         let d = hex_array::<32>(hex_field(V, "d"));
         let message = hex_array::<32>(hex_field(V, "m"));

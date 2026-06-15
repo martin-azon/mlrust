@@ -34,3 +34,5 @@ pub mod ntt;
 pub mod poly;
 pub mod sampling;
 pub mod symmetric;
+
+pub use params::{RingParams, NttParams};

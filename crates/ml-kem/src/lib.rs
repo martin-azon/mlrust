@@ -10,15 +10,56 @@
 //! - ciphertexts;
 //! - shared secrets.
 
-
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-
 mod error;
-mod internal;
-mod k_pke;
-mod kem;
 mod keys;
-mod params;
+mod constants;
+mod kpke;
+pub mod kem;
+
+pub use error::MlKemError;
+
+pub use constants::{
+    MlKem512,
+    MlKem768,
+    MlKem1024,
+};
+
+pub use keys::{
+    Ciphertext,
+    DecapsulationKey,
+    EncapsulationKey,
+    MlKemKeypair,
+    SharedSecret,
+    MlKem512Ciphertext,
+    MlKem512DecapsulationKey,
+    MlKem512EncapsulationKey,
+    MlKem512Keypair,
+    MlKem768Ciphertext,
+    MlKem768DecapsulationKey,
+    MlKem768EncapsulationKey,
+    MlKem768Keypair,
+    MlKem1024Ciphertext,
+    MlKem1024DecapsulationKey,
+    MlKem1024EncapsulationKey,
+    MlKem1024Keypair,
+};
+
+pub use kem::{
+    MlKemParams,
+    ml_kem_keygen,
+    ml_kem_encaps,
+    ml_kem_decaps,
+    ml_kem_keygen512,
+    ml_kem_encaps512,
+    ml_kem_decaps512,
+    ml_kem_keygen768,
+    ml_kem_encaps768,
+    ml_kem_decaps768,
+    ml_kem_keygen1024,
+    ml_kem_encaps1024,
+    ml_kem_decaps1024,
+};

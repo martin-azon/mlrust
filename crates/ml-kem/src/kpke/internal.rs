@@ -13,9 +13,10 @@
 
 
 use mlrust_core::params::Q3329;
-use mlrust_core::poly::{Poly, PolyVec, PolyMat};
+use mlrust_core::poly::{Poly, PolyMat, PolyVec};
 use mlrust_core::sampling::ml_kem::{sample_ntt, sample_poly_cbd};
 use mlrust_core::symmetric::ml_kem::prf;
+
 
 
 /// Expands the public ML-KEM matrix `A_hat`, which is in the NTT/Montgomery domain.
@@ -162,6 +163,7 @@ pub(crate) fn compute_t_hat<const K: usize>(
 ) -> PolyVec<Q3329, K> {
     a_hat.mul_vec_ntt(s_hat).add(e_hat)
 }
+
 
 
 

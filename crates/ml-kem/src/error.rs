@@ -10,7 +10,9 @@ pub enum MlKemError {
 
     /// A byte slice had the wrong length for the requested ML-KEM object.
     InvalidLength {
+        /// Expected size of the byte slice.
         expected: usize,
+        /// Actual size of the byte slice.
         actual: usize,
     },
 }

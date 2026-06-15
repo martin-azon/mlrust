@@ -9,8 +9,8 @@ use subtle::{ConstantTimeEq, Choice, ConditionallySelectable};
 
 /// Compares two byte slices in constant time.
 ///
-/// Returns [`Choice::from(1)`] if `a` and `b` are equal, and
-/// [`Choice::from(0)`] otherwise.
+/// Returns `Choice::from(1)` if `a` and `b` are equal, and
+/// `Choice::from(0)` otherwise.
 pub fn ct_eq(a: &[u8], b: &[u8]) -> Choice {
     a.ct_eq(b)
 }
@@ -18,8 +18,8 @@ pub fn ct_eq(a: &[u8], b: &[u8]) -> Choice {
 
 /// Checks whether all bytes in a slice are zero.
 ///
-/// Returns [`Choice::from(1)`] if every byte in `a` is equal to zero, and
-/// [`Choice::from(0)`] otherwise.
+/// Returns `Choice::from(1)` if every byte in `a` is equal to zero, and
+/// `Choice::from(0)` otherwise.
 pub fn ct_is_zero(a: &[u8]) -> Choice {
     let mut acc = 0u8;
 
@@ -68,8 +68,8 @@ pub fn ct_select_bytes(
 /// }
 /// ```
 ///
-/// If `choice` is [`Choice::from(0)`], `target` is left unchanged. If `choice`
-/// is [`Choice::from(1)`], every byte of `source` is copied into `target`.
+/// If `choice` is `Choice::from(0)`, `target` is left unchanged. If `choice`
+/// is `Choice::from(1)`, every byte of `source` is copied into `target`.
 ///
 /// # Panics
 ///

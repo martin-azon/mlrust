@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     #"crates/ml-dsa",
-    #"crates/ml-kem",
+    "crates/ml-kem",
     #"crates/mlrust",
     "crates/mlrust-core",
 ]
