@@ -144,7 +144,7 @@ pub fn ml_kem_encaps768(
 }
 
 
-/// Decapsulates an ML-KEM-512 ciphertext.
+/// Decapsulates an ML-KEM-768 ciphertext.
 #[must_use]
 pub fn ml_kem_decaps768(
     dk: &MlKem768DecapsulationKey,
@@ -178,7 +178,7 @@ pub fn ml_kem_encaps1024(
 }
 
 
-/// Decapsulates an ML-KEM-512 ciphertext.
+/// Decapsulates an ML-KEM-1024 ciphertext.
 #[must_use]
 pub fn ml_kem_decaps1024(
     dk: &MlKem1024DecapsulationKey,

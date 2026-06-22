@@ -57,9 +57,10 @@ pub fn get_bit(bytes_input: &[u8], bit_index: usize) -> u8 {
 /// # Panics
 ///
 /// Panics if `out.len() != d`.
-pub fn int_to_bits(x: u32, d: usize, out: &mut [u8]) {
-    assert_eq!(out.len(), d);
-    assert!(d <= 32);
+pub fn int_to_bits(x: u32, alpha: usize, out: &mut [u8]) {
+    assert_eq!(out.len(), alpha);
+    assert!(alpha > 0);
+    assert!(alpha <= 32);
 
     for (j, bit) in out.iter_mut().enumerate() {
         *bit = ((x >> j) & 1) as u8;
@@ -75,10 +76,21 @@ pub fn bits_to_int(bits: &[u8]) -> u32 {
     let mut x = 0u32;
 
     for (j, &bit) in bits.iter().enumerate() {
+        assert!(bit <= 1);
         x |= ((bit & 1) as u32) << j;
     }
 
     x
+}
+
+
+pub fn int_to_bytes(x: u32, alpha: usize, out: &mut [u8]) {
+    assert_eq!(out.len(), alpha);
+    assert!(alpha > 0);
+
+    for (j, byte) in out.iter_mut().enumerate() {
+        *byte = ((x >> j) & 8) as u8;
+    }
 }
 
 #[cfg(test)]
