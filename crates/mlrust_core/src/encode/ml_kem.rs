@@ -7,6 +7,7 @@
 //! compression and by the byte encoding of compressed polynomial coefficients.
 
 use crate::params::{N, Q3329, RingParams};
+use crate::encode::bits::{bit_pack, bit_unpack};
 use crate::poly::{Poly, PolyVec};
 
 fn round_div_u64(num: u64, den: u64) -> u64 {
@@ -133,66 +134,6 @@ pub fn decompress_q3329_polyvec<const K: usize, const D: usize>(
     PolyVec::from_polys(polys)
 }
 
-/// Packs fixed-width unsigned integers into a byte slice.
-///
-/// This corresponds to the function ByteEncode_d from FIPS 203
-///
-/// # Panics
-///
-/// Panics if:
-///
-/// - `D == 0`;
-/// - `D > 12`;
-/// - `int_values.len() * D != output_bytes.len() * 8`.
-pub fn pack_bits<const D: usize>(int_values: &[i32], output_bytes: &mut [u8]) {
-    assert!(D > 0);
-    assert!(D <= 12);
-    assert_eq!(int_values.len() * D, output_bytes.len() * 8);
-
-    output_bytes.fill(0);
-    let mut bit_pos = 0usize;
-
-    for &value in int_values {
-        assert!(value < (1i32 << D));
-        assert!(0 <= value);
-
-        for j in 0..D {
-            let bit = (value >> j) & 1;
-            let byte_index = bit_pos / 8;
-            let bit_index = bit_pos % 8;
-
-            output_bytes[byte_index] |= (bit as u8) << bit_index;
-            bit_pos += 1;
-        }
-    }
-}
-
-/// Unpacks fixed-width unsigned values from a byte slice.
-///
-/// This corresponds to the function ByteDecode_d from FIPS 203
-pub fn unpack_bits<const D: usize>(byt_values: &[u8], output_ints: &mut [i32]) {
-    assert!(D > 0);
-    assert!(D <= 12);
-    assert_eq!(byt_values.len() * 8, output_ints.len() * D);
-
-    let mut bit_pos = 0usize;
-
-    for intg in output_ints.iter_mut() {
-        let mut acc = 0i32;
-
-        for k in 0..D {
-            let byte_index = bit_pos / 8;
-            let bit_index = bit_pos % 8;
-
-            let bit = (byt_values[byte_index] >> bit_index) & 1;
-            acc |= (bit as i32) << k;
-
-            bit_pos += 1;
-        }
-
-        *intg = acc;
-    }
-}
 
 /// Encodes one ML-KEM polynomial using `ByteEncode_D`.
 ///
@@ -221,7 +162,7 @@ pub fn byte_encode_poly_q3329<const D: usize>(poly: &Poly<Q3329>, out: &mut [u8]
 
     let mut values = [0i32; N];
 
-    for (value, &coeff) in values.iter_mut().zip(poly.coeffs().iter()) {
+    for (value, &coeff) in values.iter_mut().zip(poly.coeffs()) {
         if D == 12 {
             *value = Q3329::freeze(coeff);
         } else {
@@ -232,7 +173,7 @@ pub fn byte_encode_poly_q3329<const D: usize>(poly: &Poly<Q3329>, out: &mut [u8]
         }
     }
 
-    pack_bits::<D>(&values, out);
+    bit_pack::<D>(&values, out);
 }
 
 /// Decodes one ML-KEM polynomial using `ByteDecode_D`.
@@ -249,7 +190,7 @@ pub fn byte_decode_poly_q3329<const D: usize>(input: &[u8]) -> Poly<Q3329> {
 
     let mut coeffs = [0i32; N];
 
-    unpack_bits::<D>(input, &mut coeffs);
+    bit_unpack::<D>(input, &mut coeffs);
 
     if D == 12 {
         for coeff in coeffs.iter_mut() {
@@ -327,8 +268,8 @@ mod tests {
         let mut bytes = [0u8; 1];
         let mut recovered = [0i32; 8];
 
-        pack_bits::<1>(&values, &mut bytes);
-        unpack_bits::<1>(&bytes, &mut recovered);
+        bit_pack::<1>(&values, &mut bytes);
+        bit_unpack::<1>(&bytes, &mut recovered);
 
         assert_eq!(recovered, values);
     }
@@ -339,8 +280,8 @@ mod tests {
         let mut bytes = [0u8; 4];
         let mut recovered = [0i32; 8];
 
-        pack_bits::<4>(&values, &mut bytes);
-        unpack_bits::<4>(&bytes, &mut recovered);
+        bit_pack::<4>(&values, &mut bytes);
+        bit_unpack::<4>(&bytes, &mut recovered);
 
         assert_eq!(recovered, values);
     }
@@ -351,8 +292,8 @@ mod tests {
         let mut bytes = [0u8; 10];
         let mut recovered = [0i32; 8];
 
-        pack_bits::<10>(&values, &mut bytes);
-        unpack_bits::<10>(&bytes, &mut recovered);
+        bit_pack::<10>(&values, &mut bytes);
+        bit_unpack::<10>(&bytes, &mut recovered);
 
         assert_eq!(recovered, values);
     }
@@ -362,7 +303,7 @@ mod tests {
         let values = [0x1i32, 0x2, 0x3, 0x4];
         let mut bytes = [0u8; 2];
 
-        pack_bits::<4>(&values, &mut bytes);
+        bit_pack::<4>(&values, &mut bytes);
 
         // Low nibble is first value, high nibble is second value.
         assert_eq!(bytes, [0x21, 0x43]);
