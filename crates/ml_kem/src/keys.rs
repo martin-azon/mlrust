@@ -16,7 +16,7 @@ use crate::constants::{
 };
 use mlrust_core::params::Q3329;
 use mlrust_core::poly::PolyVec;
-
+use crate::MlKemError;
 // --------------------------------------------------------------------
 // Defining generic structs for each of the keys
 // --------------------------------------------------------------------
@@ -193,14 +193,6 @@ impl<const N: usize> KpkeDecryptionKey<N> {
     pub(crate) const fn as_bytes(&self) -> &[u8; N] {
         &self.bytes
     }
-
-    /*
-    /// Consumes the key and returns the serialized bytes
-    #[must_use]
-    pub(crate) const fn into_bytes(self) -> [u8; N] {
-        self.bytes
-    }
-    */
 }
 
 impl<const N: usize> EncapsulationKey<N> {
@@ -220,6 +212,25 @@ impl<const N: usize> EncapsulationKey<N> {
     #[must_use]
     pub const fn into_bytes(self) -> [u8; N] {
         self.bytes
+    }
+
+    /// Constructs an ML-KEM encapsulation key from a byte slice.
+    ///
+    /// This is the checked slice-based counterpart to [`Self::from_bytes`].
+    /// It checks only that `bytes.len() == N`; it does not perform semantic
+    /// validation of the encoded K-PKE public key material.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MlKemError::InvalidLength`] if `bytes.len() != N`.
+    pub fn try_from_slice(bytes: &[u8]) -> Result<Self, MlKemError> {
+        if bytes.len() != N {
+            return Err(MlKemError::InvalidLength);
+        }
+
+        let mut out = [0u8; N];
+        out.copy_from_slice(bytes);
+        Ok(Self::from_bytes(out))
     }
 }
 
@@ -241,6 +252,25 @@ impl<const N: usize> DecapsulationKey<N> {
     pub const fn into_bytes(self) -> [u8; N] {
         self.bytes
     }
+
+    /// Constructs an ML-KEM decapsulation key from a byte slice.
+    ///
+    /// This is the checked slice-based counterpart to [`Self::from_bytes`].
+    /// It checks only that `bytes.len() == N`; it does not perform semantic
+    /// validation of the encoded K-PKE public key material.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MlKemError::InvalidLength`] if `bytes.len() != N`.
+    pub fn try_from_slice(bytes: &[u8]) -> Result<Self, MlKemError> {
+        if bytes.len() != N {
+            return Err(MlKemError::InvalidLength);
+        }
+
+        let mut out = [0u8; N];
+        out.copy_from_slice(bytes);
+        Ok(Self::from_bytes(out))
+    }
 }
 
 impl<const N: usize> Ciphertext<N> {
@@ -260,6 +290,25 @@ impl<const N: usize> Ciphertext<N> {
     #[must_use]
     pub const fn into_bytes(self) -> [u8; N] {
         self.bytes
+    }
+
+    /// Constructs an ML-KEM ciphertext from a byte slice.
+    ///
+    /// This checks only the serialized length. ML-KEM decapsulation handles
+    /// invalid ciphertext contents through implicit rejection rather than by
+    /// returning a decoding error.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MlKemError::InvalidLength`] if `bytes.len() != N`.
+    pub fn try_from_slice(bytes: &[u8]) -> Result<Self, MlKemError> {
+        if bytes.len() != N {
+            return Err(MlKemError::InvalidLength);
+        }
+
+        let mut out = [0u8; N];
+        out.copy_from_slice(bytes);
+        Ok(Self::from_bytes(out))
     }
 }
 

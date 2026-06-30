@@ -23,7 +23,7 @@ use super::params::MlKemParams;
 
 /// Fills `bytes` with randomness from the operating system.
 fn fill_random(bytes: &mut [u8]) -> Result<(), MlKemError> {
-    getrandom::fill(bytes).map_err(|_| MlKemError::RandomnessGenerationFailed)
+    getrandom::fill(bytes).map_err(|_| MlKemError::RandomnessFailure)
 }
 
 
@@ -43,7 +43,7 @@ fn random_32() -> Result<[u8; 32], MlKemError> {
 ///
 /// # Errors
 ///
-/// Returns [`MlKemError::RandomnessGenerationFailed`] if randomness generation
+/// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
 pub fn ml_kem_keygen<P: MlKemParams>() -> Result<P::Keypair, MlKemError> {
     let d = random_32()?;
@@ -61,7 +61,7 @@ pub fn ml_kem_keygen<P: MlKemParams>() -> Result<P::Keypair, MlKemError> {
 ///
 /// # Errors
 ///
-/// Returns [`MlKemError::RandomnessGenerationFailed`] if randomness generation
+/// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
 pub fn ml_kem_encaps<P: MlKemParams>(
     ek: &P::EncapsulationKey,
@@ -90,7 +90,7 @@ pub fn ml_kem_decaps<P: MlKemParams>(
 ///
 /// # Errors
 ///
-/// Returns [`MlKemError::RandomnessGenerationFailed`] if randomness generation
+/// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
 pub fn ml_kem_keygen512() -> Result<MlKem512Keypair, MlKemError> {
     ml_kem_keygen::<MlKem512>()
@@ -101,7 +101,7 @@ pub fn ml_kem_keygen512() -> Result<MlKem512Keypair, MlKemError> {
 ///
 /// # Errors
 ///
-/// Returns [`MlKemError::RandomnessGenerationFailed`] if randomness generation
+/// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
 pub fn ml_kem_encaps512(
     ek: &MlKem512EncapsulationKey,
@@ -124,7 +124,7 @@ pub fn ml_kem_decaps512(
 ///
 /// # Errors
 ///
-/// Returns [`MlKemError::RandomnessGenerationFailed`] if randomness generation
+/// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
 pub fn ml_kem_keygen768() -> Result<MlKem768Keypair, MlKemError> {
     ml_kem_keygen::<MlKem768>()
@@ -135,7 +135,7 @@ pub fn ml_kem_keygen768() -> Result<MlKem768Keypair, MlKemError> {
 ///
 /// # Errors
 ///
-/// Returns [`MlKemError::RandomnessGenerationFailed`] if randomness generation
+/// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
 pub fn ml_kem_encaps768(
     ek: &MlKem768EncapsulationKey,
@@ -158,7 +158,7 @@ pub fn ml_kem_decaps768(
 ///
 /// # Errors
 ///
-/// Returns [`MlKemError::RandomnessGenerationFailed`] if randomness generation
+/// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
 pub fn ml_kem_keygen1024() -> Result<MlKem1024Keypair, MlKemError> {
     ml_kem_keygen::<MlKem1024>()
@@ -169,7 +169,7 @@ pub fn ml_kem_keygen1024() -> Result<MlKem1024Keypair, MlKemError> {
 ///
 /// # Errors
 ///
-/// Returns [`MlKemError::RandomnessGenerationFailed`] if randomness generation
+/// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
 pub fn ml_kem_encaps1024(
     ek: &MlKem1024EncapsulationKey,
