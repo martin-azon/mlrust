@@ -6,10 +6,9 @@
 mod coeff;
 mod bitpack;
 mod hint;
-mod keys;
 
 
-/*
+
 pub use coeff::{
     coeff_from_half_byte,
     coeff_from_three_bytes,
@@ -26,14 +25,3 @@ pub use hint::{
     hint_bit_pack,
     hint_bit_unpack,
 };
-
-
-pub use keys::{
-    pk_encode,
-    pk_decode,
-    sk_encode,
-    sk_decode,
-    sig_encode,
-    sig_decode,
-};
-*/
