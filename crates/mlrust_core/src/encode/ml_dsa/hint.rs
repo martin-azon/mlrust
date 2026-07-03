@@ -25,7 +25,7 @@ use crate::error::PqcCoreError;
 /// signatures.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HintVec<const K: usize> {
-    polys: [[u8; N]; K]
+    data: [[u8; N]; K]
 }
 
 
@@ -35,28 +35,28 @@ impl<const K: usize> HintVec<K> {
     /// This constructor does not check that the coefficients are binary.
     /// Encoding routines such as [`hint_bit_pack`] validate that every
     /// coefficient is either `0` or `1`.
-    pub const fn from_polys(polys: [[u8; N]; K]) -> Self {
-        Self { polys }
+    pub const fn from_data(data: [[u8; N]; K]) -> Self {
+        Self { data }
     }
 
     /// Creates the all-zero hint vector.
     #[must_use]
     pub const fn zero() -> Self {
         Self {
-            polys: [[0u8; N]; K],
+            data: [[0u8; N]; K],
         }
     }
 
     /// Returns the underlying binary polynomial array.
     #[must_use]
-    pub fn polys(&self) -> &[[u8; N]; K] {
-        &self.polys
+    pub fn data(&self) -> &[[u8; N]; K] {
+        &self.data
     }
 
     /// Returns a mutable reference to the underlying binary polynomial array.
     #[must_use]
-    pub fn polys_mut(&mut self) -> &mut [[u8; N]; K] {
-        &mut self.polys
+    pub fn data_mut(&mut self) -> &mut [[u8; N]; K] {
+        &mut self.data
     }
 }
 
@@ -89,11 +89,11 @@ pub fn hint_bit_pack<const K: usize, const OMEGA: usize>(
     out.fill(0);
 
     let mut index = 0usize;
-    let polys = h.polys();
+    let data = h.data();
 
     for i in 0..K {
         for j in 0..N {
-            let bit = polys[i][j];
+            let bit = data[i][j];
 
             assert!(bit == 0 || bit == 1);
 
@@ -130,7 +130,7 @@ pub fn hint_bit_pack<const K: usize, const OMEGA: usize>(
 ///   are not strictly increasing, or if unused index bytes are nonzero.
 #[must_use]
 pub fn hint_bit_unpack<const K: usize, const OMEGA: usize>(
-    input: & [u8]
+    input: &[u8]
 ) -> Result<HintVec<K>, PqcCoreError> {
     if input.len() != K + OMEGA {
         return Err(PqcCoreError::InvalidLength);
@@ -171,7 +171,7 @@ pub fn hint_bit_unpack<const K: usize, const OMEGA: usize>(
             return Err(PqcCoreError::NonCanonicalEncoding);
         }
     }
-    Ok(HintVec::from_polys(h))
+    Ok(HintVec::from_data(h))
 }
 
 
@@ -183,7 +183,7 @@ mod tests {
     fn hint_vec_zero_is_all_zero() {
         let h = HintVec::<4>::zero();
 
-        for poly in h.polys() {
+        for poly in h.data() {
             for &bit in poly {
                 assert_eq!(bit, 0);
             }
@@ -210,10 +210,10 @@ mod tests {
 
         let mut h = HintVec::<K>::zero();
 
-        h.polys_mut()[0][3] = 1;
-        h.polys_mut()[0][7] = 1;
-        h.polys_mut()[2][1] = 1;
-        h.polys_mut()[3][255] = 1;
+        h.data_mut()[0][3] = 1;
+        h.data_mut()[0][7] = 1;
+        h.data_mut()[2][1] = 1;
+        h.data_mut()[3][255] = 1;
 
         let mut out = [0u8; OMEGA + K];
 
@@ -246,10 +246,10 @@ mod tests {
 
         let mut h = HintVec::<K>::zero();
 
-        h.polys_mut()[0][0] = 1;
-        h.polys_mut()[0][10] = 1;
-        h.polys_mut()[1][5] = 1;
-        h.polys_mut()[3][255] = 1;
+        h.data_mut()[0][0] = 1;
+        h.data_mut()[0][10] = 1;
+        h.data_mut()[1][5] = 1;
+        h.data_mut()[3][255] = 1;
 
         let mut encoded = [0u8; OMEGA + K];
 
@@ -272,11 +272,11 @@ mod tests {
 
         let h = hint_bit_unpack::<K, OMEGA>(&input).unwrap();
 
-        assert_eq!(h.polys()[0][3], 1);
-        assert_eq!(h.polys()[0][7], 1);
-        assert_eq!(h.polys()[1].iter().sum::<u8>(), 0);
-        assert_eq!(h.polys()[2][1], 1);
-        assert_eq!(h.polys()[3][255], 1);
+        assert_eq!(h.data()[0][3], 1);
+        assert_eq!(h.data()[0][7], 1);
+        assert_eq!(h.data()[1].iter().sum::<u8>(), 0);
+        assert_eq!(h.data()[2][1], 1);
+        assert_eq!(h.data()[3][255], 1);
     }
 
     #[test]
@@ -390,7 +390,7 @@ mod tests {
         const OMEGA: usize = 8;
 
         let mut h = HintVec::<K>::zero();
-        h.polys_mut()[0][0] = 2;
+        h.data_mut()[0][0] = 2;
 
         let mut out = [0u8; OMEGA + K];
 
@@ -405,9 +405,9 @@ mod tests {
 
         let mut h = HintVec::<K>::zero();
 
-        h.polys_mut()[0][0] = 1;
-        h.polys_mut()[0][1] = 1;
-        h.polys_mut()[0][2] = 1;
+        h.data_mut()[0][0] = 1;
+        h.data_mut()[0][1] = 1;
+        h.data_mut()[0][2] = 1;
 
         let mut out = [0u8; OMEGA + K];
 

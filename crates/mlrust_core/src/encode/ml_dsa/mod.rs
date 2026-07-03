@@ -3,9 +3,9 @@
 //! This module contains the FIPS 204 coefficient, bit-packing, hint-packing,
 //! and object-encoding routines used by ML-DSA.
 
-mod coeff;
-mod bitpack;
-mod hint;
+pub mod coeff;
+pub mod bitpack;
+pub mod hint;
 
 
 

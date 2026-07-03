@@ -17,6 +17,10 @@ use crate::constants::{
 use mlrust_core::params::Q3329;
 use mlrust_core::poly::PolyVec;
 use crate::MlKemError;
+
+
+
+
 // --------------------------------------------------------------------
 // Defining generic structs for each of the keys
 // --------------------------------------------------------------------
@@ -55,13 +59,13 @@ pub(crate) struct KpkeKeypair<const EK_PKE_BYTES: usize, const DK_PKE_BYTES: usi
     pub(crate) dk_pke: KpkeDecryptionKey<DK_PKE_BYTES>,
 }
 
-/// Fixed-size ML-KEM encapsulation key.
+/// Fixed-size serialized ML-KEM encapsulation key.
 #[derive(Clone, PartialEq, Eq)]
 pub struct EncapsulationKey<const N: usize> {
     bytes: [u8; N],
 }
 
-/// Fixed-size ML-KEM decapsulation key.
+/// Fixed-size serialized ML-KEM decapsulation key.
 #[derive(Clone, PartialEq, Eq)]
 pub struct DecapsulationKey<const N: usize> {
     bytes: [u8; N],
@@ -113,6 +117,8 @@ impl<const EK_BYTES: usize, const DK_BYTES: usize> MlKemKeypair<EK_BYTES, DK_BYT
         Self { ek, dk }
     }
 }
+
+
 
 // --------------------------------------------------------------------
 // Defining key types for each of the instantiations of ML-KEM

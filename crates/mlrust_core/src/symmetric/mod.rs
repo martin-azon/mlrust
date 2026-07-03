@@ -4,4 +4,4 @@
 
 mod generic_funcs;
 pub mod ml_kem;
-//pub mod ml_dsa;
+pub mod ml_dsa;

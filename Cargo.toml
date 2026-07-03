@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    #"crates/ml_dsa",
+    "crates/ml_dsa",
     "crates/ml_kem",
     "crates/mlrust",
     "crates/mlrust_core",

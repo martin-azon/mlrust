@@ -19,12 +19,15 @@ use subtle::{CtOption, ConstantTimeLess, ConstantTimeGreater, ConditionallySelec
 /// Returns `Some(z)` if `z < q`, and `None` otherwise, represented as a
 /// `CtOption`.
 #[must_use]
-pub fn coeff_from_three_bytes(b0: u8, b1: u8, b2: u8) -> CtOption<i32> {
+pub fn coeff_from_three_bytes(b0: u8, b1: u8, b2: u8) -> Option<i32> {
     let b2_low = (b2 & 0x7f) as u32;
     let z = b0 as u32 | ((b1 as u32) << 8) | (b2_low << 16);
 
-    let valid = z.ct_lt(&(Q8380417::Q as u32));
-    CtOption::new(z as i32, valid)
+    if z < Q8380417::Q as u32 {
+        Some(z as i32)
+    } else {
+        None
+    }
 }
 
 
@@ -95,7 +98,7 @@ pub fn coeff_from_half_byte<const ETA: usize>(b: u8) -> CtOption<i32> {
 mod tests {
     use super::*;
 
-    fn coeff_from_z(z: u32) -> CtOption<i32> {
+    fn coeff_from_z(z: u32) -> Option<i32> {
         coeff_from_three_bytes(
             (z & 0xff) as u8,
             ((z >> 8) & 0xff) as u8,
@@ -108,8 +111,8 @@ mod tests {
         let a = coeff_from_three_bytes(0x34, 0x12, 0x00);
         let b = coeff_from_three_bytes(0x34, 0x12, 0x80);
 
-        assert_eq!(a.is_some().unwrap_u8(), 1);
-        assert_eq!(b.is_some().unwrap_u8(), 1);
+        assert!(a.is_some());
+        assert!(b.is_some());
         assert_eq!(a.unwrap(), 0x1234);
         assert_eq!(b.unwrap(), 0x1234);
     }
@@ -119,7 +122,7 @@ mod tests {
         let z = (Q8380417::Q - 1) as u32;
         let coeff = coeff_from_z(z);
 
-        assert_eq!(coeff.is_some().unwrap_u8(), 1);
+        assert!(coeff.is_some());
         assert_eq!(coeff.unwrap(), Q8380417::Q - 1);
     }
 
@@ -128,14 +131,14 @@ mod tests {
         let z = Q8380417::Q as u32;
         let coeff = coeff_from_z(z);
 
-        assert_eq!(coeff.is_some().unwrap_u8(), 0);
+        assert!(!coeff.is_some());
     }
 
     #[test]
     fn coeff_from_three_bytes_rejects_max_23_bit_value() {
         let coeff = coeff_from_three_bytes(0xff, 0xff, 0x7f);
 
-        assert_eq!(coeff.is_some().unwrap_u8(), 0);
+        assert!(!coeff.is_some());
     }
 
     #[test]

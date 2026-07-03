@@ -66,6 +66,26 @@ pub fn shake128_squeeze(reader: &mut Shake128Reader, output: &mut [u8]) {
     reader.read(output);
 }
 
+
+
+/// SHAKE256 reader after absorption has been finalized.
+pub type Shake256Reader = <Shake256 as ExtendableOutput>::Reader;
+
+/// Initializes SHAKE256 and absorbs `input`.
+#[must_use]
+pub fn shake256_absorb(input: &[u8]) -> Shake256Reader {
+    let mut hasher = Shake256::default();
+
+    XofUpdate::update(&mut hasher, input);
+
+    hasher.finalize_xof()
+}
+
+/// Squeezes bytes from a SHAKE256 reader.
+pub fn shake256_squeeze(reader: &mut Shake256Reader, output: &mut [u8]) {
+    reader.read(output);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

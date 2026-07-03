@@ -215,7 +215,7 @@ mod tests {
         // can produce coefficients outside the nominal range.
         let input = [0xffu8; 32 * 4];
 
-        let decoded = simple_bit_unpack_q8380417::<4>(&input, 13);
+        let decoded = simple_bit_unpack_q8380417::<4>(&input,13);
 
         assert!(decoded.coeffs().iter().any(|&c| c > 13));
     }

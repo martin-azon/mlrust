@@ -6,6 +6,22 @@
 //! - [`MlKem768`];
 //! - [`MlKem1024`].
 
+
+
+/// Marker type for ML-KEM-512.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MlKem512 {}
+
+/// Marker type for ML-KEM-768.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MlKem768 {}
+
+/// Marker type for ML-KEM-1024.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MlKem1024 {}
+
+
+
 /// Length in bytes of an ML-KEM shared secret.
 pub const ML_KEM_SHARED_SECRET_BYTES: usize = 32;
 
@@ -77,15 +93,3 @@ pub const ML_KEM_1024_DV: usize = 5;
 pub const KPKE_1024_ENCRYPT_KEY_BYTES: usize = 1568;
 /// Length in bytes of a K-PKE-1024 decryption key.
 pub const KPKE_1024_DECRYPT_KEY_BYTES: usize = 1536;
-
-/// Marker type for ML-KEM-512.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum MlKem512 {}
-
-/// Marker type for ML-KEM-768.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum MlKem768 {}
-
-/// Marker type for ML-KEM-1024.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum MlKem1024 {}
