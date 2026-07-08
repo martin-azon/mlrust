@@ -6,7 +6,7 @@
 //! Low-level coefficient and hint packing routines live in `mlrust_core`.
 
 pub(crate) mod keys;
-pub(crate) mod signature;
+pub(crate) mod signatures;
 pub(crate) mod w1;
 
 pub(crate) use keys::{
@@ -18,7 +18,7 @@ pub(crate) use keys::{
     DecodedSecretKey,
 };
 
-pub(crate) use signature::{
+pub(crate) use signatures::{
     sig_decode,
     sig_encode,
     DecodedSignature,

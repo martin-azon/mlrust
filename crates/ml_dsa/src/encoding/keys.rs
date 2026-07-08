@@ -14,7 +14,7 @@ use crate::constants::{BITLEN_Q_MINUS_ONE, BITLEN_Q_MINUS_ONE_MINUS_D};
 /// This is an internal algebraic representation used by signing.
 pub(crate) struct DecodedSecretKey<const K: usize, const L: usize> {
     pub(crate) rho: [u8; 32],
-    pub(crate) key: [u8; 32],
+    pub(crate) seed_k: [u8; 32],
     pub(crate) tr: [u8; 64],
     pub(crate) s1: PolyVec<Q8380417, L>,
     pub(crate) s2: PolyVec<Q8380417, K>,
@@ -44,6 +44,180 @@ fn t0_bounds<const D: usize>() -> (i32, i32) {
     let two_d_minus_1 = 1i32 << (D - 1);
 
     (two_d_minus_1 - 1, two_d_minus_1)
+}
+
+
+
+/// FIPS 204 `skEncode`.
+///
+/// Encodes the ML-DSA secret-key components into the standardized secret-key
+/// byte representation.
+///
+/// # Panics
+///
+/// Panics if `SK_BYTES` does not match the parameter-set secret-key length, or
+/// if one of the encoded polynomial coefficients is outside its required range.
+pub(crate) fn sk_encode<
+    const K: usize,
+    const L: usize,
+    const D: usize,
+    const ETA: usize,
+    const BITLEN_2ETA: usize,
+    const SK_BYTES: usize,
+> (
+    dec_sk: &DecodedSecretKey<K, L>
+) -> SecretKey<SK_BYTES> {
+    assert_eq!(SK_BYTES, 128 + 32 * ((K + L) * BITLEN_2ETA + D * K));
+
+    let mut sk_bytes = [0u8; SK_BYTES];
+
+    let s1_polys = dec_sk.s1.polys();
+    let s2_polys = dec_sk.s2.polys();
+    let t0_polys = dec_sk.t0.polys();
+
+    let eta = ETA as i32;
+    let (t0_a, t0_b) = t0_bounds::<D>();
+
+    let short_poly_len = 32 * BITLEN_2ETA;
+    let t0_poly_len = 32 * D;
+
+    sk_bytes[0..32].copy_from_slice(&dec_sk.rho);
+    sk_bytes[32..64].copy_from_slice(&dec_sk.seed_k);
+    sk_bytes[64..128].copy_from_slice(&dec_sk.tr);
+
+    let mut start = 128usize;
+
+    for poly in s1_polys {
+        bit_pack_signed_q8380417::<BITLEN_2ETA>(
+            poly.coeffs(),
+            eta,
+            eta,
+            &mut sk_bytes[start..start + short_poly_len],
+        );
+
+        start += short_poly_len;
+    }
+
+    for poly in s2_polys {
+        bit_pack_signed_q8380417::<BITLEN_2ETA>(
+            poly.coeffs(),
+            eta,
+            eta,
+            &mut sk_bytes[start..start + short_poly_len],
+        );
+
+        start += short_poly_len;
+    }
+
+    for poly in t0_polys {
+        bit_pack_signed_q8380417::<D>(
+            poly.coeffs(),
+            t0_a,
+            t0_b,
+            &mut sk_bytes[start..start + t0_poly_len],
+        );
+
+        start += t0_poly_len;
+    }
+
+    SecretKey::from_bytes(sk_bytes)
+}
+
+
+
+/// FIPS 204 `skDecode`.
+///
+/// Decodes an ML-DSA secret key into its internal algebraic representation.
+///
+/// This function rejects non-canonical `s1` and `s2` encodings that decode
+/// outside `[-ETA, ETA]`.
+///
+/// # Errors
+///
+/// Returns [`MlDsaError::InvalidSecretKey`] if the parameter-set byte length is
+/// inconsistent with the expected secret-key layout, or if a short secret
+/// polynomial decodes to a coefficient outside `[-ETA, ETA]`.
+pub(crate) fn sk_decode<
+    const K: usize,
+    const L: usize,
+    const D: usize,
+    const ETA: usize,
+    const BITLEN_2ETA: usize,
+    const SK_BYTES: usize,
+> (enc_sk: &SecretKey<SK_BYTES>) -> Result<DecodedSecretKey<K, L>, MlDsaError> {
+    if SK_BYTES != 128 + 32 * ((K + L) * BITLEN_2ETA + D * K) {
+        return Err(MlDsaError::InvalidSecretKey);
+    }
+
+    let sk_bytes = enc_sk.as_bytes();
+
+    let mut rho = [0u8; 32];
+    let mut seed_k = [0u8; 32];
+    let mut tr = [0u8; 64];
+
+    let mut s1_polys = [Poly::<Q8380417>::zero(); L];
+    let mut s2_polys = [Poly::<Q8380417>::zero(); K];
+    let mut t0_polys = [Poly::<Q8380417>::zero(); K];
+
+    let eta = ETA as i32;
+    let (t0_a, t0_b) = t0_bounds::<D>();
+
+    let short_poly_len = 32 * BITLEN_2ETA;
+    let t0_poly_len = 32 * D;
+
+    rho.copy_from_slice(&sk_bytes[0..32]);
+    seed_k.copy_from_slice(&sk_bytes[32..64]);
+    tr.copy_from_slice(&sk_bytes[64..128]);
+
+    let mut start= 128usize;
+
+    for poly in &mut s1_polys {
+        *poly = bit_unpack_q8380417::<BITLEN_2ETA>(
+            &sk_bytes[start..start + short_poly_len],
+            eta,
+            eta
+        );
+
+        if !coeffs_in_range(poly.coeffs(), -eta, eta) {
+            return Err(MlDsaError::InvalidSecretKey);
+        }
+
+        start += short_poly_len;
+    }
+
+    for poly in &mut s2_polys {
+        *poly = bit_unpack_q8380417::<BITLEN_2ETA>(
+            &sk_bytes[start..start + short_poly_len],
+            eta,
+            eta
+        );
+
+        if !coeffs_in_range(poly.coeffs(), -eta, eta) {
+            return Err(MlDsaError::InvalidSecretKey);
+        }
+
+        start += short_poly_len;
+    }
+
+    for poly in &mut t0_polys {
+        *poly = bit_unpack_q8380417::<D>(
+            &sk_bytes[start..start + t0_poly_len],
+            t0_a,
+            t0_b,
+        );
+
+        start += t0_poly_len;
+    }
+
+    let dec_sk = DecodedSecretKey{
+        rho,
+        seed_k,
+        tr,
+        s1: PolyVec::from_polys(s1_polys),
+        s2: PolyVec::from_polys(s2_polys),
+        t0: PolyVec::from_polys(t0_polys),
+    };
+    Ok(dec_sk)
 }
 
 
@@ -134,179 +308,6 @@ pub(crate) fn pk_decode<
 
 
 
-/// FIPS 204 `skEncode`.
-///
-/// Encodes the ML-DSA secret-key components into the standardized secret-key
-/// byte representation.
-///
-/// # Panics
-///
-/// Panics if `SK_BYTES` does not match the parameter-set secret-key length, or
-/// if one of the encoded polynomial coefficients is outside its required range.
-pub(crate) fn sk_encode<
-    const K: usize,
-    const L: usize,
-    const D: usize,
-    const ETA: usize,
-    const BITLEN_2ETA: usize,
-    const SK_BYTES: usize,
-> (
-    dec_sk: &DecodedSecretKey<K, L>
-) -> SecretKey<SK_BYTES> {
-    assert_eq!(SK_BYTES, 128 + 32 * ((K + L) * BITLEN_2ETA + D * K));
-
-    let mut sk_bytes = [0u8; SK_BYTES];
-
-    let s1_polys = dec_sk.s1.polys();
-    let s2_polys = dec_sk.s2.polys();
-    let t0_polys = dec_sk.t0.polys();
-
-    let eta = ETA as i32;
-    let (t0_a, t0_b) = t0_bounds::<D>();
-
-    let short_poly_len = 32 * BITLEN_2ETA;
-    let t0_poly_len = 32 * D;
-
-    sk_bytes[0..32].copy_from_slice(&dec_sk.rho);
-    sk_bytes[32..64].copy_from_slice(&dec_sk.key);
-    sk_bytes[64..128].copy_from_slice(&dec_sk.tr);
-
-    let mut start = 128usize;
-
-    for poly in s1_polys {
-        bit_pack_signed_q8380417::<BITLEN_2ETA>(
-            poly.coeffs(),
-            eta,
-            eta,
-            &mut sk_bytes[start..start + short_poly_len],
-        );
-
-        start += short_poly_len;
-    }
-
-    for poly in s2_polys {
-        bit_pack_signed_q8380417::<BITLEN_2ETA>(
-            poly.coeffs(),
-            eta,
-            eta,
-            &mut sk_bytes[start..start + short_poly_len],
-        );
-
-        start += short_poly_len;
-    }
-
-    for poly in t0_polys {
-        bit_pack_signed_q8380417::<D>(
-            poly.coeffs(),
-            t0_a,
-            t0_b,
-            &mut sk_bytes[start..start + t0_poly_len],
-        );
-
-        start += t0_poly_len;
-    }
-
-    SecretKey::from_bytes(sk_bytes)
-}
-
-
-
-/// FIPS 204 `skDecode`.
-///
-/// Decodes an ML-DSA secret key into its internal algebraic representation.
-///
-/// This function rejects non-canonical `s1` and `s2` encodings that decode
-/// outside `[-ETA, ETA]`.
-///
-/// # Errors
-///
-/// Returns [`MlDsaError::InvalidSecretKey`] if the parameter-set byte length is
-/// inconsistent with the expected secret-key layout, or if a short secret
-/// polynomial decodes to a coefficient outside `[-ETA, ETA]`.
-pub(crate) fn sk_decode<
-    const K: usize,
-    const L: usize,
-    const D: usize,
-    const ETA: usize,
-    const BITLEN_2ETA: usize,
-    const SK_BYTES: usize,
-> (enc_sk: &SecretKey<SK_BYTES>) -> Result<DecodedSecretKey<K, L>, MlDsaError> {
-    if SK_BYTES != 128 + 32 * ((K + L) * BITLEN_2ETA + D * K) {
-        return Err(MlDsaError::InvalidSecretKey);
-    }
-
-    let sk_bytes = enc_sk.as_bytes();
-
-    let mut rho = [0u8; 32];
-    let mut key = [0u8; 32];
-    let mut tr = [0u8; 64];
-
-    let mut s1_polys = [Poly::<Q8380417>::zero(); L];
-    let mut s2_polys = [Poly::<Q8380417>::zero(); K];
-    let mut t0_polys = [Poly::<Q8380417>::zero(); K];
-
-    let eta = ETA as i32;
-    let (t0_a, t0_b) = t0_bounds::<D>();
-
-    let short_poly_len = 32 * BITLEN_2ETA;
-    let t0_poly_len = 32 * D;
-
-    rho.copy_from_slice(&sk_bytes[0..32]);
-    key.copy_from_slice(&sk_bytes[32..64]);
-    tr.copy_from_slice(&sk_bytes[64..128]);
-
-    let mut start= 128usize;
-
-    for poly in &mut s1_polys {
-        *poly = bit_unpack_q8380417::<BITLEN_2ETA>(
-            &sk_bytes[start..start + short_poly_len],
-            eta,
-            eta
-        );
-
-        if !coeffs_in_range(poly.coeffs(), -eta, eta) {
-            return Err(MlDsaError::InvalidSecretKey);
-        }
-
-        start += short_poly_len;
-    }
-
-    for poly in &mut s2_polys {
-        *poly = bit_unpack_q8380417::<BITLEN_2ETA>(
-            &sk_bytes[start..start + short_poly_len],
-            eta,
-            eta
-        );
-
-        if !coeffs_in_range(poly.coeffs(), -eta, eta) {
-            return Err(MlDsaError::InvalidSecretKey);
-        }
-
-        start += short_poly_len;
-    }
-
-    for poly in &mut t0_polys {
-        *poly = bit_unpack_q8380417::<D>(
-            &sk_bytes[start..start + t0_poly_len],
-            t0_a,
-            t0_b,
-        );
-
-        start += t0_poly_len;
-    }
-
-    let dec_sk = DecodedSecretKey{
-        rho,
-        key,
-        tr,
-        s1: PolyVec::from_polys(s1_polys),
-        s2: PolyVec::from_polys(s2_polys),
-        t0: PolyVec::from_polys(t0_polys),
-    };
-    Ok(dec_sk)
-}
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -357,7 +358,7 @@ mod tests {
         const SK_BYTES: usize = 128 + 32 * ((K + L) * BITLEN_2ETA + D * K);
 
         let rho = [1u8; 32];
-        let key = [2u8; 32];
+        let seed_k = [2u8; 32];
         let tr = [3u8; 64];
 
         let s1 = PolyVec::from_polys([
@@ -397,7 +398,7 @@ mod tests {
 
         let decoded = DecodedSecretKey {
             rho,
-            key,
+            seed_k,
             tr,
             s1,
             s2,
@@ -409,7 +410,7 @@ mod tests {
             sk_decode::<K, L, D, ETA, BITLEN_2ETA, SK_BYTES>(&encoded).unwrap();
 
         assert_eq!(decoded_again.rho, decoded.rho);
-        assert_eq!(decoded_again.key, decoded.key);
+        assert_eq!(decoded_again.seed_k, decoded.seed_k);
         assert_eq!(decoded_again.tr, decoded.tr);
         assert_eq!(decoded_again.s1, decoded.s1);
         assert_eq!(decoded_again.s2, decoded.s2);

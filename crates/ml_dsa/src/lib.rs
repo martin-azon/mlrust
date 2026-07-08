@@ -21,3 +21,4 @@ mod error;
 mod keys;
 mod primitives;
 mod encoding;
+mod test_utils;

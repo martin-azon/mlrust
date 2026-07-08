@@ -7,7 +7,7 @@
 //! concrete RustCrypto API and make the FIPS-level functions explicit.
 
 use crate::symmetric::generic_funcs::{
-    Shake128Reader, sha3_256, sha3_512, shake128_absorb, shake128_squeeze, shake256,
+    Shake128Reader, sha3_256, sha3_512, shake128_absorb_once, shake128_squeeze, shake256,
 };
 
 /// ML-KEM PRF.
@@ -80,7 +80,7 @@ pub fn g(input: &[u8], output_left: &mut [u8; 32], output_right: &mut [u8; 32]) 
 
 /// ML-KEM function `XOF.Absorb()`
 pub fn xof_absorb(seed: &[u8]) -> Shake128Reader {
-    shake128_absorb(seed)
+    shake128_absorb_once(seed)
 }
 
 /// ML-KEM function `XOF.Squeeze()`

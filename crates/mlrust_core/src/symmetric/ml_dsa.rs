@@ -4,13 +4,21 @@
 
 
 use crate::symmetric::generic_funcs::{
-    shake128,
-    shake256,
     Shake128Reader,
+    Shake128State,
     Shake256Reader,
+    Shake256State,
+    shake128,
     shake128_absorb,
+    shake128_absorb_once,
+    shake128_finalize,
+    shake128_init,
     shake128_squeeze,
+    shake256,
     shake256_absorb,
+    shake256_absorb_once,
+    shake256_finalize,
+    shake256_init,
     shake256_squeeze,
 };
 
@@ -23,19 +31,32 @@ pub fn h(input: &[u8], output: &mut [u8]) {
     shake256(input, output)
 }
 
-/// ML-DSA XOF function `H.Absorb`.
-///
-/// Computes SHAKE256.Absorb.
+/// ML-DSA `H.Init`.
 #[must_use]
-pub fn h_absorb(input: &[u8]) -> Shake256Reader{
-    shake256_absorb(input)
+pub fn h_init() -> Shake256State {
+    shake256_init()
 }
 
-/// ML-DSA XOF function `H.Squeeze`.
-///
-/// Computes SHAKE256.Squeeze.
+/// ML-DSA `H.Absorb`.
+pub fn h_absorb(state: &mut Shake256State, input: &[u8]) {
+    shake256_absorb(state, input);
+}
+
+/// ML-DSA `H.Finalize`.
+#[must_use]
+pub fn h_finalize(state: Shake256State) -> Shake256Reader {
+    shake256_finalize(state)
+}
+
+/// ML-DSA `H.Absorb` convenience helper for one input.
+#[must_use]
+pub fn h_absorb_once(input: &[u8]) -> Shake256Reader {
+    shake256_absorb_once(input)
+}
+
+/// ML-DSA `H.Squeeze`.
 pub fn h_squeeze(reader: &mut Shake256Reader, output: &mut [u8]) {
-    shake256_squeeze(reader, output)
+    shake256_squeeze(reader, output);
 }
 
 
@@ -44,22 +65,35 @@ pub fn h_squeeze(reader: &mut Shake256Reader, output: &mut [u8]) {
 ///
 /// Computes SHAKE128.
 pub fn g(input: &[u8], output: &mut [u8]) {
-    shake128(input, output)
+    shake128(input, output);
 }
 
-/// ML-DSA XOF function `G.Absorb`.
-///
-/// Computes SHAKE128.Absorb.
+/// ML-DSA `G.Init`.
 #[must_use]
-pub fn g_absorb(input: &[u8]) -> Shake128Reader{
-    shake128_absorb(input)
+pub fn g_init() -> Shake128State {
+    shake128_init()
 }
 
-/// ML-DSA XOF function `G.Squeeze`.
-///
-/// Computes SHAKE128.Squeeze.
+/// ML-DSA `G.Absorb`.
+pub fn g_absorb(state: &mut Shake128State, input: &[u8]) {
+    shake128_absorb(state, input);
+}
+
+/// ML-DSA `G.Finalize`.
+#[must_use]
+pub fn g_finalize(state: Shake128State) -> Shake128Reader {
+    shake128_finalize(state)
+}
+
+/// ML-DSA `G.Absorb` convenience helper for one input.
+#[must_use]
+pub fn g_absorb_once(input: &[u8]) -> Shake128Reader {
+    shake128_absorb_once(input)
+}
+
+/// ML-DSA `G.Squeeze`.
 pub fn g_squeeze(reader: &mut Shake128Reader, output: &mut [u8]) {
-    shake128_squeeze(reader, output)
+    shake128_squeeze(reader, output);
 }
 
 
@@ -101,7 +135,7 @@ mod tests {
 
         let mut got = [0u8; 96];
 
-        let mut reader = h_absorb(input);
+        let mut reader = h_absorb_once(input);
         h_squeeze(&mut reader, &mut got);
 
         let mut expected = [0u8; 96];
@@ -117,7 +151,7 @@ mod tests {
         let mut expected = [0u8; 80];
         shake256(input, &mut expected);
 
-        let mut reader = h_absorb(input);
+        let mut reader = h_absorb_once(input);
 
         let mut first = [0u8; 16];
         let mut second = [0u8; 64];
@@ -135,7 +169,7 @@ mod tests {
 
         let mut got = [0u8; 96];
 
-        let mut reader = g_absorb(input);
+        let mut reader = g_absorb_once(input);
         g_squeeze(&mut reader, &mut got);
 
         let mut expected = [0u8; 96];
@@ -151,7 +185,7 @@ mod tests {
         let mut expected = [0u8; 80];
         shake128(input, &mut expected);
 
-        let mut reader = g_absorb(input);
+        let mut reader = g_absorb_once(input);
 
         let mut first = [0u8; 16];
         let mut second = [0u8; 64];

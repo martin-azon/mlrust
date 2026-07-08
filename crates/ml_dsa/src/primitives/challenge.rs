@@ -1,7 +1,7 @@
 use mlrust_core::encode::bits::bytes_to_bits;
 use mlrust_core::params::{N, Q8380417};
 use mlrust_core::poly::Poly;
-use mlrust_core::symmetric::ml_dsa::{h_absorb, h_squeeze};
+use mlrust_core::symmetric::ml_dsa::{h_absorb_once, h_squeeze};
 
 /// FIPS 204 `SampleInBall`.
 ///
@@ -29,7 +29,7 @@ pub(crate) fn sample_in_ball<
     let mut h_bits = [0u8; 64];
     let mut j_byte = [0u8; 1];
 
-    let mut reader = h_absorb(c_tilde);
+    let mut reader = h_absorb_once(c_tilde);
     h_squeeze(&mut reader, &mut s);
     bytes_to_bits(&s, &mut h_bits);
 

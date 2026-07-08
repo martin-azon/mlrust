@@ -223,6 +223,33 @@ impl<P: NttOps, const K: usize> PolyVec<P, K> {
 }
 
 impl<P: NttDomainMul, const K: usize> PolyVec<P, K> {
+    /// Computes the NTT-domain multiplication of a polynomial vector by another polynomial.
+    ///
+    /// This computes:
+    ///
+    /// ```text
+    /// sum_i self[i] * other
+    /// ```
+    ///
+    /// where each product is an NTT-domain polynomial product.
+    ///
+    /// # Representation
+    ///
+    /// Both the vector and the other polynomial must be in the NTT/Montgomery domain. The returned
+    /// polynomial vector is also in the NTT/Montgomery domain.
+    #[must_use]
+    pub fn dilatation_ntt(&mut self, other: &Poly<P>) -> PolyVec<P, K> {
+        let mut res_coeffs= [Poly::<P>::zero(); K];
+
+        for i in 0..K {
+            res_coeffs[i] = self.polys[i].mul_ntt(&other);
+        }
+
+        PolyVec::from_polys(res_coeffs)
+    }
+
+
+
     /// Computes the NTT-domain scalar product of two polynomial vectors.
     ///
     /// This computes:

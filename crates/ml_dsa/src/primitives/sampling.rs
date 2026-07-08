@@ -15,7 +15,7 @@ use mlrust_core::encode::bits::{int_to_bytes, bitlen_u32};
 use mlrust_core::encode::ml_dsa::{bit_unpack_q8380417, coeff_from_half_byte, coeff_from_three_bytes};
 use mlrust_core::params::{Q8380417, N};
 use mlrust_core::poly::{Poly, PolyMat, PolyVec};
-use mlrust_core::symmetric::ml_dsa::{g_absorb, g_squeeze, h_absorb, h_squeeze, h};
+use mlrust_core::symmetric::ml_dsa::{g_absorb_once, g_squeeze, h, h_absorb_once, h_squeeze};
 
 
 
@@ -54,7 +54,7 @@ pub(crate) fn rej_ntt_poly(seed: &[u8; 34]) -> Poly<Q8380417> {
 
     let mut j = 0usize;
 
-    let mut reader = g_absorb(seed);
+    let mut reader = g_absorb_once(seed);
 
     let mut s = [0u8; 3];
 
@@ -94,7 +94,7 @@ pub(crate) fn rej_ntt_poly(seed: &[u8; 34]) -> Poly<Q8380417> {
 pub(crate) fn rej_bounded_poly<const ETA: usize>(seed: &[u8; 66]) -> Poly<Q8380417> {
     let mut a_coeffs = [0i32; N];
 
-    let mut reader = h_absorb(seed);
+    let mut reader = h_absorb_once(seed);
 
     let mut j = 0usize;
 
@@ -184,8 +184,8 @@ pub(crate) fn expand_a<const K: usize, const L: usize>(rho: &[u8; 32]) -> PolyMa
 /// - `ETA` is not supported by `coeff_from_half_byte`.
 #[must_use]
 pub(crate) fn expand_s<
-    const L: usize,
     const K: usize,
+    const L: usize,
     const ETA: usize
 >(rho_prime: &[u8; 64]) -> (PolyVec<Q8380417, L>, PolyVec<Q8380417, K>) {
     if L + K > 0 {

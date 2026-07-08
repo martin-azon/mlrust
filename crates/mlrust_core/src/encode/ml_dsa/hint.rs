@@ -5,7 +5,7 @@
 //!
 //! ML-DSA hints are sparse binary vectors of polynomials. They are not ring
 //! elements over `q`; they are binary masks indicating which coefficient
-//! positions require a hint during verification. Therefore this module uses a
+//! positions require a hint during verification. Therefore, this module uses a
 //! dedicated [`HintVec`] representation rather than `Poly<Q8380417>` or
 //! `PolyVec<Q8380417, K>`.
 
@@ -58,7 +58,23 @@ impl<const K: usize> HintVec<K> {
     pub fn data_mut(&mut self) -> &mut [[u8; N]; K] {
         &mut self.data
     }
+
+    /// Returns the Hamming weight of the underlying binary polynomial array.
+    #[must_use]
+    pub fn weight(&self) -> usize {
+        let mut weight = 0usize;
+
+        for row in self.data.iter() {
+            for &bit in row.iter() {
+                debug_assert!(bit <= 1);
+                weight += bit as usize;
+            }
+        }
+
+        weight
+    }
 }
+
 
 
 
@@ -128,7 +144,6 @@ pub fn hint_bit_pack<const K: usize, const OMEGA: usize>(
 ///   decreases;
 /// - [`PqcCoreError::NonCanonicalEncoding`] if indices inside one polynomial
 ///   are not strictly increasing, or if unused index bytes are nonzero.
-#[must_use]
 pub fn hint_bit_unpack<const K: usize, const OMEGA: usize>(
     input: &[u8]
 ) -> Result<HintVec<K>, PqcCoreError> {

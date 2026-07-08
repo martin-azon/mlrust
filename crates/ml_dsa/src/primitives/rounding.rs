@@ -74,7 +74,7 @@ pub(crate) fn mod_pm_power2<const D: usize>(r: i32) -> i32 {
 }
 
 
-/// Centered reduction modulo `q`.
+/// Returns the centered reduction modulo `q` of an integer.
 #[inline]
 pub(crate) fn mod_pm_q(r: i32) -> i32 {
     let r_plus = reduce_q_canonical(r);
@@ -83,6 +83,32 @@ pub(crate) fn mod_pm_q(r: i32) -> i32 {
     let use_centered = ct_i32_gt(r_plus,Q/ 2);
 
     i32::conditional_select(&r_plus, &centered, use_centered)
+}
+
+
+/// Returns the centered reduction modulo `q` of a polynomial.
+#[inline]
+pub(crate) fn mod_pm_q_poly(poly: Poly<Q8380417>) -> Poly<Q8380417> {
+    let mut coeffs_res = [0i32; N];
+
+    for i in 0..N {
+        coeffs_res[i] = mod_pm_q(poly.coeffs()[i]);
+    }
+
+    Poly::from_coeffs(coeffs_res)
+}
+
+
+/// Returns the centered reduction modulo `q` of a polynomial vector.
+#[inline]
+pub(crate) fn mod_pm_q_polyvec<const K: usize>(vec: PolyVec<Q8380417, K>) -> PolyVec<Q8380417, K> {
+    let mut polys_res = [Poly::zero(); K];
+
+    for i in 0..K {
+        polys_res[i] = mod_pm_q_poly(vec.polys()[i]);
+    }
+
+    PolyVec::from_polys(polys_res)
 }
 
 
@@ -354,7 +380,7 @@ pub(crate) fn use_hint_poly<const GAMMA2: usize>(
         .zip(hint.iter())
         .zip(r.coeffs().iter())
     {
-        assert!(hint_bit <= 1);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                assert!(hint_bit <= 1);
 
         *out = use_hint::<GAMMA2>(
             Choice::from(hint_bit),

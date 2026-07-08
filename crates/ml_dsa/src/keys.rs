@@ -127,8 +127,8 @@ impl<const SK_BYTES: usize, const PK_BYTES: usize> MlDsaKeypair<SK_BYTES, PK_BYT
 
     /// Constructs a keypair from an encapsulation key and a decapsulation key.
     pub(crate) const fn from_parts(
-        pk: PublicKey<PK_BYTES>,
         sk: SecretKey<SK_BYTES>,
+        pk: PublicKey<PK_BYTES>,
     ) -> Self {
         Self { pk, sk }
     }

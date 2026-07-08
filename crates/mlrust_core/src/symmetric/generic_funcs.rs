@@ -29,36 +29,69 @@ pub fn sha3_512(input: &[u8], output: &mut [u8; 64]) {
     output.copy_from_slice(&digest);
 }
 
-/// Computes SHAKE128 over `input` and writes `output.len()` bytes.
-#[allow(dead_code)]
-pub fn shake128(input: &[u8], output: &mut [u8]) {
-    let mut hasher = Shake128::default();
-    XofUpdate::update(&mut hasher, input);
 
-    let mut reader = hasher.finalize_xof();
-    reader.read(output)
+
+/// SHAKE128 absorbing state.
+///
+/// This state accepts input. Once finalized, it becomes a `Shake128Reader`
+/// and can no longer absorb.
+pub struct Shake128State {
+    hasher: Shake128,
 }
 
-/// Computes SHAKE256 over `input` and writes `output.len()` bytes.
-pub fn shake256(input: &[u8], output: &mut [u8]) {
-    let mut hasher = Shake256::default();
-    XofUpdate::update(&mut hasher, input);
-
-    let mut reader = hasher.finalize_xof();
-    reader.read(output)
-}
 
 /// SHAKE128 reader after absorption has been finalized.
 pub type Shake128Reader = <Shake128 as ExtendableOutput>::Reader;
 
-/// Initializes SHAKE128 and absorbs `input`.
+
+impl Shake128State {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            hasher: Shake128::default(),
+        }
+    }
+
+    pub fn absorb(&mut self, input: &[u8]) {
+        XofUpdate::update(&mut self.hasher, input);
+    }
+
+    #[must_use]
+    pub fn finalize(self) -> Shake128Reader {
+        self.hasher.finalize_xof()
+    }
+}
+
+impl Default for Shake128State {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+
+/// Initializes a SHAKE128 absorbing state.
 #[must_use]
-pub fn shake128_absorb(input: &[u8]) -> Shake128Reader {
-    let mut hasher = Shake128::default();
+pub fn shake128_init() -> Shake128State {
+    Shake128State::new()
+}
 
-    XofUpdate::update(&mut hasher, input);
+/// Absorbs bytes into a SHAKE128 state.
+pub fn shake128_absorb(state: &mut Shake128State, input: &[u8]) {
+    state.absorb(input);
+}
 
-    hasher.finalize_xof()
+/// SHAKE128 convenience helper: absorb one input and finalize.
+#[must_use]
+pub fn shake128_absorb_once(input: &[u8]) -> Shake128Reader {
+    let mut state = shake128_init();
+    shake128_absorb(&mut state, input);
+    shake128_finalize(state)
+}
+
+/// Finalizes SHAKE128 absorption and returns a squeezing reader.
+#[must_use]
+pub fn shake128_finalize(state: Shake128State) -> Shake128Reader {
+    state.finalize()
 }
 
 /// Squeezes bytes from a SHAKE128 reader.
@@ -66,25 +99,91 @@ pub fn shake128_squeeze(reader: &mut Shake128Reader, output: &mut [u8]) {
     reader.read(output);
 }
 
+/// Computes SHAKE128 over `input` and writes `output.len()` bytes.
+#[allow(dead_code)]
+pub fn shake128(input: &[u8], output: &mut [u8]) {
+    let mut reader = shake128_absorb_once(input);
+    shake128_squeeze(&mut reader, output);
+}
+
+
+
+
+/// SHAKE256 absorbing state.
+///
+/// This state accepts input. Once finalized, it becomes a `Shake256Reader`
+/// and can no longer absorb.
+pub struct Shake256State {
+    hasher: Shake256,
+}
 
 
 /// SHAKE256 reader after absorption has been finalized.
 pub type Shake256Reader = <Shake256 as ExtendableOutput>::Reader;
 
-/// Initializes SHAKE256 and absorbs `input`.
+
+impl Shake256State {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            hasher: Shake256::default(),
+        }
+    }
+
+    pub fn absorb(&mut self, input: &[u8]) {
+        XofUpdate::update(&mut self.hasher, input);
+    }
+
+    #[must_use]
+    pub fn finalize(self) -> Shake256Reader {
+        self.hasher.finalize_xof()
+    }
+}
+
+impl Default for Shake256State {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+
+/// Initializes a SHAKE256 absorbing state.
 #[must_use]
-pub fn shake256_absorb(input: &[u8]) -> Shake256Reader {
-    let mut hasher = Shake256::default();
+pub fn shake256_init() -> Shake256State {
+    Shake256State::new()
+}
 
-    XofUpdate::update(&mut hasher, input);
+/// Absorbs bytes into a SHAKE256 state.
+pub fn shake256_absorb(state: &mut Shake256State, input: &[u8]) {
+    state.absorb(input);
+}
 
-    hasher.finalize_xof()
+/// SHAKE256 convenience helper: absorb one input and finalize.
+#[must_use]
+pub fn shake256_absorb_once(input: &[u8]) -> Shake256Reader {
+    let mut state = shake256_init();
+    shake256_absorb(&mut state, input);
+    shake256_finalize(state)
+}
+
+/// Finalizes SHAKE256 absorption and returns a squeezing reader.
+#[must_use]
+pub fn shake256_finalize(state: Shake256State) -> Shake256Reader {
+    state.finalize()
 }
 
 /// Squeezes bytes from a SHAKE256 reader.
 pub fn shake256_squeeze(reader: &mut Shake256Reader, output: &mut [u8]) {
     reader.read(output);
 }
+
+/// Computes SHAKE256 over `input` and writes `output.len()` bytes.
+pub fn shake256(input: &[u8], output: &mut [u8]) {
+    let mut reader = shake256_absorb_once(input);
+    shake256_squeeze(&mut reader, output);
+}
+
+
 
 #[cfg(test)]
 mod tests {
@@ -176,7 +275,7 @@ mod tests {
         let mut one_shot = [0u8; 96];
         shake128(input, &mut one_shot);
 
-        let mut reader = shake128_absorb(input);
+        let mut reader = shake128_absorb_once(input);
         let mut streamed = [0u8; 96];
 
         shake128_squeeze(&mut reader, &mut streamed);
@@ -191,7 +290,7 @@ mod tests {
         let mut one_shot = [0u8; 96];
         shake128(input, &mut one_shot);
 
-        let mut reader = shake128_absorb(input);
+        let mut reader = shake128_absorb_once(input);
 
         let mut first = [0u8; 32];
         let mut second = [0u8; 64];
