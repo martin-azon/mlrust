@@ -257,4 +257,28 @@ mod tests {
 
         assert_ne!(out0, out1);
     }
+
+    #[test]
+    fn h_multiple_absorbs_match_one_shot_concatenation() {
+        let a = b"tr";
+        let b = b"formatted message";
+
+        let mut input = Vec::new();
+        input.extend_from_slice(a);
+        input.extend_from_slice(b);
+
+        let mut expected = [0u8; 64];
+        h(&input, &mut expected);
+
+        let mut state = h_init();
+        h_absorb(&mut state, a);
+        h_absorb(&mut state, b);
+
+        let mut reader = h_finalize(state);
+
+        let mut got = [0u8; 64];
+        h_squeeze(&mut reader, &mut got);
+
+        assert_eq!(got, expected);
+    }
 }

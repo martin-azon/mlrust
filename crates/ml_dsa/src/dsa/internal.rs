@@ -4,7 +4,7 @@
 
 //use crate::dsa::params::MlDsaParams;
 
-use mlrust_core::encode::bits::{bitlen_u32, bytes_to_bits, int_to_bytes};
+use mlrust_core::encode::bits::{bitlen_u32, int_to_bytes};
 use mlrust_core::encode::ml_dsa::hint::HintVec;
 use mlrust_core::params::{Q8380417, RingParams};
 use mlrust_core::poly::PolyVec;
@@ -28,7 +28,7 @@ pub(crate) fn ml_dsa_keygen_internal<
 > (randomness_xi: &[u8; 32]) -> MlDsaKeypair<SK_BYTES, PK_BYTES> {
     assert_eq!(BITLEN_2ETA, bitlen_u32(2 * ETA as u32));
     assert_eq!(PK_BYTES, 32 + 32 * K * (bitlen_u32(Q8380417::Q as u32 - 1) - D));
-    assert_eq!(SK_BYTES, 128 + 32 * ((L + K) * BITLEN_2ETA) + D * K);
+    assert_eq!(SK_BYTES, 128 + 32 * ((L + K) * BITLEN_2ETA + D * K));
 
 
     let mut input_hash = [0u8; 34];
@@ -42,18 +42,20 @@ pub(crate) fn ml_dsa_keygen_internal<
     h(&input_hash, &mut buffer);
 
     let mut rho = [0u8; 32];
-    let mut rho_bis = [0u8; 64];
+    let mut rho_prime = [0u8; 64];
     let mut seed_k = [0u8; 32];
 
     rho.copy_from_slice(&buffer[0..32]);
-    rho_bis.copy_from_slice(&buffer[32..96]);
+    rho_prime.copy_from_slice(&buffer[32..96]);
     seed_k.copy_from_slice(&buffer[96..]);
 
     let a_hat = expand_a::<K, L>(&rho);
-    let (mut s1, s2) = expand_s::<K, L, ETA>(&rho_bis);
+    let (s1, s2) = expand_s::<K, L, ETA>(&rho_prime);
 
-    s1.ntt();
-    let mut t = a_hat.mul_vec_ntt(&s1);
+    let mut s1_hat = s1;
+    s1_hat.ntt();
+
+    let mut t = a_hat.mul_vec_ntt(&s1_hat);
     t.inv_ntt();
     t.add_assign(&s2);
 
@@ -79,10 +81,11 @@ pub(crate) fn ml_dsa_sign_internal<
     const K: usize,
     const L: usize,
     const D: usize,
-    const BETA: usize,
     const ETA: usize,
     const BITLEN_2ETA: usize,
     const OMEGA: usize,
+    const TAU: usize,
+    const BETA: usize,
     const GAMMA1: usize,
     const BITLEN_2GAMMA1_MINUS_ONE: usize,
     const BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize,
@@ -90,12 +93,11 @@ pub(crate) fn ml_dsa_sign_internal<
     const BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize,
     const K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize,
     const LAMBDA_OVER_4: usize,
-    const TAU: usize,
     const SK_BYTES: usize,
     const SIG_BYTES: usize
 > (
     sk: &SecretKey<SK_BYTES>,
-    message: &[u8],
+    formatted_message: &[u8],
     randomness: &[u8; 32]
 ) -> Result<Signature<SIG_BYTES>, MlDsaError> {
     assert_eq!(BITLEN_2ETA, bitlen_u32(2 * ETA as u32));
@@ -116,22 +118,19 @@ pub(crate) fn ml_dsa_sign_internal<
 
     let dec_sk = sk_decode::<K, L, D, ETA, BITLEN_2ETA, SK_BYTES>(&sk)?;
 
-    let mut s1 = dec_sk.s1;
-    let mut s2 = dec_sk.s2;
-    let mut t0 = dec_sk.t0;
+    let mut s1_hat = dec_sk.s1;
+    let mut s2_hat = dec_sk.s2;
+    let mut t0_hat = dec_sk.t0;
 
-    s1.ntt();
-    s2.ntt();
-    t0.ntt();
+    s1_hat.ntt();
+    s2_hat.ntt();
+    t0_hat.ntt();
 
     let a_hat = expand_a::<K, L>(&dec_sk.rho);
 
-    let mut tr_as_bits = [0u8; 512];
-    bytes_to_bits(&dec_sk.tr, &mut tr_as_bits);
-
     let mut state1 = h_init();
-    h_absorb(&mut state1, &tr_as_bits);
-    h_absorb(&mut state1, message);
+    h_absorb(&mut state1, &dec_sk.tr);
+    h_absorb(&mut state1, formatted_message);
     let mut reader1 = h_finalize(state1);
 
     let mut mu= [0u8; 64];
@@ -143,82 +142,87 @@ pub(crate) fn ml_dsa_sign_internal<
     h_absorb(&mut state2, &mu);
     let mut reader2 = h_finalize(state2);
 
-    let mut rho_second = [0u8; 64];
-    h_squeeze(&mut reader2, &mut rho_second);
+    let mut rho_double_prime = [0u8; 64];
+    h_squeeze(&mut reader2, &mut rho_double_prime);
 
 
     let mut kappa = 0usize;
-    let mut sampling_succeeded = false;
 
-    let mut c_tilde = [0u8; LAMBDA_OVER_4];
+
     let mut z = PolyVec::<Q8380417, L>::zero();
     let mut hint = HintVec::<K>::zero();
 
-    while !sampling_succeeded {
+    loop {
         let mut y = expand_mask::<
             L, GAMMA1, BITLEN_2GAMMA1_MINUS_ONE, BITLEN_2GAMMA1_MINUS_ONE_TIMES_32
-        >(&rho_second, kappa);
+        >(&rho_double_prime, kappa);
 
-        y.ntt();
-        let mut w = a_hat.mul_vec_ntt(&y);
+        let mut y_hat = y;
+        y_hat.ntt();
+
+        let mut w = a_hat.mul_vec_ntt(&y_hat);
         w.inv_ntt();
 
         let w1 = high_bits_vec::<K, GAMMA2>(&w);
 
         let mut w1_encoded = [0u8; K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE];
+
         w1_encode::<
             K, GAMMA2, BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE
         >(&w1, &mut w1_encoded);
 
+        let mut c_tilde = [0u8; LAMBDA_OVER_4];
+
         let mut state3 = h_init();
         h_absorb(&mut state3, &mu);
         h_absorb(&mut state3, &w1_encoded);
-        let mut reader3 = h_finalize(state3);
 
+        let mut reader3 = h_finalize(state3);
         h_squeeze(&mut reader3, &mut c_tilde);
 
-        let mut c = sample_in_ball::<LAMBDA_OVER_4, TAU>(&c_tilde);
-        c.ntt();
+        let mut c_hat = sample_in_ball::<LAMBDA_OVER_4, TAU>(&c_tilde);
+        c_hat.ntt();
 
-        let mut cs1 = s1.mul_by_poly_ntt(&c);
+        let mut cs1 = s1_hat.mul_by_poly_ntt(&c_hat);
         cs1.inv_ntt();
 
-        let mut cs2 = s2.mul_by_poly_ntt(&c);
+        let mut cs2 = s2_hat.mul_by_poly_ntt(&c_hat);
         cs2.inv_ntt();
 
         z = y.add(&cs1);
+        let w_minus_cs2 = w.sub(&cs2);
+        let r0 = low_bits_vec::<K, GAMMA2>(&w_minus_cs2);
 
-        let r0 = low_bits_vec::<K, GAMMA2>(&w.sub(&cs2));
+        let z_small = norm_polyvec_zq(&z) < (GAMMA1 - BETA) as u32;
+        let r0_small = norm_polyvec_zq(&r0) < (GAMMA2 - BETA) as u32;
 
-        if norm_polyvec_zq(&z) < (GAMMA1 - BETA) as u32 && norm_polyvec_zq(&r0) < (GAMMA2 - BETA) as u32 {
-            let mut ct0 = t0.mul_by_poly_ntt(&c);
+        if z_small && r0_small {
+            let mut ct0 = t0_hat.mul_by_poly_ntt(&c_hat);
             ct0.inv_ntt();
 
             let minus_ct0 = PolyVec::<Q8380417, K>::zero().sub(&ct0);
             let w_minus_cs2 = w.sub(&cs2);
             let rhs_make_hint = w_minus_cs2.add(&ct0);
 
-            let (h, h_weight) = make_hint_vec::<K, GAMMA2>(&minus_ct0, &rhs_make_hint);
+            let (hint, h_weight) = make_hint_vec::<K, GAMMA2>(&minus_ct0, &rhs_make_hint);
 
-            if norm_polyvec_zq(&ct0) < GAMMA2 as u32 && h_weight <= OMEGA {
-                sampling_succeeded = true;
+            let ct0_small = norm_polyvec_zq(&ct0) < GAMMA2 as u32;
+            if ct0_small && h_weight <= OMEGA {
+                let dec_sig = DecodedSignature::<K, L, LAMBDA_OVER_4>{
+                    c_tilde,
+                    z: mod_pm_q_polyvec(z),
+                    hint
+                };
+
+                return Ok(sig_encode::<
+                    K, L, LAMBDA_OVER_4, GAMMA1, BITLEN_2GAMMA1_MINUS_ONE, OMEGA, SIG_BYTES
+                >(&dec_sig));
+
             }
-
-            hint = h;
         }
-
         kappa += L;
     }
-
-
-    let dec_sig = DecodedSignature::<K, L, LAMBDA_OVER_4>{
-        c_tilde,
-        z: mod_pm_q_polyvec(z),
-        hint
-    };
-    Ok(sig_encode::<K, L, LAMBDA_OVER_4, GAMMA1, BITLEN_2GAMMA1_MINUS_ONE, OMEGA, SIG_BYTES>(&dec_sig))
 }
-
 
 
 pub(crate) fn ml_dsa_verify_internal<
@@ -241,9 +245,9 @@ pub(crate) fn ml_dsa_verify_internal<
     const PK_BYTES: usize,
     const SIG_BYTES: usize
 > (
-    pk: PublicKey<PK_BYTES>,
-    message: &[u8],
-    signature: Signature<SIG_BYTES>
+    pk: &PublicKey<PK_BYTES>,
+    formatted_message: &[u8],
+    signature: &Signature<SIG_BYTES>
 ) -> Result<bool, MlDsaError> {
     assert_eq!(BITLEN_2ETA, bitlen_u32(2 * ETA as u32));
     assert_eq!(BITLEN_2GAMMA1_MINUS_ONE, bitlen_u32(2 * GAMMA1 as u32 - 1));
@@ -276,12 +280,9 @@ pub(crate) fn ml_dsa_verify_internal<
     let mut tr = [0u8; 64];
     h(pk.as_bytes(), &mut tr);
 
-    let mut tr_as_bits = [0u8; 512];
-    bytes_to_bits(&tr, &mut tr_as_bits);
-
     let mut state1 = h_init();
-    h_absorb(&mut state1, &tr_as_bits);
-    h_absorb(&mut state1, message);
+    h_absorb(&mut state1, &tr);
+    h_absorb(&mut state1, formatted_message);
     let mut reader1 = h_finalize(state1);
 
     let mut mu= [0u8; 64];
@@ -290,7 +291,8 @@ pub(crate) fn ml_dsa_verify_internal<
 
     let mut c = sample_in_ball::<LAMBDA_OVER_4, TAU>(&dec_sig.c_tilde);
 
-    let mut t1_times_2d = t1.mul_by_constant(&(1 << D));
+    let two_d = 1 << D;
+    let mut t1_times_2d = t1.mul_by_constant(&two_d);
     t1_times_2d.ntt();
 
     c.ntt();

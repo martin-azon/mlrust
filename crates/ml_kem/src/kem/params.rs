@@ -55,10 +55,10 @@ pub trait MlKemParams: Sized {
     /// Serialized K-PKE decryption-key length in bytes.
     const DK_PKE_BYTES: usize;
 
-    /// Encapsulation-key type for this parameter set.
+    /// Encapsulation key type for this parameter set.
     type EncapsulationKey;
 
-    /// Decapsulation-key type for this parameter set.
+    /// Decapsulation key type for this parameter set.
     type DecapsulationKey;
 
     /// Ciphertext type for this parameter set.

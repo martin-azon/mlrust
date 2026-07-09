@@ -251,7 +251,7 @@ impl<P: NttDomainMul, const K: usize> PolyVec<P, K> {
     /// Both the vector and the other polynomial must be in the NTT/Montgomery domain. The returned
     /// polynomial vector is also in the NTT/Montgomery domain.
     #[must_use]
-    pub fn mul_by_poly_ntt(&mut self, other: &Poly<P>) -> PolyVec<P, K> {
+    pub fn mul_by_poly_ntt(&self, other: &Poly<P>) -> PolyVec<P, K> {
         let mut res_coeffs= [Poly::<P>::zero(); K];
 
         for i in 0..K {

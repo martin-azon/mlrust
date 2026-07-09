@@ -335,4 +335,58 @@ mod tests {
 
         assert_eq!(c, d);
     }
+
+    #[test]
+    fn shake256_multiple_absorbs_match_concatenated_input() {
+        let left = b"left input";
+        let middle = b"middle input";
+        let right = b"right input";
+
+        let mut input = Vec::new();
+        input.extend_from_slice(left);
+        input.extend_from_slice(middle);
+        input.extend_from_slice(right);
+
+        let mut expected = [0u8; 96];
+        shake256(&input, &mut expected);
+
+        let mut state = shake256_init();
+        shake256_absorb(&mut state, left);
+        shake256_absorb(&mut state, middle);
+        shake256_absorb(&mut state, right);
+
+        let mut reader = shake256_finalize(state);
+
+        let mut got = [0u8; 96];
+        shake256_squeeze(&mut reader, &mut got);
+
+        assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn shake128_multiple_absorbs_match_concatenated_input() {
+        let left = b"left input";
+        let middle = b"middle input";
+        let right = b"right input";
+
+        let mut input = Vec::new();
+        input.extend_from_slice(left);
+        input.extend_from_slice(middle);
+        input.extend_from_slice(right);
+
+        let mut expected = [0u8; 96];
+        shake128(&input, &mut expected);
+
+        let mut state = shake128_init();
+        shake128_absorb(&mut state, left);
+        shake128_absorb(&mut state, middle);
+        shake128_absorb(&mut state, right);
+
+        let mut reader = shake128_finalize(state);
+
+        let mut got = [0u8; 96];
+        shake128_squeeze(&mut reader, &mut got);
+
+        assert_eq!(got, expected);
+    }
 }
