@@ -169,7 +169,20 @@ impl<P: RingParams, const K: usize> PolyVec<P, K> {
         out.sub_assign(rhs);
         out
     }
-
+    
+    
+    #[must_use] 
+    pub fn mul_by_constant(&self, cst: &i32) -> Self {
+        let mut polys_output = [Poly::<P>::zero(); K];
+        
+        for i in 0..K {
+            polys_output[i] = self.polys[i].mul_by_constant(cst);
+        }
+        
+        PolyVec::from_polys(polys_output)
+    }
+    
+    
     /// Converts an NTT-domain polynomial vector from Montgomery representation
     /// to ordinary coefficient representatives.
     ///
@@ -238,7 +251,7 @@ impl<P: NttDomainMul, const K: usize> PolyVec<P, K> {
     /// Both the vector and the other polynomial must be in the NTT/Montgomery domain. The returned
     /// polynomial vector is also in the NTT/Montgomery domain.
     #[must_use]
-    pub fn dilatation_ntt(&mut self, other: &Poly<P>) -> PolyVec<P, K> {
+    pub fn mul_by_poly_ntt(&mut self, other: &Poly<P>) -> PolyVec<P, K> {
         let mut res_coeffs= [Poly::<P>::zero(); K];
 
         for i in 0..K {

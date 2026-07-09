@@ -1,6 +1,6 @@
 //! ML-DSA `w1` encoding for challenge hashing.
 
-
+use mlrust_core::encode::bits::bitlen_u32;
 use mlrust_core::encode::ml_dsa::simple_bit_pack_q8380417;
 use mlrust_core::params::{Q8380417, RingParams};
 use mlrust_core::poly::PolyVec;
@@ -23,6 +23,10 @@ pub(crate) fn w1_encode<
     w1: &PolyVec<Q8380417, K>,
     out: &mut [u8]
 ) {
+    assert_eq!(
+        BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
+        bitlen_u32(((Q8380417::Q - 1)/(2 * GAMMA2) as i32) as u32 - 1)
+    );
     assert_eq!(
         out.len(),
         32 * K * BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE

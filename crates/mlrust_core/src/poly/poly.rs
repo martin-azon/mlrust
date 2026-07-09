@@ -191,6 +191,20 @@ impl<P: RingParams> Poly<P> {
         out.sub_assign(rhs);
         out
     }
+    
+    /// Returns the product of a polynomial by a constant.
+    ///
+    /// This does not modify the input polynomial.
+    #[must_use]
+    pub fn mul_by_constant(&self, cst: &i32) -> Self {
+        let mut coeffs_output = [0i32; N];
+        
+        for i in 0..N {
+            coeffs_output[i] = self.coeffs[i] * cst;
+        }
+        
+        Poly::from_coeffs(coeffs_output)
+    }
 
     /// Multiplies two polynomials using slow schoolbook negacyclic multiplication.
     ///
