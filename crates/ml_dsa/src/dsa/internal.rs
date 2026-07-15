@@ -1,4 +1,27 @@
-
+//! ML-DSA internal algorithms.
+//!
+//! This module implements the deterministic internal key-generation, signing,
+//! and verification algorithms used by the public ML-DSA API.
+//!
+//! These routines are parameterized with const generics so the same code can be
+//! instantiated for ML-DSA-44, ML-DSA-65, and ML-DSA-87.
+//!
+//! The functions in this module are not public API. Public callers should use
+//! [`crate::dsa::api`] or the parameter-set dispatch layer in
+//! [`crate::dsa::params`].
+//!
+//! Message handling is byte-oriented. The signing and verification functions
+//! accept an application message and context, then internally absorb the pure
+//! ML-DSA formatted message:
+//!
+//! ```text
+//! M' = IntegerToBytes(0, 1) || IntegerToBytes(|ctx|, 1) || ctx || message
+//! ```
+//!
+//! into the SHAKE256 transcript. The formatted message is streamed into the
+//! hash state and is not materialized as a separate allocation.
+//!
+//! This module implements pure ML-DSA, not HashML-DSA.
 
 
 
@@ -13,10 +36,81 @@ use crate::primitives::sampling::{expand_a, expand_mask, expand_s};
 use mlrust_core::encode::bits::{bitlen_u32, int_to_bytes};
 use mlrust_core::params::{Q8380417, RingParams};
 use mlrust_core::poly::PolyVec;
-use mlrust_core::symmetric::ml_dsa::{h, h_init, h_absorb, h_finalize, h_squeeze};
+use mlrust_core::symmetric::ml_dsa::{h, h_init, h_absorb, h_finalize, h_squeeze, Shake256State};
 use mlrust_core::error::PqcCoreError;
 
 
+
+
+/// Absorbs the pure ML-DSA formatted message into an active SHAKE256 state.
+///
+/// This writes the byte-oriented representation:
+///
+/// ```text
+/// IntegerToBytes(0, 1) || IntegerToBytes(|ctx|, 1) || ctx || message
+/// ```
+///
+/// where the initial zero byte selects pure ML-DSA and `ctx.len()` must fit in
+/// one byte.
+///
+/// This helper does not finalize the hash state. It is used after absorbing
+/// `tr` when computing:
+///
+/// ```text
+/// mu = H(tr || M', 64)
+/// ```
+///
+/// # Errors
+///
+/// Returns [`MlDsaError::InvalidLength`] if `ctx.len() > 255`.
+#[inline]
+fn absorb_formatted_message(
+    state: &mut Shake256State,
+    message: &[u8],
+    ctx: &[u8],
+) -> Result<(), MlDsaError> {
+    if ctx.len() > u8::MAX as usize {
+        return Err(MlDsaError::InvalidLength);
+    }
+
+    let prefix = [0u8, ctx.len() as u8];
+
+    h_absorb(state, &prefix);
+    h_absorb(state, ctx);
+    h_absorb(state, message);
+
+    Ok(())
+}
+
+
+/// Deterministic ML-DSA internal key generation.
+///
+/// This implements the FIPS-style key-generation flow for one ML-DSA
+/// parameter set:
+///
+/// ```text
+/// (rho, rho_prime, K) = H(xi || IntegerToBytes(k, 1) || IntegerToBytes(l, 1), 128)
+/// A_hat = ExpandA(rho)
+/// (s1, s2) = ExpandS(rho_prime)
+/// t = NTT^-1(A_hat * NTT(s1)) + s2
+/// (t1, t0) = Power2Round(t)
+/// pk = pkEncode(rho, t1)
+/// tr = H(pk, 64)
+/// sk = skEncode(rho, K, tr, s1, s2, t0)
+/// ```
+///
+/// The input `randomness_xi` is the 32-byte key-generation seed. This function
+/// is deterministic for fixed parameters and fixed `randomness_xi`.
+///
+/// # Panics
+///
+/// Panics if the supplied const-generic parameters are inconsistent with the
+/// ML-DSA object sizes or bit-length formulas.
+///
+/// # Returns
+///
+/// Returns the serialized ML-DSA keypair for the selected parameter set.
+#[must_use]
 pub(crate) fn ml_dsa_keygen_internal<
     const K: usize,
     const L: usize,
@@ -76,7 +170,47 @@ pub(crate) fn ml_dsa_keygen_internal<
 }
 
 
-
+/// Deterministic ML-DSA internal signing.
+///
+/// This implements the FIPS-style signing algorithm for one ML-DSA parameter
+/// set. The function receives a serialized secret key, an application message,
+/// a context string, and 32 bytes of signing randomness.
+///
+/// The message and context are formatted internally as pure ML-DSA:
+///
+/// ```text
+/// M' = IntegerToBytes(0, 1) || IntegerToBytes(|ctx|, 1) || ctx || message
+/// ```
+///
+/// and the signer computes:
+///
+/// ```text
+/// mu = H(tr || M', 64)
+/// rho_double_prime = H(K || randomness || mu, 64)
+/// ```
+///
+/// The signing loop samples `y`, computes the challenge, applies the ML-DSA
+/// rejection checks, and returns the first accepted signature.
+///
+/// The `randomness` parameter corresponds to the 32-byte `rnd` input in the
+/// randomized/deterministic signing procedure. Passing the same secret key,
+/// message, context, and randomness produces the same signature.
+///
+/// # Errors
+///
+/// Returns:
+///
+/// - [`MlDsaError::InvalidLength`] if `context.len() > 255`;
+/// - [`MlDsaError::InvalidSecretKey`] if the serialized secret key cannot be
+///   decoded for the supplied parameter set;
+/// - [`MlDsaError::Core`] with
+///   [`PqcCoreError::RejectionSamplingFailed`] if the signing nonce would
+///   exceed the two-byte nonce space.
+///
+/// # Panics
+///
+/// Panics if the supplied const-generic parameters are inconsistent with the
+/// ML-DSA object sizes, bit-length formulas, or public parameter constraints.
 pub(crate) fn ml_dsa_sign_internal<
     const K: usize,
     const L: usize,
@@ -97,7 +231,8 @@ pub(crate) fn ml_dsa_sign_internal<
     const SIG_BYTES: usize
 > (
     sk: &SecretKey<SK_BYTES>,
-    formatted_message: &[u8],
+    message: &[u8],
+    context: &[u8],
     randomness: &[u8; 32]
 ) -> Result<Signature<SIG_BYTES>, MlDsaError> {
     assert_eq!(BITLEN_2ETA, bitlen_u32(2 * ETA as u32));
@@ -140,7 +275,7 @@ pub(crate) fn ml_dsa_sign_internal<
 
     let mut state1 = h_init();
     h_absorb(&mut state1, &dec_sk.tr);
-    h_absorb(&mut state1, formatted_message);
+    absorb_formatted_message(&mut state1, message, context)?;
     let mut reader1 = h_finalize(state1);
 
     let mut mu= [0u8; 64];
@@ -242,6 +377,56 @@ pub(crate) fn ml_dsa_sign_internal<
 }
 
 
+/// ML-DSA internal verification.
+///
+/// This implements the FIPS-style verification algorithm for one ML-DSA
+/// parameter set. The function receives a serialized public key, an application
+/// message, a context string, and a serialized signature.
+///
+/// The message and context are formatted internally as pure ML-DSA:
+///
+/// ```text
+/// M' = IntegerToBytes(0, 1) || IntegerToBytes(|ctx|, 1) || ctx || message
+/// ```
+///
+/// and verification computes:
+///
+/// ```text
+/// tr = H(pk, 64)
+/// mu = H(tr || M', 64)
+/// c = SampleInBall(c_tilde)
+/// w_approx = NTT^-1(A_hat * NTT(z) - NTT(c) * NTT(t1 * 2^d))
+/// w1 = UseHint(h, w_approx)
+/// c_tilde_prime = H(mu || w1Encode(w1), lambda / 4)
+/// ```
+///
+/// Verification succeeds only if:
+///
+/// ```text
+/// ||z||∞ < gamma1 - beta
+/// ```
+///
+/// and `c_tilde_prime == c_tilde`.
+///
+/// # Errors
+///
+/// Returns:
+///
+/// - [`MlDsaError::InvalidLength`] if `context.len() > 255`;
+/// - [`MlDsaError::InvalidPublicKey`] if the serialized public key cannot be
+///   decoded for the supplied parameter set;
+/// - [`MlDsaError::InvalidSignature`] if the serialized signature cannot be
+///   decoded or has a malformed hint encoding.
+///
+/// # Returns
+///
+/// Returns `Ok(true)` for a valid signature and `Ok(false)` for a well-formed
+/// but invalid signature.
+///
+/// # Panics
+///
+/// Panics if the supplied const-generic parameters are inconsistent with the
+/// ML-DSA object sizes, bit-length formulas, or public parameter constraints.
 pub(crate) fn ml_dsa_verify_internal<
     const K: usize,
     const L: usize,
@@ -262,7 +447,8 @@ pub(crate) fn ml_dsa_verify_internal<
     const SIG_BYTES: usize
 > (
     pk: &PublicKey<PK_BYTES>,
-    formatted_message: &[u8],
+    message: &[u8],
+    context: &[u8],
     signature: &Signature<SIG_BYTES>
 ) -> Result<bool, MlDsaError> {
     assert_eq!(BITLEN_2ETA, bitlen_u32(2 * ETA as u32));
@@ -306,10 +492,9 @@ pub(crate) fn ml_dsa_verify_internal<
 
     let mut tr = [0u8; 64];
     h(pk.as_bytes(), &mut tr);
-
     let mut state1 = h_init();
     h_absorb(&mut state1, &tr);
-    h_absorb(&mut state1, formatted_message);
+    absorb_formatted_message(&mut state1, message, context)?;
     let mut reader1 = h_finalize(state1);
 
     let mut mu= [0u8; 64];
@@ -318,7 +503,7 @@ pub(crate) fn ml_dsa_verify_internal<
 
     let mut c = sample_in_ball::<LAMBDA_OVER_4, TAU>(&dec_sig.c_tilde);
 
-    let two_d = 1 << D;
+    let two_d = 1i32 << D;
     let mut t1_times_2d = t1.mul_by_constant(&two_d);
     t1_times_2d.ntt();
 

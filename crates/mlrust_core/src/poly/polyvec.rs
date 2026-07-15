@@ -169,16 +169,31 @@ impl<P: RingParams, const K: usize> PolyVec<P, K> {
         out.sub_assign(rhs);
         out
     }
-    
-    
-    #[must_use] 
-    pub fn mul_by_constant(&self, cst: &i32) -> Self {
+
+
+    /// Multiplies every polynomial in the vector by the same integer constant.
+    ///
+    /// For each vector index `i`, this computes:
+    ///
+    /// ```text
+    /// out[i] = self[i] * constant mod q
+    /// ```
+    ///
+    /// The operation is applied coefficientwise inside each polynomial by
+    /// [`Poly::mul_by_constant`]. This function does not modify `self`.
+    ///
+    /// Coefficients in the returned vector may be in the ring implementation's
+    /// internal reduced representation, not necessarily canonical
+    /// representatives in `[0, q)`. Call [`PolyVec::freeze`] if canonical
+    /// coefficients are required.
+    #[must_use]
+    pub fn mul_by_constant(&self, constant: &i32) -> Self {
         let mut polys_output = [Poly::<P>::zero(); K];
-        
+
         for i in 0..K {
-            polys_output[i] = self.polys[i].mul_by_constant(cst);
+            polys_output[i] = self.polys[i].mul_by_constant(constant);
         }
-        
+
         PolyVec::from_polys(polys_output)
     }
     

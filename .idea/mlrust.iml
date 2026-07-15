@@ -8,6 +8,7 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/ml_kem/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/ml_kem/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/crates/mlrust_core/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/ml_dsa/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

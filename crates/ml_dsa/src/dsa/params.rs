@@ -84,9 +84,14 @@ use crate::error::MlDsaError;
 /// key/signature wrapper types, and deterministic internal algorithms for one
 /// ML-DSA parameter set.
 ///
-/// The methods here operate on *formatted messages* `M'`, not raw application
-/// messages. Public APIs should construct `M'` from the domain-separation byte,
-/// context length, context, and message before calling these methods.
+/// The signing and verification methods accept an application message and
+/// context. The internal implementation formats them as pure ML-DSA:
+///
+/// ```text
+/// M' = IntegerToBytes(0, 1) || IntegerToBytes(|ctx|, 1) || ctx || message
+/// ```
+///
+/// before computing the ML-DSA transcript hash.
 pub trait MlDsaParams: Sized {
     /// Matrix row dimension `k`.
     const K: usize;
@@ -187,17 +192,20 @@ pub trait MlDsaParams: Sized {
     /// Deterministically generates a keypair from the 32-byte key-generation seed.
     fn keygen_from_seed(xi: &[u8; 32]) -> Self::KeyPair;
 
-    /// Deterministically signs an already formatted message `M'`.
+    /// Deterministically signs a message and context using explicit signing
+    /// randomness.
     fn sign_from_seed(
         sk: &Self::SecretKey,
-        formatted_message: &[u8],
+        message: &[u8],
+        context: &[u8],
         randomness: &[u8; 32]
     ) -> Result<Self::Signature, MlDsaError>;
 
-    /// Verifies a signature against an already formatted message `M'`.
+    /// Verifies a signature against a message and context.
     fn verify(
         pk: &Self::PublicKey,
-        formatted_message: &[u8],
+        message: &[u8],
+        context: &[u8],
         signature: &Self::Signature
     ) -> Result<bool, MlDsaError>;
 }
@@ -244,7 +252,10 @@ impl MlDsaParams for MlDsa44 {
     }
 
     fn sign_from_seed(
-        sk: &Self::SecretKey, formatted_message: &[u8], randomness: &[u8; 32]
+        sk: &Self::SecretKey,
+        message: &[u8],
+        context: &[u8],
+        randomness: &[u8; 32]
     ) -> Result<Self::Signature, MlDsaError> {
         ml_dsa_sign_internal::<
             ML_DSA_44_K,
@@ -264,11 +275,14 @@ impl MlDsaParams for MlDsa44 {
             ML_DSA_44_OMEGA,
             ML_DSA_44_SECRET_KEY_BYTES,
             ML_DSA_44_SIGNATURE_BYTES,
-        >(sk, formatted_message, randomness)
+        >(sk, message, context, randomness)
     }
 
     fn verify(
-        pk: &Self::PublicKey, formatted_message: &[u8], signature: &Self::Signature
+        pk: &Self::PublicKey,
+        message: &[u8],
+        context: &[u8],
+        signature: &Self::Signature
     ) -> Result<bool, MlDsaError> {
         ml_dsa_verify_internal::<
             ML_DSA_44_K,
@@ -288,7 +302,7 @@ impl MlDsaParams for MlDsa44 {
             ML_DSA_44_OMEGA,
             ML_DSA_44_PUBLIC_KEY_BYTES,
             ML_DSA_44_SIGNATURE_BYTES,
-        >(pk, formatted_message, signature)
+        >(pk, message, context, signature)
     }
 }
 
@@ -335,7 +349,10 @@ impl MlDsaParams for MlDsa65 {
     }
 
     fn sign_from_seed(
-        sk: &Self::SecretKey, formatted_message: &[u8], randomness: &[u8; 32]
+        sk: &Self::SecretKey,
+        message: &[u8],
+        context: &[u8],
+        randomness: &[u8; 32]
     ) -> Result<Self::Signature, MlDsaError> {
         ml_dsa_sign_internal::<
             ML_DSA_65_K,
@@ -355,11 +372,14 @@ impl MlDsaParams for MlDsa65 {
             ML_DSA_65_OMEGA,
             ML_DSA_65_SECRET_KEY_BYTES,
             ML_DSA_65_SIGNATURE_BYTES,
-        >(sk, formatted_message, randomness)
+        >(sk, message, context, randomness)
     }
 
     fn verify(
-        pk: &Self::PublicKey, formatted_message: &[u8], signature: &Self::Signature
+        pk: &Self::PublicKey,
+        message: &[u8],
+        context: &[u8],
+        signature: &Self::Signature
     ) -> Result<bool, MlDsaError> {
         ml_dsa_verify_internal::<
             ML_DSA_65_K,
@@ -379,7 +399,7 @@ impl MlDsaParams for MlDsa65 {
             ML_DSA_65_OMEGA,
             ML_DSA_65_PUBLIC_KEY_BYTES,
             ML_DSA_65_SIGNATURE_BYTES,
-        >(pk, formatted_message, signature)
+        >(pk, message, context, signature)
     }
 }
 
@@ -426,7 +446,10 @@ impl MlDsaParams for MlDsa87 {
     }
 
     fn sign_from_seed(
-        sk: &Self::SecretKey, formatted_message: &[u8], randomness: &[u8; 32]
+        sk: &Self::SecretKey,
+        message: &[u8],
+        context: &[u8],
+        randomness: &[u8; 32]
     ) -> Result<Self::Signature, MlDsaError> {
         ml_dsa_sign_internal::<
             ML_DSA_87_K,
@@ -446,11 +469,14 @@ impl MlDsaParams for MlDsa87 {
             ML_DSA_87_OMEGA,
             ML_DSA_87_SECRET_KEY_BYTES,
             ML_DSA_87_SIGNATURE_BYTES,
-        >(sk, formatted_message, randomness)
+        >(sk, message, context, randomness)
     }
 
     fn verify(
-        pk: &Self::PublicKey, formatted_message: &[u8], signature: &Self::Signature
+        pk: &Self::PublicKey,
+        message: &[u8],
+        context: &[u8],
+        signature: &Self::Signature
     ) -> Result<bool, MlDsaError> {
         ml_dsa_verify_internal::<
             ML_DSA_87_K,
@@ -470,6 +496,6 @@ impl MlDsaParams for MlDsa87 {
             ML_DSA_87_OMEGA,
             ML_DSA_87_PUBLIC_KEY_BYTES,
             ML_DSA_87_SIGNATURE_BYTES,
-        >(pk, formatted_message, signature)
+        >(pk, message, context, signature)
     }
 }

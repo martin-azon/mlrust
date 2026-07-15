@@ -319,3 +319,184 @@ pub const ML_DSA_87_PUBLIC_KEY_BYTES: usize = 2592;
 
 /// Length in bytes of an ML-DSA-87 signature.
 pub const ML_DSA_87_SIGNATURE_BYTES: usize = 4627;
+
+
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use mlrust_core::encode::bits::bitlen_u32;
+    use mlrust_core::params::{Q8380417, RingParams};
+
+    const Q: i32 = Q8380417::Q;
+
+    #[test]
+    fn shared_bit_lengths_are_consistent() {
+        assert_eq!(Q, 8_380_417);
+
+        assert_eq!(
+            BITLEN_Q_MINUS_ONE,
+            bitlen_u32((Q - 1) as u32)
+        );
+
+        assert_eq!(
+            BITLEN_Q_MINUS_ONE_MINUS_D,
+            BITLEN_Q_MINUS_ONE - ML_DSA_44_D
+        );
+
+        assert_eq!(ML_DSA_44_D, 13);
+        assert_eq!(ML_DSA_65_D, 13);
+        assert_eq!(ML_DSA_87_D, 13);
+    }
+
+    fn check_parameter_set(
+        k: usize,
+        l: usize,
+        d: usize,
+        tau: usize,
+        lambda_over_4: usize,
+        gamma1: usize,
+        bitlen_2gamma1_minus_one: usize,
+        bitlen_2gamma1_minus_one_times_32: usize,
+        gamma2: usize,
+        bitlen_w1_coeff: usize,
+        w1_encoded_bytes: usize,
+        eta: usize,
+        bitlen_2eta: usize,
+        beta: usize,
+        omega: usize,
+        sk_bytes: usize,
+        pk_bytes: usize,
+        sig_bytes: usize,
+    ) {
+        assert!(k > 0);
+        assert!(l > 0);
+        assert_eq!(d, 13);
+
+        assert_eq!(bitlen_2eta, bitlen_u32((2 * eta) as u32));
+
+        assert_eq!(
+            bitlen_2gamma1_minus_one,
+            bitlen_u32((2 * gamma1 - 1) as u32)
+        );
+
+        assert_eq!(
+            bitlen_2gamma1_minus_one_times_32,
+            32 * bitlen_2gamma1_minus_one
+        );
+
+        assert_eq!(
+            bitlen_w1_coeff,
+            bitlen_u32(((Q - 1) / (2 * gamma2 as i32)) as u32 - 1)
+        );
+
+        assert_eq!(
+            w1_encoded_bytes,
+            32 * k * bitlen_w1_coeff
+        );
+
+        assert_eq!(beta, tau * eta);
+
+        assert_eq!(
+            pk_bytes,
+            32 + 32 * k * (bitlen_u32((Q - 1) as u32) - d)
+        );
+
+        assert_eq!(
+            sk_bytes,
+            128 + 32 * ((l + k) * bitlen_2eta + d * k)
+        );
+
+        assert_eq!(
+            sig_bytes,
+            lambda_over_4 + l * 32 * bitlen_2gamma1_minus_one + omega + k
+        );
+    }
+
+    #[test]
+    fn mldsa44_constants_are_self_consistent() {
+        assert_eq!(ML_DSA_44_GAMMA2, ((Q - 1) / 88) as usize);
+
+        check_parameter_set(
+            ML_DSA_44_K,
+            ML_DSA_44_L,
+            ML_DSA_44_D,
+            ML_DSA_44_TAU,
+            ML_DSA_44_LAMBDA_OVER_4,
+            ML_DSA_44_GAMMA1,
+            ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE,
+            ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32,
+            ML_DSA_44_GAMMA2,
+            ML_DSA_44_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
+            ML_DSA_44_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
+            ML_DSA_44_ETA,
+            ML_DSA_44_BITLEN_2ETA,
+            ML_DSA_44_BETA,
+            ML_DSA_44_OMEGA,
+            ML_DSA_44_SECRET_KEY_BYTES,
+            ML_DSA_44_PUBLIC_KEY_BYTES,
+            ML_DSA_44_SIGNATURE_BYTES,
+        );
+    }
+
+    #[test]
+    fn mldsa65_constants_are_self_consistent() {
+        assert_eq!(ML_DSA_65_GAMMA2, ((Q - 1) / 32) as usize);
+
+        check_parameter_set(
+            ML_DSA_65_K,
+            ML_DSA_65_L,
+            ML_DSA_65_D,
+            ML_DSA_65_TAU,
+            ML_DSA_65_LAMBDA_OVER_4,
+            ML_DSA_65_GAMMA1,
+            ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE,
+            ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32,
+            ML_DSA_65_GAMMA2,
+            ML_DSA_65_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
+            ML_DSA_65_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
+            ML_DSA_65_ETA,
+            ML_DSA_65_BITLEN_2ETA,
+            ML_DSA_65_BETA,
+            ML_DSA_65_OMEGA,
+            ML_DSA_65_SECRET_KEY_BYTES,
+            ML_DSA_65_PUBLIC_KEY_BYTES,
+            ML_DSA_65_SIGNATURE_BYTES,
+        );
+    }
+
+    #[test]
+    fn mldsa87_constants_are_self_consistent() {
+        assert_eq!(ML_DSA_87_GAMMA2, ((Q - 1) / 32) as usize);
+
+        check_parameter_set(
+            ML_DSA_87_K,
+            ML_DSA_87_L,
+            ML_DSA_87_D,
+            ML_DSA_87_TAU,
+            ML_DSA_87_LAMBDA_OVER_4,
+            ML_DSA_87_GAMMA1,
+            ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE,
+            ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32,
+            ML_DSA_87_GAMMA2,
+            ML_DSA_87_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
+            ML_DSA_87_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
+            ML_DSA_87_ETA,
+            ML_DSA_87_BITLEN_2ETA,
+            ML_DSA_87_BETA,
+            ML_DSA_87_OMEGA,
+            ML_DSA_87_SECRET_KEY_BYTES,
+            ML_DSA_87_PUBLIC_KEY_BYTES,
+            ML_DSA_87_SIGNATURE_BYTES,
+        );
+    }
+
+    #[test]
+    fn mldsa_parameter_sets_have_expected_security_strengths() {
+        assert_eq!(ML_DSA_44_LAMBDA_OVER_4, 32);
+        assert_eq!(ML_DSA_65_LAMBDA_OVER_4, 48);
+        assert_eq!(ML_DSA_87_LAMBDA_OVER_4, 64);
+    }
+}

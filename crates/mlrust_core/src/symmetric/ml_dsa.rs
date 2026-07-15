@@ -4,10 +4,6 @@
 
 
 use crate::symmetric::generic_funcs::{
-    Shake128Reader,
-    Shake128State,
-    Shake256Reader,
-    Shake256State,
     shake128,
     shake128_absorb,
     shake128_absorb_once,
@@ -20,6 +16,13 @@ use crate::symmetric::generic_funcs::{
     shake256_finalize,
     shake256_init,
     shake256_squeeze,
+};
+
+pub use super::generic_funcs::{
+    Shake128Reader,
+    Shake128State,
+    Shake256Reader,
+    Shake256State,
 };
 
 

@@ -45,6 +45,11 @@ pub type Shake128Reader = <Shake128 as ExtendableOutput>::Reader;
 
 
 impl Shake128State {
+    /// Creates a new SHAKE128 absorbing state.
+    ///
+    /// The returned state is empty and ready to absorb input bytes. It can be
+    /// updated zero or more times with [`Shake128State::absorb`] and then
+    /// finalized with [`Shake128State::finalize`].
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -52,10 +57,25 @@ impl Shake128State {
         }
     }
 
+    /// Absorbs additional input bytes into the SHAKE128 state.
+    ///
+    /// This may be called multiple times before finalization. Absorbing:
+    ///
+    /// ```text
+    /// left || right
+    /// ```
+    ///
+    /// in one call is equivalent to absorbing `left` and then `right` in two
+    /// separate calls.
     pub fn absorb(&mut self, input: &[u8]) {
         XofUpdate::update(&mut self.hasher, input);
     }
 
+    /// Finalizes absorption and returns a SHAKE128 squeezing reader.
+    ///
+    /// After this method is called, the absorbing state is consumed and no more
+    /// input can be added. The returned reader can be used to squeeze any
+    /// requested number of output bytes.
     #[must_use]
     pub fn finalize(self) -> Shake128Reader {
         self.hasher.finalize_xof()
@@ -123,6 +143,11 @@ pub type Shake256Reader = <Shake256 as ExtendableOutput>::Reader;
 
 
 impl Shake256State {
+    /// Creates a new SHAKE256 absorbing state.
+    ///
+    /// The returned state is empty and ready to absorb input bytes. It can be
+    /// updated zero or more times with [`Shake256State::absorb`] and then
+    /// finalized with [`Shake256State::finalize`].
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -130,10 +155,25 @@ impl Shake256State {
         }
     }
 
+    /// Absorbs additional input bytes into the SHAKE256 state.
+    ///
+    /// This may be called multiple times before finalization. Absorbing:
+    ///
+    /// ```text
+    /// left || right
+    /// ```
+    ///
+    /// in one call is equivalent to absorbing `left` and then `right` in two
+    /// separate calls.
     pub fn absorb(&mut self, input: &[u8]) {
         XofUpdate::update(&mut self.hasher, input);
     }
 
+    /// Finalizes absorption and returns a SHAKE256 squeezing reader.
+    ///
+    /// After this method is called, the absorbing state is consumed and no more
+    /// input can be added. The returned reader can be used to squeeze any
+    /// requested number of output bytes.
     #[must_use]
     pub fn finalize(self) -> Shake256Reader {
         self.hasher.finalize_xof()
