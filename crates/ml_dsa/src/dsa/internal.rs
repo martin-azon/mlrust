@@ -5,7 +5,6 @@
 //use crate::dsa::params::MlDsaParams;
 
 use mlrust_core::encode::bits::{bitlen_u32, int_to_bytes};
-use mlrust_core::encode::ml_dsa::hint::HintVec;
 use mlrust_core::params::{Q8380417, RingParams};
 use mlrust_core::poly::PolyVec;
 use mlrust_core::symmetric::ml_dsa::{h, h_init, h_absorb, h_finalize, h_squeeze};
@@ -16,6 +15,7 @@ use crate::primitives::challenge::sample_in_ball;
 use crate::primitives::norm::norm_polyvec_zq;
 use crate::primitives::rounding::{high_bits_vec, low_bits_vec, make_hint_vec, mod_pm_q_polyvec, power2round_vec, use_hint_vec};
 use crate::primitives::sampling::{expand_a, expand_mask, expand_s};
+
 
 pub(crate) fn ml_dsa_keygen_internal<
     const K: usize,
@@ -81,18 +81,18 @@ pub(crate) fn ml_dsa_sign_internal<
     const K: usize,
     const L: usize,
     const D: usize,
-    const ETA: usize,
-    const BITLEN_2ETA: usize,
-    const OMEGA: usize,
     const TAU: usize,
-    const BETA: usize,
+    const LAMBDA_OVER_4: usize,
     const GAMMA1: usize,
     const BITLEN_2GAMMA1_MINUS_ONE: usize,
     const BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize,
     const GAMMA2: usize,
     const BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize,
     const K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize,
-    const LAMBDA_OVER_4: usize,
+    const ETA: usize,
+    const BITLEN_2ETA: usize,
+    const BETA: usize,
+    const OMEGA: usize,
     const SK_BYTES: usize,
     const SIG_BYTES: usize
 > (
@@ -103,6 +103,10 @@ pub(crate) fn ml_dsa_sign_internal<
     assert_eq!(BITLEN_2ETA, bitlen_u32(2 * ETA as u32));
     assert_eq!(BITLEN_2GAMMA1_MINUS_ONE, bitlen_u32(2 * GAMMA1 as u32 - 1));
     assert_eq!(BITLEN_2GAMMA1_MINUS_ONE_TIMES_32, BITLEN_2GAMMA1_MINUS_ONE * 32);
+    assert_eq!(
+        BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
+        bitlen_u32(((Q8380417::Q - 1)/(2 * GAMMA2 as i32)) as u32 - 1)
+    );
     assert_eq!(
         K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
         K * 32 * (bitlen_u32(((Q8380417::Q - 1)/(2 * GAMMA2 as i32)) as u32 - 1))
@@ -145,15 +149,12 @@ pub(crate) fn ml_dsa_sign_internal<
     let mut rho_double_prime = [0u8; 64];
     h_squeeze(&mut reader2, &mut rho_double_prime);
 
-
     let mut kappa = 0usize;
 
-
     let mut z = PolyVec::<Q8380417, L>::zero();
-    let mut hint = HintVec::<K>::zero();
 
     loop {
-        let mut y = expand_mask::<
+        let y = expand_mask::<
             L, GAMMA1, BITLEN_2GAMMA1_MINUS_ONE, BITLEN_2GAMMA1_MINUS_ONE_TIMES_32
         >(&rho_double_prime, kappa);
 
@@ -229,19 +230,18 @@ pub(crate) fn ml_dsa_verify_internal<
     const K: usize,
     const L: usize,
     const D: usize,
-    const BETA: usize,
-    const ETA: usize,
-    const BITLEN_2ETA: usize,
-    const BITLEN_Q_MINUS_ONE: usize,
-    const OMEGA: usize,
+    const TAU: usize,
+    const LAMBDA_OVER_4: usize,
     const GAMMA1: usize,
     const BITLEN_2GAMMA1_MINUS_ONE: usize,
     const BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize,
     const GAMMA2: usize,
     const BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize,
     const K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize,
-    const LAMBDA_OVER_4: usize,
-    const TAU: usize,
+    const ETA: usize,
+    const BITLEN_2ETA: usize,
+    const BETA: usize,
+    const OMEGA: usize,
     const PK_BYTES: usize,
     const SIG_BYTES: usize
 > (
