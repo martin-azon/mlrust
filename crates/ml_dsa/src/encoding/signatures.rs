@@ -11,7 +11,21 @@ use crate::keys::Signature;
 
 
 
-
+/// Decoded ML-DSA signature.
+///
+/// This is the internal algebraic representation used by verification.
+///
+/// A serialized ML-DSA signature consists of:
+///
+/// ```text
+/// c_tilde || sigEncode(z) || hintEncode(h)
+/// ```
+///
+/// where:
+///
+/// - `c_tilde` is the challenge seed;
+/// - `z` is the response vector;
+/// - `hint` is the sparse hint vector.
 pub(crate) struct DecodedSignature<
     const K: usize,
     const L: usize,
@@ -32,6 +46,7 @@ pub(crate) struct DecodedSignature<
 ///
 /// Panics if `SIG_BYTES` does not match the parameter-set signature length, or
 /// if `z` or `hint` contains values outside their encoding ranges.
+#[must_use]
 pub(crate) fn sig_encode<
     const K: usize,
     const L: usize,
@@ -79,17 +94,30 @@ pub(crate) fn sig_encode<
 
 
 
+
 /// FIPS 204 `sigDecode`.
 ///
 /// Decodes an ML-DSA signature into its internal algebraic representation.
 ///
-/// This function rejects malformed or non-canonical hint encodings.
+/// This function checks the parameter-set signature length and rejects
+/// malformed or non-canonical hint encodings.
+///
+/// It does not check whether the decoded response vector `z` satisfies the
+/// verification bound:
+///
+/// ```text
+/// ||z||∞ < gamma1 - beta
+/// ```
+///
+/// That bound is checked by verification.
 ///
 /// # Errors
 ///
-/// Returns [`MlDsaError::InvalidSignature`] if the parameter-set byte length is
-/// inconsistent with the expected signature layout, or if the hint encoding is
-/// malformed or non-canonical.
+/// Returns [`MlDsaError::InvalidSignature`] if:
+///
+/// - `SIG_BYTES` does not match the parameter-set signature length;
+/// - `BITLEN_2GAMMA1_MINUS_ONE` is inconsistent with `GAMMA1`;
+/// - the hint encoding is malformed or non-canonical.
 pub(crate) fn sig_decode<
     const K: usize,
     const L: usize,

@@ -1,4 +1,15 @@
 //! ML-DSA `w1` encoding for challenge hashing.
+//!
+//! This module implements FIPS 204 `w1Encode`, which serializes the high-bit
+//! vector `w1` before hashing:
+//!
+//! ```text
+//! c_tilde = H(mu || w1Encode(w1), lambda / 4)
+//! ```
+//!
+//! This encoding is not a public-key, secret-key, or signature encoding. It is
+//! an internal deterministic representation used only for challenge generation
+//! and verification.
 
 use mlrust_core::encode::bits::bitlen_u32;
 use mlrust_core::encode::ml_dsa::simple_bit_pack_q8380417;
@@ -11,10 +22,29 @@ use mlrust_core::poly::PolyVec;
 ///
 /// Encodes the high-order vector `w1` for challenge hashing.
 ///
+/// Each coefficient of `w1` is expected to lie in:
+///
+/// ```text
+/// 0 ..= (q - 1) / (2 * gamma2) - 1
+/// ```
+///
+/// and is packed using:
+///
+/// ```text
+/// bitlen((q - 1) / (2 * gamma2) - 1)
+/// ```
+///
+/// bits per coefficient.
+///
 /// # Panics
 ///
-/// Panics if `out.len()` does not match the expected parameter-set length, or
-/// if a coefficient of `w1` is outside the expected range.
+/// Panics if:
+///
+/// - `GAMMA2 == 0`;
+/// - `BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE` is inconsistent with
+///   `GAMMA2`;
+/// - `out.len()` does not match the parameter-set `w1` encoding length;
+/// - a coefficient of `w1` is outside the expected packing range.
 pub(crate) fn w1_encode<
     const K: usize,
     const GAMMA2: usize,
@@ -23,6 +53,7 @@ pub(crate) fn w1_encode<
     w1: &PolyVec<Q8380417, K>,
     out: &mut [u8]
 ) {
+    assert!(GAMMA2 > 0);
     assert_eq!(
         BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
         bitlen_u32(((Q8380417::Q - 1)/(2 * GAMMA2) as i32) as u32 - 1)

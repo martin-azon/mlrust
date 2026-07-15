@@ -78,50 +78,83 @@ use crate::error::MlDsaError;
 
 
 
+/// Parameter-set trait for the three standardized ML-DSA instantiations.
+///
+/// This trait binds the numeric parameters, serialized object sizes, concrete
+/// key/signature wrapper types, and deterministic internal algorithms for one
+/// ML-DSA parameter set.
+///
+/// The methods here operate on *formatted messages* `M'`, not raw application
+/// messages. Public APIs should construct `M'` from the domain-separation byte,
+/// context length, context, and message before calling these methods.
 pub trait MlDsaParams: Sized {
-    /// Dimension `k`.
+    /// Matrix row dimension `k`.
     const K: usize;
 
-    /// Dimension `l`.
+    /// Matrix column dimension `l`.
     const L: usize;
-    
-    /// Number of dropped bits from t.
+
+    /// Number of low bits split from `t` by `Power2Round`.
     const D: usize;
 
-    /// Number of 1's in the polynomial c.
+    /// Number of nonzero coefficients in the challenge polynomial `c`.
     const TAU: usize;
 
-    /// Collision strength of c_tilde.
+    /// Challenge digest length in bytes, equal to `lambda / 4`.
     const LAMBDA_OVER_4: usize;
 
-    /// Noise parameter used for secret-vector sampling.
+    /// Masking bound `gamma1` used by `ExpandMask`.
     const GAMMA1: usize;
 
-    /// Numerical value bit_length(2 * GAMMA1 - 1).
+    /// Number of bits used to encode one `z` coefficient:
+    ///
+    /// ```text
+    /// bitlen(2 * gamma1 - 1)
+    /// ```
     const BITLEN_2GAMMA1_MINUS_ONE: usize;
 
-    /// Numerical value 32 * (bit_length(2 * GAMMA1 - 1)).
+    /// Number of bytes used to encode one `z` polynomial:
+    ///
+    /// ```text
+    /// 32 * bitlen(2 * gamma1 - 1)
+    /// ```
     const BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize;
 
-    /// HighBits / LowBits parameter.
+    /// Rounding parameter used by `HighBits`, `LowBits`, and `UseHint`.
     const GAMMA2: usize;
-    
-    /// Numerical value bit_length(2 * GAMMA1) - 1.
+
+    /// Number of bits used to encode one `w1` coefficient:
+    ///
+    /// ```text
+    /// bitlen((q - 1) / (2 * gamma2) - 1)
+    /// ```
     const BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize;
 
-    /// Numerical value 32 * K * bit_length((Q - 1) / (2 * GAMMA2) - 1).
+    /// Number of bytes used to encode the full `w1` vector:
+    ///
+    /// ```text
+    /// 32 * k * bitlen((q - 1) / (2 * gamma2) - 1)
+    /// ```
     const K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize;
-    
-    /// Noise parameter used for secret-vector sampling.
+
+    /// Secret-vector sampling bound `eta`.
     const ETA: usize;
 
-    /// Bit length of the noise parameter ETA.
+    /// Number of bits used to encode one short secret coefficient:
+    ///
+    /// ```text
+    /// bitlen(2 * eta)
+    /// ```
     const BITLEN_2ETA: usize;
 
-    /// Beta = tau * eta.
+    /// Rejection bound offset:
+    ///
+    /// ```text
+    /// beta = tau * eta
+    /// ```
     const BETA: usize;
-    
-    /// Max of 1's in hint vector.
+
+    /// Maximum allowed hint weight.
     const OMEGA: usize;
 
 
@@ -151,19 +184,17 @@ pub trait MlDsaParams: Sized {
 
 
 
-    /// Deterministically generates a keypair from the 32-byte ML-DSA
-    /// key-generation seed.
+    /// Deterministically generates a keypair from the 32-byte key-generation seed.
     fn keygen_from_seed(xi: &[u8; 32]) -> Self::KeyPair;
 
-    /// Deterministically signs a formatted message using a
-    /// 32-byte randomness seed.
+    /// Deterministically signs an already formatted message `M'`.
     fn sign_from_seed(
         sk: &Self::SecretKey,
         formatted_message: &[u8],
         randomness: &[u8; 32]
     ) -> Result<Self::Signature, MlDsaError>;
 
-    /// Verifies that the signature is correct.
+    /// Verifies a signature against an already formatted message `M'`.
     fn verify(
         pk: &Self::PublicKey,
         formatted_message: &[u8],

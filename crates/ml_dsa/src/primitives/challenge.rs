@@ -1,7 +1,22 @@
+//! ML-DSA challenge-polynomial generation.
+//!
+//! This module implements FIPS 204 `SampleInBall`, which deterministically
+//! expands the challenge seed `c_tilde` into a sparse polynomial with exactly
+//! `TAU` nonzero coefficients.
+//!
+//! The challenge seed and resulting challenge polynomial are public in the
+//! signature flow. The rejection loop in this routine depends on XOF output
+//! derived from `c_tilde`.
+
+
+
 use mlrust_core::encode::bits::bytes_to_bits;
 use mlrust_core::params::{N, Q8380417};
 use mlrust_core::poly::Poly;
 use mlrust_core::symmetric::ml_dsa::{h_absorb_once, h_squeeze};
+
+
+
 
 /// FIPS 204 `SampleInBall`.
 ///
@@ -10,18 +25,23 @@ use mlrust_core::symmetric::ml_dsa::{h_absorb_once, h_squeeze};
 ///
 /// The input is the challenge seed `c_tilde`.
 ///
+/// This routine uses SHAKE output as a stream. It first reads eight bytes for
+/// sign bits and then performs rejection sampling for the selected positions.
+///
 /// # Panics
 ///
 /// Panics if:
 ///
 /// - `c_tilde.len() != LAMBDA_OVER_4`;
-/// - `TAU > 64`;
+/// - `TAU > 64`, because only 64 sign bits are read initially;
 /// - `TAU > N`.
 pub(crate) fn sample_in_ball<
     const LAMBDA_OVER_4: usize,
     const TAU: usize,
 >(c_tilde: &[u8]) -> Poly<Q8380417> {
     assert_eq!(c_tilde.len(), LAMBDA_OVER_4);
+    assert!(TAU <= 64);
+    assert!(TAU <= N);
 
     let mut c_coeffs = [0i32; N];
 

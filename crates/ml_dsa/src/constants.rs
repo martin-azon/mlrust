@@ -1,173 +1,287 @@
-//! ML-DSA parameter sets.
+//! ML-DSA parameter-set constants.
 //!
-//! This module defines the public parameter sets standardized for ML-DSA:
+//! This module defines the three standardized ML-DSA parameter sets:
 //!
 //! - [`MlDsa44`];
 //! - [`MlDsa65`];
 //! - [`MlDsa87`].
+//!
+//! It also exposes the numerical constants used by encoding, sampling,
+//! rounding, signing, and verification.
+//!
+//! The ML-DSA modulus is:
+//!
+//! ```text
+//! q = 8_380_417
+//! ```
+//!
+//! The marker types are zero-sized types used to select a parameter set at the
+//! type level. The associated constants themselves are plain `usize` values so
+//! that lower-level const-generic routines can be instantiated directly.
 
 
 
-/// Marker type for ML-DSA-44.
+
+/// Zero-sized marker type for ML-DSA-44.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MlDsa44 {}
 
-/// Marker type for ML-DSA-65.
+/// Zero-sized marker type for ML-DSA-65.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MlDsa65 {}
 
-/// Marker type for ML-DSA-87.
+/// Zero-sized marker type for ML-DSA-87.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MlDsa87 {}
 
 
 
-/// Bitlen of the Q - 1, where Q is the modulus Q = 8384017.
+/// Bit length of `q - 1`, where `q = 8_380_417`.
 pub const BITLEN_Q_MINUS_ONE: usize = 23;
-/// Bitlen(Q - 1) - D, where Q is the modulus Q = 8384017 and D = 13.
+
+/// Number of bits used to encode one `t1` coefficient.
+///
+/// This is:
+///
+/// ```text
+/// bitlen(q - 1) - d
+/// ```
+///
+/// where `q = 8_380_417` and `d = 13`.
 pub const BITLEN_Q_MINUS_ONE_MINUS_D: usize = 10;
 
 
 
-/// Number of rows of matrix A in ML-DSA-44
+
+/// Matrix row dimension `k` for ML-DSA-44.
 pub const ML_DSA_44_K: usize = 4;
 
-/// Number of columns of matrix A in ML-DSA-44
+/// Matrix column dimension `l` for ML-DSA-44.
 pub const ML_DSA_44_L: usize = 4;
 
-/// Parameter D for ML-DSA-44
+/// Number of low bits split from `t` by `Power2Round`.
 pub const ML_DSA_44_D: usize = 13;
 
-/// Parameter TAU for ML-DSA-44
+/// Number of nonzero coefficients in the challenge polynomial `c`.
 pub const ML_DSA_44_TAU: usize = 39;
 
-/// Parameter LAMBDA_OVER_4 for ML-DSA-44
+/// Challenge digest length in bytes, equal to `lambda / 4`.
 pub const ML_DSA_44_LAMBDA_OVER_4: usize = 32;
 
-/// Parameter GAMMA1 for ML-DSA-44
+/// Masking bound `gamma1`.
 pub const ML_DSA_44_GAMMA1: usize = 1 << 17;
 
-/// Numerical value bit_length(2 * GAMMA1 - 1) for ML-DSA-44
+/// Number of bits used to encode one `z` coefficient:
+///
+/// ```text
+/// bitlen(2 * gamma1 - 1)
+/// ```
 pub const ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE: usize = 18;
 
-/// Numerical value 32 * bit_length(2 * GAMMA1 - 1) for ML-DSA-44
+/// Number of bytes used to encode one `z` polynomial:
+///
+/// ```text
+/// 32 * bitlen(2 * gamma1 - 1)
+/// ```
 pub const ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = 576;
 
-/// Parameter GAMMA2 for ML-DSA-44  (this corresponds to (Q - 1)/88 )
-pub const ML_DSA_44_GAMMA2: usize = 95232;
+/// Rounding parameter `gamma2`.
+///
+/// For ML-DSA-44:
+///
+/// ```text
+/// gamma2 = (q - 1) / 88
+/// ```
+pub const ML_DSA_44_GAMMA2: usize = 95_232;
 
-/// Numerical value bit_length((Q - 1) / (2 * GAMMA2) - 1) for ML-DSA-44
+/// Number of bits used to encode one `w1` coefficient:
+///
+/// ```text
+/// bitlen((q - 1) / (2 * gamma2) - 1)
+/// ```
 pub const ML_DSA_44_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 6;
 
-/// Numerical value 32 * K * bit_length((Q - 1) / (2 * GAMMA2) - 1) for ML-DSA-44
+/// Number of bytes used to encode the full `w1` vector:
+///
+/// ```text
+/// 32 * k * bitlen((q - 1) / (2 * gamma2) - 1)
+/// ```
 pub const ML_DSA_44_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 768;
 
-/// Parameter ETA for ML-DSA-44
+/// Secret-vector sampling bound `eta`.
 pub const ML_DSA_44_ETA: usize = 2;
 
-/// Numerical value bit_length(2 * ETA) for ML-DSA-44
+/// Number of bits used to encode one short secret coefficient:
+///
+/// ```text
+/// bitlen(2 * eta)
+/// ```
 pub const ML_DSA_44_BITLEN_2ETA: usize = 3;
 
-/// Parameter BETA for ML-DSA-44
+/// Signing rejection offset:
+///
+/// ```text
+/// beta = tau * eta
+/// ```
 pub const ML_DSA_44_BETA: usize = 78;
 
-/// Parameter OMEGA for ML-DSA-44
+/// Maximum allowed hint weight.
 pub const ML_DSA_44_OMEGA: usize = 80;
 
 
 
 
-/// Number of rows of matrix A in ML-DSA-65
+/// Matrix row dimension `k` for ML-DSA-65.
 pub const ML_DSA_65_K: usize = 6;
 
-/// Number of columns of matrix A in ML-DSA-65
+/// Matrix column dimension `l` for ML-DSA-65.
 pub const ML_DSA_65_L: usize = 5;
 
-/// Parameter D for ML-DSA-65
+/// Number of low bits split from `t` by `Power2Round`.
 pub const ML_DSA_65_D: usize = 13;
 
-/// Parameter TAU for ML-DSA-65
+/// Number of nonzero coefficients in the challenge polynomial `c`.
 pub const ML_DSA_65_TAU: usize = 49;
 
-/// Parameter LAMBDA_OVER_4 for ML-DSA-65
+/// Challenge digest length in bytes, equal to `lambda / 4`.
 pub const ML_DSA_65_LAMBDA_OVER_4: usize = 48;
 
-/// Parameter GAMMA1 for ML-DSA-65
+/// Masking bound `gamma1`.
 pub const ML_DSA_65_GAMMA1: usize = 1 << 19;
 
-/// Numerical value bit_length(2 * GAMMA1 - 1) for ML-DSA-65
+/// Number of bits used to encode one `z` coefficient:
+///
+/// ```text
+/// bitlen(2 * gamma1 - 1)
+/// ```
 pub const ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE: usize = 20;
 
-/// Numerical value 32 * bit_length(2 * GAMMA1 - 1) for ML-DSA-65
+/// Number of bytes used to encode one `z` polynomial:
+///
+/// ```text
+/// 32 * bitlen(2 * gamma1 - 1)
+/// ```
 pub const ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = 640;
 
-/// Parameter GAMMA2 for ML-DSA-65  (this corresponds to (Q - 1)/32 )
-pub const ML_DSA_65_GAMMA2: usize = 261888;
+/// Rounding parameter `gamma2`.
+///
+/// For ML-DSA-65:
+///
+/// ```text
+/// gamma2 = (q - 1) / 88
+/// ```
+pub const ML_DSA_65_GAMMA2: usize = 261_888;
 
-/// Numerical value bit_length((Q - 1) / (2 * GAMMA2) - 1) for ML-DSA-65
+/// Number of bits used to encode one `w1` coefficient:
+///
+/// ```text
+/// bitlen((q - 1) / (2 * gamma2) - 1)
+/// ```
 pub const ML_DSA_65_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 4;
 
-/// Numerical value 32 * K * bit_length((Q - 1) / (2 * GAMMA2) - 1) for ML-DSA-65
+/// Number of bytes used to encode the full `w1` vector:
+///
+/// ```text
+/// 32 * k * bitlen((q - 1) / (2 * gamma2) - 1)
+/// ```
 pub const ML_DSA_65_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 768;
 
-/// Parameter ETA for ML-DSA-65
+/// Secret-vector sampling bound `eta`.
 pub const ML_DSA_65_ETA: usize = 4;
 
-/// Numerical value bit_length(2 * ETA) for ML-DSA-65
+/// Number of bits used to encode one short secret coefficient:
+///
+/// ```text
+/// bitlen(2 * eta)
+/// ```
 pub const ML_DSA_65_BITLEN_2ETA: usize = 4;
 
-/// Parameter BETA for ML-DSA-65
+/// Signing rejection offset:
+///
+/// ```text
+/// beta = tau * eta
+/// ```
 pub const ML_DSA_65_BETA: usize = 196;
 
-/// Parameter OMEGA for ML-DSA-65
+/// Maximum allowed hint weight.
 pub const ML_DSA_65_OMEGA: usize = 55;
 
 
 
 
-/// Number of rows of matrix A in ML-DSA-87
+/// Matrix row dimension `k` for ML-DSA-87.
 pub const ML_DSA_87_K: usize = 8;
 
-/// Number of columns of matrix A in ML-DSA-87
+/// Matrix column dimension `l` for ML-DSA-87.
 pub const ML_DSA_87_L: usize = 7;
 
-/// Parameter D for ML-DSA-87
+/// Number of low bits split from `t` by `Power2Round`.
 pub const ML_DSA_87_D: usize = 13;
 
-/// Parameter TAU for ML-DSA-87
+/// Number of nonzero coefficients in the challenge polynomial `c`.
 pub const ML_DSA_87_TAU: usize = 60;
 
-/// Parameter LAMBDA_OVER_4 for ML-DSA-87
+/// Challenge digest length in bytes, equal to `lambda / 4`.
 pub const ML_DSA_87_LAMBDA_OVER_4: usize = 64;
 
-/// Parameter GAMMA1 for ML-DSA-87
+/// Masking bound `gamma1`.
 pub const ML_DSA_87_GAMMA1: usize = 1 << 19;
 
-/// Numerical value bit_length(2 * GAMMA1 - 1) for ML-DSA-87
+/// Number of bits used to encode one `z` coefficient:
+///
+/// ```text
+/// bitlen(2 * gamma1 - 1)
+/// ```
 pub const ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE: usize = 20;
 
-/// Numerical value 32 * bit_length(2 * GAMMA1 - 1) for ML-DSA-87
+/// Number of bytes used to encode one `z` polynomial:
+///
+/// ```text
+/// 32 * bitlen(2 * gamma1 - 1)
+/// ```
 pub const ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = 640;
 
-/// Parameter GAMMA2 for ML-DSA-87  (this corresponds to (Q - 1)/32 )
-pub const ML_DSA_87_GAMMA2: usize = 261888;
+/// Rounding parameter `gamma2`.
+///
+/// For ML-DSA-87:
+///
+/// ```text
+/// gamma2 = (q - 1) / 88
+/// ```
+pub const ML_DSA_87_GAMMA2: usize = 261_888;
 
-/// Numerical value bit_length((Q - 1) / (2 * GAMMA2) - 1) for ML-DSA-87
+/// Number of bits used to encode one `w1` coefficient:
+///
+/// ```text
+/// bitlen((q - 1) / (2 * gamma2) - 1)
+/// ```
 pub const ML_DSA_87_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 4;
 
-/// Numerical value 32 * K * bit_length((Q - 1) / (2 * GAMMA2) - 1) for ML-DSA-87
+/// Number of bytes used to encode the full `w1` vector:
+///
+/// ```text
+/// 32 * k * bitlen((q - 1) / (2 * gamma2) - 1)
+/// ```
 pub const ML_DSA_87_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 1024;
 
-/// Parameter ETA for ML-DSA-87
+/// Secret-vector sampling bound `eta`.
 pub const ML_DSA_87_ETA: usize = 2;
 
-/// Numerical value bit_length(2 * ETA) for ML-DSA-87
+/// Number of bits used to encode one short secret coefficient:
+///
+/// ```text
+/// bitlen(2 * eta)
+/// ```
 pub const ML_DSA_87_BITLEN_2ETA: usize = 3;
 
-/// Parameter BETA for ML-DSA-87
+/// Signing rejection offset:
+///
+/// ```text
+/// beta = tau * eta
+/// ```
 pub const ML_DSA_87_BETA: usize = 120;
 
-/// Parameter 768OMEGA for ML-DSA-87
+/// Maximum allowed hint weight.
 pub const ML_DSA_87_OMEGA: usize = 75;
 
 

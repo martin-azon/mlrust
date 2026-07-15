@@ -1,7 +1,26 @@
 //! ML-DSA infinity-norm routines.
 //!
 //! This module implements the coefficient, polynomial, and polynomial-vector
-//! infinity norms used by the ML-DSA signing and verification algorithms.
+//! infinity norms used by ML-DSA signing and verification.
+//!
+//! The relevant norm is computed over centered representatives modulo `q`.
+//! For a coefficient `x`, this module computes:
+//!
+//! ```text
+//! |x mod± q|
+//! ```
+//!
+//! For a polynomial:
+//!
+//! ```text
+//! ||w||∞ = max_i |w_i mod± q|
+//! ```
+//!
+//! For a polynomial vector:
+//!
+//! ```text
+//! ||v||∞ = max_j ||v_j||∞
+//! ```
 
 
 
@@ -12,6 +31,12 @@ use subtle::{ConditionallySelectable, ConstantTimeGreater};
 
 
 /// Computes the absolute value of an `i32` as a `u32`, branchlessly.
+///
+/// This handles `i32::MIN` without overflow:
+///
+/// ```text
+/// ct_i32_abs(i32::MIN) = 2^31
+/// ```
 #[inline]
 fn ct_i32_abs(x: i32) -> u32 {
     let ux = x as u32;
@@ -21,33 +46,42 @@ fn ct_i32_abs(x: i32) -> u32 {
     (ux ^ mask).wrapping_sub(mask)
 }
 
+
+/// Returns `max(a, b)` branchlessly.
 #[inline]
 fn ct_u32_max(a: u32, b: u32) -> u32 {
     u32::conditional_select(&a, &b, b.ct_gt(&a))
 }
 
-/// Computes `|x mod± q|`.
-pub(crate) fn norm_zq(x: &i32) -> u32 {
-    let x_mod_pm_q = mod_pm_q(*x);
-    ct_i32_abs(x_mod_pm_q)
-}
 
-/// Computes the infinity norm of a polynomial over `Z_q`.
+/// Computes the centered coefficient norm over `Z_q`.
 ///
 /// This returns:
 ///
 /// ```text
-/// max_i |w_i mod± q|
+/// |x mod± q|
 /// ```
 ///
-/// where each coefficient is first reduced to its centered representative
-/// modulo `q`.
+/// where `mod± q` is the centered representative modulo `q`.
 #[must_use]
-pub(crate) fn norm_poly_zq(poly: &Poly<Q8380417>) -> u32 {
+pub(crate) fn norm_zq(x: i32) -> u32 {
+    let x_mod_pm_q = mod_pm_q(x);
+    ct_i32_abs(x_mod_pm_q)
+}
+
+/// Computes the infinity norm of a polynomial vector over `Z_q`.
+///
+/// This returns:
+///
+/// ```text
+/// max_j ||v_j||∞
+/// ```
+#[must_use]
+pub(crate) fn norm_poly_zq(poly: Poly<Q8380417>) -> u32 {
     let mut max = 0u32;
 
-    for coeff in poly.coeffs().iter() {
-        let coeff_norm = norm_zq(coeff);
+    for coeff in poly.into_coeffs().iter() {
+        let coeff_norm = norm_zq(*coeff);
         max = ct_u32_max(max, coeff_norm);
     }
 
@@ -64,11 +98,11 @@ pub(crate) fn norm_poly_zq(poly: &Poly<Q8380417>) -> u32 {
 ///
 /// where each `w_j` is a polynomial over `Z_q`.
 #[must_use]
-pub(crate) fn norm_polyvec_zq<const K: usize>(vec: &PolyVec<Q8380417, K>) -> u32 {
+pub(crate) fn norm_polyvec_zq<const K: usize>(vec: PolyVec<Q8380417, K>) -> u32 {
     let mut max = 0u32;
 
-    for poly in vec.polys().iter() {
-        let poly_norm = norm_poly_zq(poly);
+    for poly in vec.into_polys().iter() {
+        let poly_norm = norm_poly_zq(*poly);
         max = ct_u32_max(max, poly_norm);
     }
 
@@ -166,26 +200,26 @@ mod tests {
         ];
 
         for &x in &inputs {
-            assert_eq!(norm_zq(&x), norm_zq_ref(x), "x = {x}");
+            assert_eq!(norm_zq(x), norm_zq_ref(x), "x = {x}");
         }
     }
 
     #[test]
     fn norm_zq_handles_centered_boundaries() {
-        assert_eq!(norm_zq(&0), 0);
-        assert_eq!(norm_zq(&1), 1);
-        assert_eq!(norm_zq(&-1), 1);
-        assert_eq!(norm_zq(&(Q - 1)), 1);
-        assert_eq!(norm_zq(&(Q + 1)), 1);
-        assert_eq!(norm_zq(&(Q / 2)), (Q / 2) as u32);
-        assert_eq!(norm_zq(&(Q / 2 + 1)), (Q / 2) as u32);
+        assert_eq!(norm_zq(0), 0);
+        assert_eq!(norm_zq(1), 1);
+        assert_eq!(norm_zq(-1), 1);
+        assert_eq!(norm_zq(Q - 1), 1);
+        assert_eq!(norm_zq(Q + 1), 1);
+        assert_eq!(norm_zq(Q / 2), (Q / 2) as u32);
+        assert_eq!(norm_zq(Q / 2 + 1), (Q / 2) as u32);
     }
 
     #[test]
     fn norm_poly_zq_zero_poly_is_zero() {
         let poly = Poly::<Q8380417>::zero();
 
-        assert_eq!(norm_poly_zq(&poly), 0);
+        assert_eq!(norm_poly_zq(poly), 0);
     }
 
     #[test]
@@ -199,7 +233,7 @@ mod tests {
             (5, -999),
         ]);
 
-        assert_eq!(norm_poly_zq(&poly), 1234);
+        assert_eq!(norm_poly_zq(poly), 1234);
     }
 
     #[test]
@@ -211,7 +245,7 @@ mod tests {
             (3, Q / 2 + 1),
         ]);
 
-        assert_eq!(norm_poly_zq(&poly), (Q / 2) as u32);
+        assert_eq!(norm_poly_zq(poly), (Q / 2) as u32);
     }
 
     #[test]
@@ -241,7 +275,7 @@ mod tests {
             .max()
             .unwrap();
 
-        assert_eq!(norm_poly_zq(&poly), expected);
+        assert_eq!(norm_poly_zq(poly), expected);
     }
 
     #[test]
@@ -250,7 +284,7 @@ mod tests {
 
         let vec = PolyVec::<Q8380417, K>::zero();
 
-        assert_eq!(norm_polyvec_zq(&vec), 0);
+        assert_eq!(norm_polyvec_zq(vec), 0);
     }
 
     #[test]
@@ -263,7 +297,7 @@ mod tests {
 
         let vec = PolyVec::<Q8380417, K>::from_polys([p0, p1, p2]);
 
-        assert_eq!(norm_polyvec_zq(&vec), 1234);
+        assert_eq!(norm_polyvec_zq(vec), 1234);
     }
 
     #[test]
@@ -298,6 +332,6 @@ mod tests {
 
         let vec = PolyVec::<Q8380417, K>::from_polys(polys);
 
-        assert_eq!(norm_polyvec_zq(&vec), expected);
+        assert_eq!(norm_polyvec_zq(vec), expected);
     }
 }

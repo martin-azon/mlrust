@@ -4,6 +4,13 @@
 //! keys, secret keys, signatures, and the `w1` challenge-hash representation.
 //!
 //! Low-level coefficient and hint packing routines live in `mlrust_core`.
+//! This module is responsible for assembling those primitive encodings into
+//! complete ML-DSA byte strings.
+//!
+//! These functions are internal to the ML-DSA crate. Public wrappers should
+//! expose typed [`crate::keys::PublicKey`], [`crate::keys::SecretKey`], and
+//! [`crate::keys::Signature`] values rather than decoded algebraic structures.
+
 
 pub(crate) mod keys;
 pub(crate) mod signatures;

@@ -380,7 +380,7 @@ pub(crate) fn use_hint_poly<const GAMMA2: usize>(
         .zip(hint.iter())
         .zip(r.coeffs().iter())
     {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                assert!(hint_bit <= 1);
+        assert!(hint_bit <= 1);
 
         *out = use_hint::<GAMMA2>(
             Choice::from(hint_bit),
