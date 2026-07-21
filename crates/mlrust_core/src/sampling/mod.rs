@@ -4,3 +4,5 @@
 //! polynomials and polynomial vectors from byte strings, seeds, and XOF output.
 
 pub mod ml_kem;
+pub mod random;
+

@@ -2,6 +2,8 @@
 
 use core::fmt;
 use mlrust_core::error::PqcCoreError;
+use mlrust_core::sampling::random::RandomError;
+
 
 
 /// Errors returned by the ML-DSA public API.
@@ -64,5 +66,12 @@ impl std::error::Error for MlDsaError {
             Self::Core(err) => Some(err),
             _ => None,
         }
+    }
+}
+
+
+impl From<RandomError> for MlDsaError {
+    fn from(_: RandomError) -> Self {
+        MlDsaError::RandomnessFailure
     }
 }

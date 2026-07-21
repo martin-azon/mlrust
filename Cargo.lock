@@ -239,7 +239,6 @@ dependencies = [
 name = "ml_kem"
 version = "0.1.0"
 dependencies = [
- "getrandom",
  "hex",
  "mlrust_core",
 ]
@@ -256,6 +255,7 @@ name = "mlrust_core"
 version = "0.1.0"
 dependencies = [
  "digest 0.11.3",
+ "getrandom",
  "sha3 0.12.0",
  "shake",
  "subtle",

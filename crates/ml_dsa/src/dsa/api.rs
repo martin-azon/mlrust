@@ -15,7 +15,7 @@
 //!
 //! This module implements pure ML-DSA, not HashML-DSA.
 
-
+use mlrust_core::sampling::random::{random_array, os_random_array, RandomByteGenerator};
 
 use crate::constants::{MlDsa44, MlDsa65, MlDsa87};
 use crate::dsa::params::MlDsaParams;
@@ -36,29 +36,48 @@ use crate::keys::{
 };
 
 
-
-
-
-/// Deterministically generates an ML-DSA keypair from a 32-byte seed.
 #[must_use]
-pub(crate) fn keygen_from_seed<P: MlDsaParams>(xi: &[u8; 32]) -> P::KeyPair {
-    P::keygen_from_seed(xi)
+pub fn ml_dsa_keygen<P: MlDsaParams>() -> Result<P::KeyPair, MlDsaError> {
+    let xi = os_random_array()?;
+
+    P::keygen_from_seed(&xi)
 }
 
 
-/// Deterministically signs a message with context using
-/// explicit 32-byte signing randomness.
-pub(crate) fn sign_from_seed<P: MlDsaParams>(
+pub fn ml_dsa_keygen_with_rbg<P: MlDsaParams, R: RandomByteGenerator + ?Sized>(
+    rbg: &mut R
+) -> Result<P::KeyPair, MlDsaError> {
+    let xi = random_array::<32, _>(rbg)?;
+
+    P::keygen_from_seed(&xi)
+}
+
+
+pub fn ml_dsa_sign<P: MlDsaParams>(
     sk: &P::SecretKey,
     message: &[u8],
     context: &[u8],
-    randomness: &[u8; 32],
 ) -> Result<P::Signature, MlDsaError> {
-    P::sign_from_seed(sk, message, context, randomness)
+    let randomness = os_random_array()?;
+
+    P::sign_from_seed(sk, message, context, &randomness)
 }
 
+
+pub fn ml_dsa_sign_with_rbg<P: MlDsaParams, R: RandomByteGenerator + ?Sized>(
+    sk: &P::SecretKey,
+    message: &[u8],
+    context: &[u8],
+    rbg: &mut R
+) -> Result<P::Signature, MlDsaError> {
+    let randomness = random_array::<32, _>(rbg)?;
+
+    P::sign_from_seed(sk, message, context, &randomness)
+}
+
+
 /// Verifies a signature against a message with context.
-pub(crate) fn verify<P: MlDsaParams>(
+pub fn ml_dsa_verify<P: MlDsaParams>(
     pk: &P::PublicKey,
     message: &[u8],
     context: &[u8],
@@ -69,149 +88,130 @@ pub(crate) fn verify<P: MlDsaParams>(
 
 
 
-
-
-/// Deterministically generates an ML-DSA-44 keypair from a 32-byte seed.
 #[must_use]
-pub fn ml_dsa_keygen44_from_seed(xi: &[u8; 32]) -> MlDsa44Keypair {
-    keygen_from_seed::<MlDsa44>(xi)
+pub fn ml_dsa44_keygen() -> Result<MlDsa44Keypair, MlDsaError> {
+    ml_dsa_keygen::<MlDsa44>()
 }
 
-/// Deterministically signs a message with ML-DSA-44 using explicit signing
-/// randomness.
-///
-/// The `context` length must be at most 255 bytes.
-///
-/// # Errors
-///
-/// Returns:
-///
-/// - [`MlDsaError::InvalidLength`] if `context.len() > 255`;
-/// - [`MlDsaError::InvalidSecretKey`] if `sk` cannot be decoded for ML-DSA-44;
-/// - [`MlDsaError::Core`] if the internal signing loop exhausts the supported
-///   nonce space.
-pub fn ml_dsa_sign44_from_seed(
+
+#[must_use]
+pub fn ml_dsa44_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
+    rbg: &mut R
+) -> Result<MlDsa44Keypair, MlDsaError> {
+    ml_dsa_keygen_with_rbg::<MlDsa44, R>(rbg)
+}
+
+
+#[must_use]
+pub fn ml_dsa44_sign(
     sk: &MlDsa44SecretKey,
     message: &[u8],
     context: &[u8],
-    randomness: &[u8; 32],
 ) -> Result<MlDsa44Signature, MlDsaError> {
-    sign_from_seed::<MlDsa44>(sk, message, context, randomness)
+    ml_dsa_sign::<MlDsa44>(sk, message, context)
 }
 
-/// Verifies an ML-DSA-44 signature against a message and context.
-///
-/// # Errors
-///
-/// Returns:
-///
-/// - [`MlDsaError::InvalidLength`] if `context.len() > 255`;
-/// - [`MlDsaError::InvalidPublicKey`] if `pk` cannot be decoded for ML-DSA-44;
-/// - [`MlDsaError::InvalidSignature`] if `signature` is malformed.
-pub fn ml_dsa_verify44(
+
+#[must_use]
+pub fn ml_dsa44_sign_with_rbg<R: RandomByteGenerator + ?Sized>(
+    rbg: &mut R
+) -> Result<MlDsa44Keypair, MlDsaError> {
+    ml_dsa_keygen_with_rbg::<MlDsa44, R>(rbg)
+}
+
+
+#[must_use]
+pub fn ml_dsa44_verify(
     pk: &MlDsa44PublicKey,
     message: &[u8],
     context: &[u8],
     signature: &MlDsa44Signature,
 ) -> Result<bool, MlDsaError> {
-    verify::<MlDsa44>(pk, message, context, signature)
+    ml_dsa_verify::<MlDsa44>(pk, message, context, signature)
 }
 
 
-
-
-
-/// Deterministically generates an ML-DSA-65 keypair from a 32-byte seed.
 #[must_use]
-pub fn ml_dsa_keygen65_from_seed(xi: &[u8; 32]) -> MlDsa65Keypair {
-    keygen_from_seed::<MlDsa65>(xi)
+pub fn ml_dsa65_keygen() -> Result<MlDsa65Keypair, MlDsaError> {
+    ml_dsa_keygen::<MlDsa65>()
 }
 
-/// Deterministically signs a message with ML-DSA-65 using explicit signing
-/// randomness.
-///
-/// The `context` length must be at most 255 bytes.
-///
-/// # Errors
-///
-/// Returns:
-///
-/// - [`MlDsaError::InvalidLength`] if `context.len() > 255`;
-/// - [`MlDsaError::InvalidSecretKey`] if `sk` cannot be decoded for ML-DSA-65;
-/// - [`MlDsaError::Core`] if the internal signing loop exhausts the supported
-///   nonce space.
-pub fn ml_dsa_sign65_from_seed(
+
+#[must_use]
+pub fn ml_dsa65_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
+    rbg: &mut R
+) -> Result<MlDsa65Keypair, MlDsaError> {
+    ml_dsa_keygen_with_rbg::<MlDsa65, R>(rbg)
+}
+
+
+#[must_use]
+pub fn ml_dsa65_sign(
     sk: &MlDsa65SecretKey,
     message: &[u8],
     context: &[u8],
-    randomness: &[u8; 32],
 ) -> Result<MlDsa65Signature, MlDsaError> {
-    sign_from_seed::<MlDsa65>(sk, message, context, randomness)
+    ml_dsa_sign::<MlDsa65>(sk, message, context)
 }
 
-/// Verifies an ML-DSA-65 signature against a message and context.
-///
-/// # Errors
-///
-/// Returns:
-///
-/// - [`MlDsaError::InvalidLength`] if `context.len() > 255`;
-/// - [`MlDsaError::InvalidPublicKey`] if `pk` cannot be decoded for ML-DSA-65;
-/// - [`MlDsaError::InvalidSignature`] if `signature` is malformed.
-pub fn ml_dsa_verify65(
+
+#[must_use]
+pub fn ml_dsa65_sign_with_rbg<R: RandomByteGenerator + ?Sized>(
+    rbg: &mut R
+) -> Result<MlDsa65Keypair, MlDsaError> {
+    ml_dsa_keygen_with_rbg::<MlDsa65, R>(rbg)
+}
+
+
+#[must_use]
+pub fn ml_dsa65_verify(
     pk: &MlDsa65PublicKey,
     message: &[u8],
     context: &[u8],
     signature: &MlDsa65Signature,
 ) -> Result<bool, MlDsaError> {
-    verify::<MlDsa65>(pk, message, context, signature)
+    ml_dsa_verify::<MlDsa65>(pk, message, context, signature)
 }
 
 
-
-
-/// Deterministically generates an ML-DSA-87 keypair from a 32-byte seed.
 #[must_use]
-pub fn ml_dsa_keygen87_from_seed(xi: &[u8; 32]) -> MlDsa87Keypair {
-    keygen_from_seed::<MlDsa87>(xi)
+pub fn ml_dsa87_keygen() -> Result<MlDsa87Keypair, MlDsaError> {
+    ml_dsa_keygen::<MlDsa87>()
 }
 
-/// Deterministically signs a message with ML-DSA-87 using explicit signing
-/// randomness.
-///
-/// The `context` length must be at most 255 bytes.
-///
-/// # Errors
-///
-/// Returns:
-///
-/// - [`MlDsaError::InvalidLength`] if `context.len() > 255`;
-/// - [`MlDsaError::InvalidSecretKey`] if `sk` cannot be decoded for ML-DSA-87;
-/// - [`MlDsaError::Core`] if the internal signing loop exhausts the supported
-///   nonce space.
-pub fn ml_dsa_sign87_from_seed(
+
+#[must_use]
+pub fn ml_dsa87_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
+    rbg: &mut R
+) -> Result<MlDsa87Keypair, MlDsaError> {
+    ml_dsa_keygen_with_rbg::<MlDsa87, R>(rbg)
+}
+
+
+#[must_use]
+pub fn ml_dsa87_sign(
     sk: &MlDsa87SecretKey,
     message: &[u8],
     context: &[u8],
-    randomness: &[u8; 32],
 ) -> Result<MlDsa87Signature, MlDsaError> {
-    sign_from_seed::<MlDsa87>(sk, message, context, randomness)
+    ml_dsa_sign::<MlDsa87>(sk, message, context)
 }
 
-/// Verifies an ML-DSA-87 signature against a message and context.
-///
-/// # Errors
-///
-/// Returns:
-///
-/// - [`MlDsaError::InvalidLength`] if `context.len() > 255`;
-/// - [`MlDsaError::InvalidPublicKey`] if `pk` cannot be decoded for ML-DSA-87;
-/// - [`MlDsaError::InvalidSignature`] if `signature` is malformed.
-pub fn ml_dsa_verify87(
+
+#[must_use]
+pub fn ml_dsa87_sign_with_rbg<R: RandomByteGenerator + ?Sized>(
+    rbg: &mut R
+) -> Result<MlDsa87Keypair, MlDsaError> {
+    ml_dsa_keygen_with_rbg::<MlDsa87, R>(rbg)
+}
+
+
+#[must_use]
+pub fn ml_dsa87_verify(
     pk: &MlDsa87PublicKey,
     message: &[u8],
     context: &[u8],
     signature: &MlDsa87Signature,
 ) -> Result<bool, MlDsaError> {
-    verify::<MlDsa87>(pk, message, context, signature)
+    ml_dsa_verify::<MlDsa87>(pk, message, context, signature)
 }

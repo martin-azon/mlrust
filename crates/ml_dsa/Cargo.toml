@@ -15,6 +15,7 @@ mlrust_core = {path = "../mlrust_core" }
 getrandom = "0.4.2"
 signature = "3.0.0"
 subtle = "2.6.1"
+rand = "0.10.2"
 
 [dev-dependencies]
 hex = "0.4"

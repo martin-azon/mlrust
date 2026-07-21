@@ -2,6 +2,8 @@
 
 use core::fmt;
 use mlrust_core::error::PqcCoreError;
+use mlrust_core::sampling::random::RandomError;
+
 
 
 /// Errors returned by the public ML-KEM API.
@@ -48,5 +50,11 @@ impl std::error::Error for MlKemError {
             Self::Core(err) => Some(err),
             _ => None,
         }
+    }
+}
+
+impl From<RandomError> for MlKemError {
+    fn from(_: RandomError) -> Self {
+        MlKemError::RandomnessFailure
     }
 }

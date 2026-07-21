@@ -5,6 +5,7 @@
 //! parameterized by an [`MlKemParams`] marker type, and the concrete wrappers
 //! expose the three standardized ML-KEM parameter sets.
 
+use mlrust_core::sampling::random::{os_random_array, random_array, RandomByteGenerator};
 
 
 use crate::error::MlKemError;
@@ -14,25 +15,10 @@ use crate::keys::{
     MlKem1024Ciphertext, MlKem1024DecapsulationKey, MlKem1024EncapsulationKey, MlKem1024Keypair,
     SharedSecret,
 };
-
 use crate::constants::{MlKem512, MlKem768, MlKem1024};
-
 use super::params::MlKemParams;
 
 
-
-/// Fills `bytes` with randomness from the operating system.
-fn fill_random(bytes: &mut [u8]) -> Result<(), MlKemError> {
-    getrandom::fill(bytes).map_err(|_| MlKemError::RandomnessFailure)
-}
-
-
-/// Samples a uniformly random 32-byte string.
-fn random_32() -> Result<[u8; 32], MlKemError> {
-    let mut bytes = [0u8; 32];
-    fill_random(&mut bytes)?;
-    Ok(bytes)
-}
 
 
 /// Generates an ML-KEM keypair for parameter set `P`.
@@ -46,8 +32,17 @@ fn random_32() -> Result<[u8; 32], MlKemError> {
 /// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
 pub fn ml_kem_keygen<P: MlKemParams>() -> Result<P::Keypair, MlKemError> {
-    let d = random_32()?;
-    let z = random_32()?;
+    let d = os_random_array()?;
+    let z = os_random_array()?;
+
+    Ok(P::keygen_from_seed(&d, &z))
+}
+
+pub fn ml_kem_keygen_with_rbg<P: MlKemParams, R: RandomByteGenerator + ?Sized>(
+    rbg: &mut R,
+) -> Result<P::Keypair, MlKemError> {
+    let d = random_array::<32, _>(rbg)?;
+    let z = random_array::<32, _>(rbg)?;
 
     Ok(P::keygen_from_seed(&d, &z))
 }
@@ -66,7 +61,17 @@ pub fn ml_kem_keygen<P: MlKemParams>() -> Result<P::Keypair, MlKemError> {
 pub fn ml_kem_encaps<P: MlKemParams>(
     ek: &P::EncapsulationKey,
 ) -> Result<(SharedSecret, P::Ciphertext), MlKemError> {
-    let m = random_32()?;
+    let m = os_random_array()?;
+
+    Ok(P::encaps_from_seed(ek, &m))
+}
+
+
+pub fn ml_kem_encaps_with_rbg<P: MlKemParams, R: RandomByteGenerator + ?Sized>(
+    ek: &P::EncapsulationKey,
+    rbg: &mut R,
+) -> Result<(SharedSecret, P::Ciphertext), MlKemError> {
+    let m = random_array::<32, _>(rbg)?;
 
     Ok(P::encaps_from_seed(ek, &m))
 }
@@ -92,8 +97,15 @@ pub fn ml_kem_decaps<P: MlKemParams>(
 ///
 /// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
-pub fn ml_kem_keygen512() -> Result<MlKem512Keypair, MlKemError> {
+pub fn ml_kem512_keygen() -> Result<MlKem512Keypair, MlKemError> {
     ml_kem_keygen::<MlKem512>()
+}
+
+
+pub fn ml_kem512_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
+    rbg: &mut R
+) -> Result<MlKem512Keypair, MlKemError> {
+    ml_kem_keygen_with_rbg::<MlKem512, R>(rbg)
 }
 
 
@@ -103,16 +115,24 @@ pub fn ml_kem_keygen512() -> Result<MlKem512Keypair, MlKemError> {
 ///
 /// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
-pub fn ml_kem_encaps512(
+pub fn ml_kem512_encaps(
     ek: &MlKem512EncapsulationKey,
 ) -> Result<(SharedSecret, MlKem512Ciphertext), MlKemError> {
     ml_kem_encaps::<MlKem512>(ek)
 }
 
 
+pub fn ml_kem512_encaps_with_rbg<R: RandomByteGenerator + ?Sized>(
+    ek: &MlKem512EncapsulationKey,
+    rbg: &mut R
+) -> Result<(SharedSecret, MlKem512Ciphertext), MlKemError> {
+    ml_kem_encaps_with_rbg::<MlKem512, R>(ek, rbg)
+}
+
+
 /// Decapsulates an ML-KEM-512 ciphertext.
 #[must_use]
-pub fn ml_kem_decaps512(
+pub fn ml_kem512_decaps(
     dk: &MlKem512DecapsulationKey,
     ciphertext: &MlKem512Ciphertext,
 ) -> SharedSecret {
@@ -126,8 +146,15 @@ pub fn ml_kem_decaps512(
 ///
 /// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
-pub fn ml_kem_keygen768() -> Result<MlKem768Keypair, MlKemError> {
+pub fn ml_kem768_keygen() -> Result<MlKem768Keypair, MlKemError> {
     ml_kem_keygen::<MlKem768>()
+}
+
+
+pub fn ml_kem768_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
+    rbg: &mut R
+) -> Result<MlKem768Keypair, MlKemError> {
+    ml_kem_keygen_with_rbg::<MlKem768, R>(rbg)
 }
 
 
@@ -137,16 +164,24 @@ pub fn ml_kem_keygen768() -> Result<MlKem768Keypair, MlKemError> {
 ///
 /// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
-pub fn ml_kem_encaps768(
+pub fn ml_kem768_encaps(
     ek: &MlKem768EncapsulationKey,
 ) -> Result<(SharedSecret, MlKem768Ciphertext), MlKemError> {
     ml_kem_encaps::<MlKem768>(ek)
 }
 
 
+pub fn ml_kem768_encaps_with_rbg<R: RandomByteGenerator + ?Sized>(
+    ek: &MlKem768EncapsulationKey,
+    rbg: &mut R
+) -> Result<(SharedSecret, MlKem768Ciphertext), MlKemError> {
+    ml_kem_encaps_with_rbg::<MlKem768, R>(ek, rbg)
+}
+
+
 /// Decapsulates an ML-KEM-768 ciphertext.
 #[must_use]
-pub fn ml_kem_decaps768(
+pub fn ml_kem768_decaps(
     dk: &MlKem768DecapsulationKey,
     ciphertext: &MlKem768Ciphertext,
 ) -> SharedSecret {
@@ -160,10 +195,16 @@ pub fn ml_kem_decaps768(
 ///
 /// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
-pub fn ml_kem_keygen1024() -> Result<MlKem1024Keypair, MlKemError> {
+pub fn ml_kem1024_keygen() -> Result<MlKem1024Keypair, MlKemError> {
     ml_kem_keygen::<MlKem1024>()
 }
 
+
+pub fn ml_kem1024_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
+    rbg: &mut R
+) -> Result<MlKem1024Keypair, MlKemError> {
+    ml_kem_keygen_with_rbg::<MlKem1024, R>(rbg)
+}
 
 /// Encapsulates a shared secret to an ML-KEM-1024 encapsulation key.
 ///
@@ -171,16 +212,24 @@ pub fn ml_kem_keygen1024() -> Result<MlKem1024Keypair, MlKemError> {
 ///
 /// Returns [`MlKemError::RandomnessFailure`] if randomness generation
 /// fails.
-pub fn ml_kem_encaps1024(
+pub fn ml_kem1024_encaps(
     ek: &MlKem1024EncapsulationKey,
 ) -> Result<(SharedSecret, MlKem1024Ciphertext), MlKemError> {
     ml_kem_encaps::<MlKem1024>(ek)
 }
 
 
+pub fn ml_kem1024_encaps_with_rbg<R: RandomByteGenerator + ?Sized>(
+    ek: &MlKem1024EncapsulationKey,
+    rbg: &mut R
+) -> Result<(SharedSecret, MlKem1024Ciphertext), MlKemError> {
+    ml_kem_encaps_with_rbg::<MlKem1024, R>(ek, rbg)
+}
+
+
 /// Decapsulates an ML-KEM-1024 ciphertext.
 #[must_use]
-pub fn ml_kem_decaps1024(
+pub fn ml_kem1024_decaps(
     dk: &MlKem1024DecapsulationKey,
     ciphertext: &MlKem1024Ciphertext,
 ) -> SharedSecret {
