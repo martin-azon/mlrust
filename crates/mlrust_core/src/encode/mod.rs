@@ -7,5 +7,5 @@
 //! output buffers so they remain compatible with `no_std` builds.
 
 pub mod bits;
-pub mod ml_kem;
 pub mod ml_dsa;
+pub mod ml_kem;

@@ -1,15 +1,12 @@
 //! ML-DSA signature encoding and decoding.
 
-
-use mlrust_core::encode::bits::bitlen_u32;
-use mlrust_core::encode::ml_dsa::{bit_pack_signed_q8380417, bit_unpack_q8380417};
-use mlrust_core::encode::ml_dsa::hint::{HintVec, hint_bit_pack, hint_bit_unpack};
-use mlrust_core::params::Q8380417;
-use mlrust_core::poly::{Poly, PolyVec};
 use crate::error::MlDsaError;
 use crate::keys::Signature;
-
-
+use mlrust_core::encode::bits::bitlen_u32;
+use mlrust_core::encode::ml_dsa::hint::{HintVec, hint_bit_pack, hint_bit_unpack};
+use mlrust_core::encode::ml_dsa::{bit_pack_signed_q8380417, bit_unpack_q8380417};
+use mlrust_core::params::Q8380417;
+use mlrust_core::poly::{Poly, PolyVec};
 
 /// Decoded ML-DSA signature.
 ///
@@ -26,16 +23,11 @@ use crate::keys::Signature;
 /// - `c_tilde` is the challenge seed;
 /// - `z` is the response vector;
 /// - `hint` is the sparse hint vector.
-pub(crate) struct DecodedSignature<
-    const K: usize,
-    const L: usize,
-    const LAMBDA_OVER_4: usize,
-> {
+pub(crate) struct DecodedSignature<const K: usize, const L: usize, const LAMBDA_OVER_4: usize> {
     pub(crate) c_tilde: [u8; LAMBDA_OVER_4],
     pub(crate) z: PolyVec<Q8380417, L>,
     pub(crate) hint: HintVec<K>,
 }
-
 
 /// FIPS 204 `sigEncode`.
 ///
@@ -55,8 +47,8 @@ pub(crate) fn sig_encode<
     const BITLEN_2GAMMA1_MINUS_ONE: usize,
     const OMEGA: usize,
     const SIG_BYTES: usize,
-> (
-    dec_sig: &DecodedSignature<K, L, LAMBDA_OVER_4>
+>(
+    dec_sig: &DecodedSignature<K, L, LAMBDA_OVER_4>,
 ) -> Signature<SIG_BYTES> {
     assert_eq!(
         SIG_BYTES,
@@ -66,7 +58,6 @@ pub(crate) fn sig_encode<
         BITLEN_2GAMMA1_MINUS_ONE,
         1 + bitlen_u32((GAMMA1 - 1) as u32)
     );
-
 
     let mut sig_bytes = [0u8; SIG_BYTES];
     sig_bytes[0..LAMBDA_OVER_4].copy_from_slice(&dec_sig.c_tilde);
@@ -91,9 +82,6 @@ pub(crate) fn sig_encode<
 
     Signature::from_bytes(sig_bytes)
 }
-
-
-
 
 /// FIPS 204 `sigDecode`.
 ///
@@ -126,11 +114,10 @@ pub(crate) fn sig_decode<
     const BITLEN_2GAMMA1_MINUS_ONE: usize,
     const OMEGA: usize,
     const SIG_BYTES: usize,
-> (
-    enc_sig: &Signature<SIG_BYTES>
+>(
+    enc_sig: &Signature<SIG_BYTES>,
 ) -> Result<DecodedSignature<K, L, LAMBDA_OVER_4>, MlDsaError> {
-    if SIG_BYTES
-        != LAMBDA_OVER_4 + L * 32 * (1 + bitlen_u32((GAMMA1 - 1) as u32)) + OMEGA + K {
+    if SIG_BYTES != LAMBDA_OVER_4 + L * 32 * (1 + bitlen_u32((GAMMA1 - 1) as u32)) + OMEGA + K {
         return Err(MlDsaError::InvalidSignature);
     }
     if BITLEN_2GAMMA1_MINUS_ONE != 1 + bitlen_u32((GAMMA1 - 1) as u32) {
@@ -151,7 +138,7 @@ pub(crate) fn sig_decode<
         *poly = bit_unpack_q8380417::<BITLEN_2GAMMA1_MINUS_ONE>(
             &sig_bytes[start..start + z_poly_len],
             (GAMMA1 - 1) as i32,
-            GAMMA1 as i32
+            GAMMA1 as i32,
         );
 
         start += z_poly_len;
@@ -160,14 +147,12 @@ pub(crate) fn sig_decode<
     let hint = hint_bit_unpack::<K, OMEGA>(&sig_bytes[start..])
         .map_err(|_| MlDsaError::InvalidSignature)?;
 
-    Ok(DecodedSignature{
+    Ok(DecodedSignature {
         c_tilde,
         z: PolyVec::from_polys(z_polys),
-        hint
+        hint,
     })
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -195,8 +180,7 @@ mod tests {
         const GAMMA1: usize = 4;
         const BITLEN_2GAMMA1_MINUS_ONE: usize = 3;
         const OMEGA: usize = 8;
-        const SIG_BYTES: usize =
-            LAMBDA_OVER_4 + L * 32 * BITLEN_2GAMMA1_MINUS_ONE + OMEGA + K;
+        const SIG_BYTES: usize = LAMBDA_OVER_4 + L * 32 * BITLEN_2GAMMA1_MINUS_ONE + OMEGA + K;
 
         let c_tilde = [9u8; LAMBDA_OVER_4];
 
@@ -229,25 +213,15 @@ mod tests {
 
         let decoded = DecodedSignature { c_tilde, z, hint };
 
-        let encoded = sig_encode::<
-            K,
-            L,
-            LAMBDA_OVER_4,
-            GAMMA1,
-            BITLEN_2GAMMA1_MINUS_ONE,
-            OMEGA,
-            SIG_BYTES,
-        >(&decoded);
+        let encoded =
+            sig_encode::<K, L, LAMBDA_OVER_4, GAMMA1, BITLEN_2GAMMA1_MINUS_ONE, OMEGA, SIG_BYTES>(
+                &decoded,
+            );
 
-        let decoded_again = sig_decode::<
-            K,
-            L,
-            LAMBDA_OVER_4,
-            GAMMA1,
-            BITLEN_2GAMMA1_MINUS_ONE,
-            OMEGA,
-            SIG_BYTES,
-        >(&encoded)
+        let decoded_again =
+            sig_decode::<K, L, LAMBDA_OVER_4, GAMMA1, BITLEN_2GAMMA1_MINUS_ONE, OMEGA, SIG_BYTES>(
+                &encoded,
+            )
             .unwrap();
 
         assert_eq!(decoded_again.c_tilde, decoded.c_tilde);
@@ -263,8 +237,7 @@ mod tests {
         const GAMMA1: usize = 4;
         const BITLEN_2GAMMA1_MINUS_ONE: usize = 3;
         const OMEGA: usize = 4;
-        const SIG_BYTES: usize =
-            LAMBDA_OVER_4 + L * 32 * BITLEN_2GAMMA1_MINUS_ONE + OMEGA + K;
+        const SIG_BYTES: usize = LAMBDA_OVER_4 + L * 32 * BITLEN_2GAMMA1_MINUS_ONE + OMEGA + K;
 
         let mut bytes = [0u8; SIG_BYTES];
 
@@ -276,15 +249,10 @@ mod tests {
 
         let sig = Signature::from_bytes(bytes);
 
-        let result = sig_decode::<
-            K,
-            L,
-            LAMBDA_OVER_4,
-            GAMMA1,
-            BITLEN_2GAMMA1_MINUS_ONE,
-            OMEGA,
-            SIG_BYTES,
-        >(&sig);
+        let result =
+            sig_decode::<K, L, LAMBDA_OVER_4, GAMMA1, BITLEN_2GAMMA1_MINUS_ONE, OMEGA, SIG_BYTES>(
+                &sig,
+            );
 
         assert!(matches!(result, Err(MlDsaError::InvalidSignature)));
     }

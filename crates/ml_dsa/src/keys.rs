@@ -11,28 +11,17 @@
 //! Semantic validation is performed by the object decoders in
 //! [`crate::encoding`] and by the signing and verification algorithms.
 
-
 use crate::constants::{
-    ML_DSA_44_SECRET_KEY_BYTES,
-    ML_DSA_44_PUBLIC_KEY_BYTES,
-    ML_DSA_44_SIGNATURE_BYTES,
-    ML_DSA_65_SECRET_KEY_BYTES,
-    ML_DSA_65_PUBLIC_KEY_BYTES,
-    ML_DSA_65_SIGNATURE_BYTES,
-    ML_DSA_87_SECRET_KEY_BYTES,
-    ML_DSA_87_PUBLIC_KEY_BYTES,
-    ML_DSA_87_SIGNATURE_BYTES,
+    ML_DSA_44_PUBLIC_KEY_BYTES, ML_DSA_44_SECRET_KEY_BYTES, ML_DSA_44_SIGNATURE_BYTES,
+    ML_DSA_65_PUBLIC_KEY_BYTES, ML_DSA_65_SECRET_KEY_BYTES, ML_DSA_65_SIGNATURE_BYTES,
+    ML_DSA_87_PUBLIC_KEY_BYTES, ML_DSA_87_SECRET_KEY_BYTES, ML_DSA_87_SIGNATURE_BYTES,
 };
 
-
 use crate::error::MlDsaError;
-
-
 
 // --------------------------------------------------------------------
 // Defining generic structs for the different keys
 // --------------------------------------------------------------------
-
 
 /// Fixed-size serialized ML-DSA secret key.
 ///
@@ -73,7 +62,6 @@ pub struct MlDsaKeypair<const SK_BYTES: usize, const PK_BYTES: usize> {
 pub struct Signature<const N: usize> {
     bytes: [u8; N],
 }
-
 
 impl<const N: usize> SecretKey<N> {
     /// Constructs a secret key from an owned byte array.
@@ -116,7 +104,6 @@ impl<const N: usize> SecretKey<N> {
     }
 }
 
-
 impl<const N: usize> PublicKey<N> {
     /// Constructs a public key from an owned byte array.
     ///
@@ -158,8 +145,6 @@ impl<const N: usize> PublicKey<N> {
     }
 }
 
-
-
 impl<const SK_BYTES: usize, const PK_BYTES: usize> MlDsaKeypair<SK_BYTES, PK_BYTES> {
     /// Returns the secret key.
     #[must_use]
@@ -180,15 +165,10 @@ impl<const SK_BYTES: usize, const PK_BYTES: usize> MlDsaKeypair<SK_BYTES, PK_BYT
     }
 
     /// Constructs a keypair from a secret key and a public key.
-    pub(crate) const fn from_parts(
-        sk: SecretKey<SK_BYTES>,
-        pk: PublicKey<PK_BYTES>,
-    ) -> Self {
+    pub(crate) const fn from_parts(sk: SecretKey<SK_BYTES>, pk: PublicKey<PK_BYTES>) -> Self {
         Self { pk, sk }
     }
 }
-
-
 
 impl<const N: usize> Signature<N> {
     /// Constructs a signature from an owned byte array.
@@ -231,12 +211,9 @@ impl<const N: usize> Signature<N> {
     }
 }
 
-
-
 // --------------------------------------------------------------------
 // Defining key types for each of the instantiations of ML-DSA
 // --------------------------------------------------------------------
-
 
 /// ML-DSA-44 secret key.
 pub type MlDsa44SecretKey = SecretKey<ML_DSA_44_SECRET_KEY_BYTES>;
@@ -250,7 +227,6 @@ pub type MlDsa44Keypair = MlDsaKeypair<ML_DSA_44_SECRET_KEY_BYTES, ML_DSA_44_PUB
 /// ML-DSA-44 signature.
 pub type MlDsa44Signature = Signature<ML_DSA_44_SIGNATURE_BYTES>;
 
-
 /// ML-DSA-65 secret key.
 pub type MlDsa65SecretKey = SecretKey<ML_DSA_65_SECRET_KEY_BYTES>;
 
@@ -263,7 +239,6 @@ pub type MlDsa65Keypair = MlDsaKeypair<ML_DSA_65_SECRET_KEY_BYTES, ML_DSA_65_PUB
 /// ML-DSA-65 signature.
 pub type MlDsa65Signature = Signature<ML_DSA_65_SIGNATURE_BYTES>;
 
-
 /// ML-DSA-87 secret key.
 pub type MlDsa87SecretKey = SecretKey<ML_DSA_87_SECRET_KEY_BYTES>;
 
@@ -275,4 +250,3 @@ pub type MlDsa87Keypair = MlDsaKeypair<ML_DSA_87_SECRET_KEY_BYTES, ML_DSA_87_PUB
 
 /// ML-DSA-87 signature.
 pub type MlDsa87Signature = Signature<ML_DSA_87_SIGNATURE_BYTES>;
-

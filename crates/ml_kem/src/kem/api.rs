@@ -5,12 +5,13 @@
 //! parameterized by an [`MlKemParams`] marker type, and the concrete wrappers
 //! expose the three standardized ML-KEM parameter sets.
 
-
-use mlrust_core::sampling::random::{random_array, RandomByteGenerator};
+use mlrust_core::sampling::random::{RandomByteGenerator, random_array};
 
 #[cfg(feature = "getrandom")]
 use mlrust_core::sampling::random::os_random_array;
 
+use super::params::MlKemParams;
+use crate::constants::{MlKem512, MlKem768, MlKem1024};
 use crate::error::MlKemError;
 use crate::keys::{
     MlKem512Ciphertext, MlKem512DecapsulationKey, MlKem512EncapsulationKey, MlKem512Keypair,
@@ -18,11 +19,6 @@ use crate::keys::{
     MlKem1024Ciphertext, MlKem1024DecapsulationKey, MlKem1024EncapsulationKey, MlKem1024Keypair,
     SharedSecret,
 };
-use crate::constants::{MlKem512, MlKem768, MlKem1024};
-use super::params::MlKemParams;
-
-
-
 
 /// Generates an ML-KEM keypair for parameter set `P`.
 ///
@@ -42,7 +38,6 @@ pub fn ml_kem_keygen<P: MlKemParams>() -> Result<P::Keypair, MlKemError> {
     Ok(P::keygen_from_seed(&d, &z))
 }
 
-
 /// Generates an ML-KEM keypair using a caller-provided random byte generator.
 ///
 /// The generator is used to produce the two 32-byte seeds required by
@@ -59,7 +54,6 @@ pub fn ml_kem_keygen_with_rbg<P: MlKemParams, R: RandomByteGenerator + ?Sized>(
 
     Ok(P::keygen_from_seed(&d, &z))
 }
-
 
 /// Encapsulates a shared secret to an ML-KEM encapsulation key.
 ///
@@ -80,8 +74,6 @@ pub fn ml_kem_encaps<P: MlKemParams>(
     Ok(P::encaps_from_seed(ek, &m))
 }
 
-
-
 /// Encapsulates using a caller-provided random byte generator.
 ///
 /// The generator is used to produce the 32-byte encapsulation seed.
@@ -98,7 +90,6 @@ pub fn ml_kem_encaps_with_rbg<P: MlKemParams, R: RandomByteGenerator + ?Sized>(
     Ok(P::encaps_from_seed(ek, &m))
 }
 
-
 /// Decapsulates an ML-KEM ciphertext.
 ///
 /// This function is infallible at the API level. Invalid ciphertexts are
@@ -112,7 +103,6 @@ pub fn ml_kem_decaps<P: MlKemParams>(
     P::decaps(dk, ciphertext)
 }
 
-
 /// Generates an ML-KEM-512 keypair.
 ///
 /// # Errors
@@ -124,7 +114,6 @@ pub fn ml_kem512_keygen() -> Result<MlKem512Keypair, MlKemError> {
     ml_kem_keygen::<MlKem512>()
 }
 
-
 /// Generates an ML-KEM-512 keypair using a caller-provided random byte generator.
 ///
 /// # Errors
@@ -135,7 +124,6 @@ pub fn ml_kem512_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
 ) -> Result<MlKem512Keypair, MlKemError> {
     ml_kem_keygen_with_rbg::<MlKem512, R>(rbg)
 }
-
 
 /// Encapsulates a shared secret to an ML-KEM-512 encapsulation key.
 ///
@@ -150,7 +138,6 @@ pub fn ml_kem512_encaps(
     ml_kem_encaps::<MlKem512>(ek)
 }
 
-
 /// Encapsulates to an ML-KEM-512 encapsulation key using a caller-provided RBG.
 ///
 /// # Errors
@@ -163,7 +150,6 @@ pub fn ml_kem512_encaps_with_rbg<R: RandomByteGenerator + ?Sized>(
     ml_kem_encaps_with_rbg::<MlKem512, R>(ek, rbg)
 }
 
-
 /// Decapsulates an ML-KEM-512 ciphertext.
 #[must_use]
 pub fn ml_kem512_decaps(
@@ -172,7 +158,6 @@ pub fn ml_kem512_decaps(
 ) -> SharedSecret {
     ml_kem_decaps::<MlKem512>(dk, ciphertext)
 }
-
 
 /// Generates an ML-KEM-768 keypair.
 ///
@@ -185,7 +170,6 @@ pub fn ml_kem768_keygen() -> Result<MlKem768Keypair, MlKemError> {
     ml_kem_keygen::<MlKem768>()
 }
 
-
 /// Generates an ML-KEM-768 keypair using a caller-provided random byte generator.
 ///
 /// # Errors
@@ -196,7 +180,6 @@ pub fn ml_kem768_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
 ) -> Result<MlKem768Keypair, MlKemError> {
     ml_kem_keygen_with_rbg::<MlKem768, R>(rbg)
 }
-
 
 /// Encapsulates a shared secret to an ML-KEM-768 encapsulation key.
 ///
@@ -211,7 +194,6 @@ pub fn ml_kem768_encaps(
     ml_kem_encaps::<MlKem768>(ek)
 }
 
-
 /// Encapsulates to an ML-KEM-768 encapsulation key using a caller-provided RBG.
 ///
 /// # Errors
@@ -224,7 +206,6 @@ pub fn ml_kem768_encaps_with_rbg<R: RandomByteGenerator + ?Sized>(
     ml_kem_encaps_with_rbg::<MlKem768, R>(ek, rbg)
 }
 
-
 /// Decapsulates an ML-KEM-768 ciphertext.
 #[must_use]
 pub fn ml_kem768_decaps(
@@ -233,7 +214,6 @@ pub fn ml_kem768_decaps(
 ) -> SharedSecret {
     ml_kem_decaps::<MlKem768>(dk, ciphertext)
 }
-
 
 /// Generates an ML-KEM-1024 keypair.
 ///
@@ -246,7 +226,6 @@ pub fn ml_kem1024_keygen() -> Result<MlKem1024Keypair, MlKemError> {
     ml_kem_keygen::<MlKem1024>()
 }
 
-
 /// Generates an ML-KEM-1024 keypair using a caller-provided random byte generator.
 ///
 /// # Errors
@@ -257,7 +236,6 @@ pub fn ml_kem1024_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
 ) -> Result<MlKem1024Keypair, MlKemError> {
     ml_kem_keygen_with_rbg::<MlKem1024, R>(rbg)
 }
-
 
 /// Encapsulates a shared secret to an ML-KEM-1024 encapsulation key.
 ///
@@ -272,7 +250,6 @@ pub fn ml_kem1024_encaps(
     ml_kem_encaps::<MlKem1024>(ek)
 }
 
-
 /// Encapsulates to an ML-KEM-1024 encapsulation key using a caller-provided RBG.
 ///
 /// # Errors
@@ -284,7 +261,6 @@ pub fn ml_kem1024_encaps_with_rbg<R: RandomByteGenerator + ?Sized>(
 ) -> Result<(SharedSecret, MlKem1024Ciphertext), MlKemError> {
     ml_kem_encaps_with_rbg::<MlKem1024, R>(ek, rbg)
 }
-
 
 /// Decapsulates an ML-KEM-1024 ciphertext.
 #[must_use]

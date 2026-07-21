@@ -4,8 +4,6 @@ use core::fmt;
 use mlrust_core::error::PqcCoreError;
 use mlrust_core::sampling::random::RandomError;
 
-
-
 /// Errors returned by the public ML-KEM API.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MlKemError {
@@ -32,13 +30,9 @@ impl From<PqcCoreError> for MlKemError {
 impl fmt::Display for MlKemError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MlKemError::RandomnessFailure => {
-                f.write_str("randomness generation failed")
-            }
-            MlKemError::InvalidLength => {
-                f.write_str("invalid ML-KEM input length")
-            }
-            Self::Core(err) => write!(f, "ML-KEM core error: {err}")
+            MlKemError::RandomnessFailure => f.write_str("randomness generation failed"),
+            MlKemError::InvalidLength => f.write_str("invalid ML-KEM input length"),
+            Self::Core(err) => write!(f, "ML-KEM core error: {err}"),
         }
     }
 }

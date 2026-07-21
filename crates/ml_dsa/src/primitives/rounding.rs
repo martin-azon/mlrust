@@ -7,21 +7,13 @@
 //! Parameter checks are ordinary assertions because parameters are compile-time
 //! public constants.
 
-use subtle::{
-    Choice,
-    ConditionallySelectable,
-    ConstantTimeEq,
-    ConstantTimeGreater,
-};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater};
 
 use mlrust_core::encode::ml_dsa::hint::HintVec;
-use mlrust_core::params::{Q8380417, RingParams, N};
+use mlrust_core::params::{N, Q8380417, RingParams};
 use mlrust_core::poly::{Poly, PolyVec};
 
-
 const Q: i32 = Q8380417::Q;
-
-
 
 #[inline]
 fn reduce_q_canonical(r: i32) -> i32 {
@@ -33,7 +25,6 @@ fn ct_i32_eq(x: i32, y: i32) -> Choice {
     (x as u32).ct_eq(&(y as u32))
 }
 
-
 #[inline]
 fn ct_i32_gt(x: i32, y: i32) -> Choice {
     let x = (x as u32) ^ 0x8000_0000;
@@ -42,12 +33,10 @@ fn ct_i32_gt(x: i32, y: i32) -> Choice {
     x.ct_gt(&y)
 }
 
-
 #[inline]
 fn ct_i32_ge(x: i32, y: i32) -> Choice {
     ct_i32_gt(x, y) | ct_i32_eq(x, y)
 }
-
 
 /// Centered reduction modulo `2^D`.
 ///
@@ -73,18 +62,16 @@ pub(crate) fn mod_pm_power2<const D: usize>(r: i32) -> i32 {
     i32::conditional_select(&r0, &centered, use_centered)
 }
 
-
 /// Returns the centered reduction modulo `q` of an integer.
 #[inline]
 pub(crate) fn mod_pm_q(r: i32) -> i32 {
     let r_plus = reduce_q_canonical(r);
 
     let centered = r_plus - Q;
-    let use_centered = ct_i32_gt(r_plus,Q/ 2);
+    let use_centered = ct_i32_gt(r_plus, Q / 2);
 
     i32::conditional_select(&r_plus, &centered, use_centered)
 }
-
 
 /// Returns the centered reduction modulo `q` of a polynomial.
 #[inline]
@@ -98,7 +85,6 @@ pub(crate) fn mod_pm_q_poly(poly: Poly<Q8380417>) -> Poly<Q8380417> {
     Poly::from_coeffs(coeffs_res)
 }
 
-
 /// Returns the centered reduction modulo `q` of a polynomial vector.
 #[inline]
 pub(crate) fn mod_pm_q_polyvec<const K: usize>(vec: PolyVec<Q8380417, K>) -> PolyVec<Q8380417, K> {
@@ -110,7 +96,6 @@ pub(crate) fn mod_pm_q_polyvec<const K: usize>(vec: PolyVec<Q8380417, K>) -> Pol
 
     PolyVec::from_polys(polys_res)
 }
-
 
 /// Centered reduction modulo `2 * GAMMA2`.
 ///
@@ -155,7 +140,6 @@ pub(crate) fn mod_pm_2gamma2_with_quotient<const GAMMA2: usize>(r_plus: i32) -> 
     (k, r0)
 }
 
-
 /// FIPS 204 `Power2Round`.
 ///
 /// Splits `r mod q` into `(r1, r0)` such that:
@@ -177,7 +161,6 @@ pub(crate) fn power2round<const D: usize>(r: i32) -> (i32, i32) {
     (r1, r0)
 }
 
-
 /// FIPS 204 `Decompose`.
 #[inline]
 pub(crate) fn decompose<const GAMMA2: usize>(r: i32) -> (i32, i32) {
@@ -188,7 +171,7 @@ pub(crate) fn decompose<const GAMMA2: usize>(r: i32) -> (i32, i32) {
 
     let (r1_raw, r0_raw) = mod_pm_2gamma2_with_quotient::<GAMMA2>(r_plus);
 
-    let special = ct_i32_eq(r_plus - r0_raw, Q- 1);
+    let special = ct_i32_eq(r_plus - r0_raw, Q - 1);
     let r0_special = r0_raw - 1;
     let r1_special = 0;
 
@@ -198,20 +181,17 @@ pub(crate) fn decompose<const GAMMA2: usize>(r: i32) -> (i32, i32) {
     (r1, r0)
 }
 
-
 /// FIPS 204 `HighBits`.
 #[inline]
 pub(crate) fn high_bits<const GAMMA2: usize>(r: i32) -> i32 {
     decompose::<GAMMA2>(r).0
 }
 
-
 /// FIPS 204 `LowBits`.
 #[inline]
 pub(crate) fn low_bits<const GAMMA2: usize>(r: i32) -> i32 {
     decompose::<GAMMA2>(r).1
 }
-
 
 /// FIPS 204 `MakeHint`.
 #[inline]
@@ -221,7 +201,6 @@ pub(crate) fn make_hint<const GAMMA2: usize>(z: i32, r: i32) -> Choice {
 
     !h0.ct_eq(&h1)
 }
-
 
 /// FIPS 204 `UseHint`.
 ///
@@ -237,28 +216,14 @@ pub(crate) fn use_hint<const GAMMA2: usize>(hint: Choice, r: i32) -> i32 {
 
     let r1_plus_raw = r1 + 1;
     let r1_minus_raw = r1 - 1;
-    let r1_plus = i32::conditional_select(
-        &r1_plus_raw,
-        &0,
-        ct_i32_eq(r1_plus_raw, m),
-    );
-    let r1_minus = i32::conditional_select(
-        &r1_minus_raw,
-        &(m - 1),
-        ct_i32_eq(r1,0),
-    );
+    let r1_plus = i32::conditional_select(&r1_plus_raw, &0, ct_i32_eq(r1_plus_raw, m));
+    let r1_minus = i32::conditional_select(&r1_minus_raw, &(m - 1), ct_i32_eq(r1, 0));
 
     let r0_positive = ct_i32_gt(r0, 0);
-    let corrected = i32::conditional_select(
-        &r1_minus,
-        &r1_plus,
-        r0_positive,
-    );
+    let corrected = i32::conditional_select(&r1_minus, &r1_plus, r0_positive);
 
     i32::conditional_select(&r1, &corrected, hint)
 }
-
-
 
 /// Applies FIPS 204 `Power2Round` coefficientwise to a polynomial.
 ///
@@ -287,38 +252,9 @@ pub(crate) fn power2round_poly<const D: usize>(
     )
 }
 
-/// Applies FIPS 204 `Decompose` coefficientwise to a polynomial.
-///
-/// Returns `(r1, r0)`.
-#[must_use]
-pub(crate) fn decompose_poly<const GAMMA2: usize>(
-    r: &Poly<Q8380417>,
-) -> (Poly<Q8380417>, Poly<Q8380417>) {
-    let mut r1_coeffs = [0i32; N];
-    let mut r0_coeffs = [0i32; N];
-
-    for ((r1, r0), &coeff) in r1_coeffs
-        .iter_mut()
-        .zip(r0_coeffs.iter_mut())
-        .zip(r.coeffs().iter())
-    {
-        let (hi, lo) = decompose::<GAMMA2>(coeff);
-
-        *r1 = hi;
-        *r0 = lo;
-    }
-
-    (
-        Poly::<Q8380417>::from_coeffs(r1_coeffs),
-        Poly::<Q8380417>::from_coeffs(r0_coeffs),
-    )
-}
-
 /// Applies FIPS 204 `HighBits` coefficientwise to a polynomial.
 #[must_use]
-pub(crate) fn high_bits_poly<const GAMMA2: usize>(
-    r: &Poly<Q8380417>,
-) -> Poly<Q8380417> {
+pub(crate) fn high_bits_poly<const GAMMA2: usize>(r: &Poly<Q8380417>) -> Poly<Q8380417> {
     let mut coeffs = [0i32; N];
 
     for (out, &coeff) in coeffs.iter_mut().zip(r.coeffs().iter()) {
@@ -330,9 +266,7 @@ pub(crate) fn high_bits_poly<const GAMMA2: usize>(
 
 /// Applies FIPS 204 `LowBits` coefficientwise to a polynomial.
 #[must_use]
-pub(crate) fn low_bits_poly<const GAMMA2: usize>(
-    r: &Poly<Q8380417>,
-) -> Poly<Q8380417> {
+pub(crate) fn low_bits_poly<const GAMMA2: usize>(r: &Poly<Q8380417>) -> Poly<Q8380417> {
     let mut coeffs = [0i32; N];
 
     for (out, &coeff) in coeffs.iter_mut().zip(r.coeffs().iter()) {
@@ -375,22 +309,14 @@ pub(crate) fn use_hint_poly<const GAMMA2: usize>(
 ) -> Poly<Q8380417> {
     let mut coeffs = [0i32; N];
 
-    for ((out, &hint_bit), &r_coeff) in coeffs
-        .iter_mut()
-        .zip(hint.iter())
-        .zip(r.coeffs().iter())
-    {
+    for ((out, &hint_bit), &r_coeff) in coeffs.iter_mut().zip(hint.iter()).zip(r.coeffs().iter()) {
         assert!(hint_bit <= 1);
 
-        *out = use_hint::<GAMMA2>(
-            Choice::from(hint_bit),
-            r_coeff,
-        );
+        *out = use_hint::<GAMMA2>(Choice::from(hint_bit), r_coeff);
     }
 
     Poly::<Q8380417>::from_coeffs(coeffs)
 }
-
 
 /// Applies FIPS 204 `Power2Round` coefficientwise to a vector of polynomials.
 ///
@@ -408,33 +334,6 @@ pub(crate) fn power2round_vec<const K: usize, const D: usize>(
         .zip(r.polys().iter())
     {
         let (hi, lo) = power2round_poly::<D>(poly);
-
-        *r1 = hi;
-        *r0 = lo;
-    }
-
-    (
-        PolyVec::<Q8380417, K>::from_polys(r1_polys),
-        PolyVec::<Q8380417, K>::from_polys(r0_polys),
-    )
-}
-
-/// Applies FIPS 204 `Decompose` coefficientwise to a vector of polynomials.
-///
-/// Returns `(r1, r0)`.
-#[must_use]
-pub(crate) fn decompose_vec<const K: usize, const GAMMA2: usize>(
-    r: &PolyVec<Q8380417, K>,
-) -> (PolyVec<Q8380417, K>, PolyVec<Q8380417, K>) {
-    let mut r1_polys = [Poly::<Q8380417>::zero(); K];
-    let mut r0_polys = [Poly::<Q8380417>::zero(); K];
-
-    for ((r1, r0), poly) in r1_polys
-        .iter_mut()
-        .zip(r0_polys.iter_mut())
-        .zip(r.polys().iter())
-    {
-        let (hi, lo) = decompose_poly::<GAMMA2>(poly);
 
         *r1 = hi;
         *r0 = lo;
@@ -485,10 +384,7 @@ pub(crate) fn make_hint_vec<const K: usize, const GAMMA2: usize>(
     let mut data = [[0u8; N]; K];
     let mut weight = 0usize;
 
-    for ((hint_poly, z_poly), r_poly) in data
-        .iter_mut()
-        .zip(z.polys().iter())
-        .zip(r.polys().iter())
+    for ((hint_poly, z_poly), r_poly) in data.iter_mut().zip(z.polys().iter()).zip(r.polys().iter())
     {
         let (poly_hint, poly_weight) = make_hint_poly::<GAMMA2>(z_poly, r_poly);
 
@@ -518,7 +414,6 @@ pub(crate) fn use_hint_vec<const K: usize, const GAMMA2: usize>(
     PolyVec::<Q8380417, K>::from_polys(polys)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -535,11 +430,7 @@ mod tests {
     fn mod_pm_q_ref(r: i32) -> i32 {
         let r_plus = reduce_q_ref(r);
 
-        if r_plus > Q / 2 {
-            r_plus - Q
-        } else {
-            r_plus
-        }
+        if r_plus > Q / 2 { r_plus - Q } else { r_plus }
     }
 
     fn mod_pm_power2_ref<const D: usize>(r: i32) -> i32 {
@@ -548,24 +439,7 @@ mod tests {
 
         let t = (r as i64).rem_euclid(alpha as i64) as i32;
 
-        if t > half {
-            t - alpha
-        } else {
-            t
-        }
-    }
-
-    fn mod_pm_2gamma2_ref<const GAMMA2: usize>(r_plus: i32) -> i32 {
-        let alpha = (2 * GAMMA2) as i32;
-        let gamma2 = GAMMA2 as i32;
-
-        let t = r_plus % alpha;
-
-        if t > gamma2 {
-            t - alpha
-        } else {
-            t
-        }
+        if t > half { t - alpha } else { t }
     }
 
     fn mod_pm_2gamma2<const GAMMA2: usize>(r_plus: i32) -> i32 {
@@ -615,18 +489,13 @@ mod tests {
         if hint == 0 {
             r1
         } else if r0 > 0 {
-            if r1 + 1 == m {
-                0
-            } else {
-                r1 + 1
-            }
+            if r1 + 1 == m { 0 } else { r1 + 1 }
         } else if r1 == 0 {
             m - 1
         } else {
             r1 - 1
         }
     }
-
 
     #[test]
     fn reduce_q_canonical_returns_canonical_representative() {
@@ -657,18 +526,7 @@ mod tests {
 
     #[test]
     fn ct_i32_eq_matches_normal_equality() {
-        let values = [
-            i32::MIN,
-            -Q - 1,
-            -Q,
-            -1,
-            0,
-            1,
-            Q / 2,
-            Q - 1,
-            Q,
-            i32::MAX,
-        ];
+        let values = [i32::MIN, -Q - 1, -Q, -1, 0, 1, Q / 2, Q - 1, Q, i32::MAX];
 
         for &x in &values {
             for &y in &values {
@@ -679,18 +537,7 @@ mod tests {
 
     #[test]
     fn ct_i32_gt_matches_normal_greater_than() {
-        let values = [
-            i32::MIN,
-            -Q - 1,
-            -Q,
-            -1,
-            0,
-            1,
-            Q / 2,
-            Q - 1,
-            Q,
-            i32::MAX,
-        ];
+        let values = [i32::MIN, -Q - 1, -Q, -1, 0, 1, Q / 2, Q - 1, Q, i32::MAX];
 
         for &x in &values {
             for &y in &values {
@@ -701,18 +548,7 @@ mod tests {
 
     #[test]
     fn ct_i32_ge_matches_normal_greater_or_equal() {
-        let values = [
-            i32::MIN,
-            -Q - 1,
-            -Q,
-            -1,
-            0,
-            1,
-            Q / 2,
-            Q - 1,
-            Q,
-            i32::MAX,
-        ];
+        let values = [i32::MIN, -Q - 1, -Q, -1, 0, 1, Q / 2, Q - 1, Q, i32::MAX];
 
         for &x in &values {
             for &y in &values {
@@ -933,7 +769,11 @@ mod tests {
         ];
 
         for &r in &inputs {
-            assert_eq!(decompose::<GAMMA2>(r), decompose_ref::<GAMMA2>(r), "r = {r}");
+            assert_eq!(
+                decompose::<GAMMA2>(r),
+                decompose_ref::<GAMMA2>(r),
+                "r = {r}"
+            );
         }
     }
 
@@ -1141,7 +981,6 @@ mod tests {
         check_use_hint_zero_returns_high_bits::<GAMMA2_88>();
     }
 
-
     fn sample_poly() -> Poly<Q8380417> {
         let mut coeffs = [0i32; N];
 
@@ -1201,20 +1040,6 @@ mod tests {
     }
 
     #[test]
-    fn decompose_poly_matches_scalar() {
-        let poly = sample_poly();
-
-        let (r1, r0) = decompose_poly::<GAMMA2_32>(&poly);
-
-        for i in 0..N {
-            let expected = decompose::<GAMMA2_32>(poly.coeffs()[i]);
-
-            assert_eq!(r1.coeffs()[i], expected.0, "i = {i}");
-            assert_eq!(r0.coeffs()[i], expected.1, "i = {i}");
-        }
-    }
-
-    #[test]
     fn high_bits_poly_matches_scalar() {
         let poly = sample_poly();
 
@@ -1254,11 +1079,7 @@ mod tests {
         let mut expected_weight = 0usize;
 
         for i in 0..N {
-            let expected = make_hint::<GAMMA2_32>(
-                z.coeffs()[i],
-                r.coeffs()[i],
-            )
-                .unwrap_u8();
+            let expected = make_hint::<GAMMA2_32>(z.coeffs()[i], r.coeffs()[i]).unwrap_u8();
 
             assert_eq!(hint[i], expected, "i = {i}");
 
@@ -1280,10 +1101,7 @@ mod tests {
         let out = use_hint_poly::<GAMMA2_32>(&hint, &r);
 
         for i in 0..N {
-            let expected = use_hint::<GAMMA2_32>(
-                Choice::from(hint[i]),
-                r.coeffs()[i],
-            );
+            let expected = use_hint::<GAMMA2_32>(Choice::from(hint[i]), r.coeffs()[i]);
 
             assert_eq!(out.coeffs()[i], expected, "i = {i}");
         }
@@ -1299,22 +1117,6 @@ mod tests {
 
         for j in 0..K {
             let expected = power2round_poly::<D>(&v.polys()[j]);
-
-            assert_eq!(v1.polys()[j], expected.0, "j = {j}");
-            assert_eq!(v0.polys()[j], expected.1, "j = {j}");
-        }
-    }
-
-    #[test]
-    fn decompose_vec_matches_poly_wrapper() {
-        const K: usize = 3;
-
-        let v = sample_poly_vec::<K>();
-
-        let (v1, v0) = decompose_vec::<K, GAMMA2_32>(&v);
-
-        for j in 0..K {
-            let expected = decompose_poly::<GAMMA2_32>(&v.polys()[j]);
 
             assert_eq!(v1.polys()[j], expected.0, "j = {j}");
             assert_eq!(v0.polys()[j], expected.1, "j = {j}");
@@ -1397,10 +1199,7 @@ mod tests {
         let out = use_hint_vec::<K, GAMMA2_32>(&hint, &r);
 
         for j in 0..K {
-            let expected = use_hint_poly::<GAMMA2_32>(
-                &data[j],
-                &r.polys()[j],
-            );
+            let expected = use_hint_poly::<GAMMA2_32>(&data[j], &r.polys()[j]);
 
             assert_eq!(out.polys()[j], expected, "j = {j}");
         }

@@ -8,3 +8,6 @@
 
 /// ML-KEM key encapsulation mechanisms.
 pub mod kem;
+
+/// ML-DSA digital signature algorithms.
+pub mod dsa;

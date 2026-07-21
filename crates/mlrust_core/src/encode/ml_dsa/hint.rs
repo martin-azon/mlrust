@@ -9,11 +9,8 @@
 //! dedicated [`HintVec`] representation rather than `Poly<Q8380417>` or
 //! `PolyVec<Q8380417, K>`.
 
-
-use crate::params::N;
 use crate::error::PqcCoreError;
-
-
+use crate::params::N;
 
 /// Binary ML-DSA hint vector.
 ///
@@ -25,9 +22,8 @@ use crate::error::PqcCoreError;
 /// signatures.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HintVec<const K: usize> {
-    data: [[u8; N]; K]
+    data: [[u8; N]; K],
 }
-
 
 impl<const K: usize> HintVec<K> {
     /// Creates a hint vector from binary coefficient arrays.
@@ -75,9 +71,6 @@ impl<const K: usize> HintVec<K> {
     }
 }
 
-
-
-
 /// FIPS 204 `HintBitPack`.
 ///
 /// Encodes a sparse binary hint vector into its canonical byte representation.
@@ -96,10 +89,7 @@ impl<const K: usize> HintVec<K> {
 /// - `OMEGA > 255`;
 /// - a hint coefficient is not `0` or `1`;
 /// - the total number of set hint bits exceeds `OMEGA`.
-pub fn hint_bit_pack<const K: usize, const OMEGA: usize>(
-    h: &HintVec<K>,
-    out: &mut [u8]
-) {
+pub fn hint_bit_pack<const K: usize, const OMEGA: usize>(h: &HintVec<K>, out: &mut [u8]) {
     assert_eq!(out.len(), K + OMEGA);
 
     out.fill(0);
@@ -124,7 +114,6 @@ pub fn hint_bit_pack<const K: usize, const OMEGA: usize>(
     }
 }
 
-
 /// FIPS 204 `HintBitUnpack`.
 ///
 /// Decodes a sparse binary hint vector from its canonical byte representation.
@@ -145,7 +134,7 @@ pub fn hint_bit_pack<const K: usize, const OMEGA: usize>(
 /// - [`PqcCoreError::NonCanonicalEncoding`] if indices inside one polynomial
 ///   are not strictly increasing, or if unused index bytes are nonzero.
 pub fn hint_bit_unpack<const K: usize, const OMEGA: usize>(
-    input: &[u8]
+    input: &[u8],
 ) -> Result<HintVec<K>, PqcCoreError> {
     if input.len() != K + OMEGA {
         return Err(PqcCoreError::InvalidLength);
@@ -188,7 +177,6 @@ pub fn hint_bit_unpack<const K: usize, const OMEGA: usize>(
     }
     Ok(HintVec::from_data(h))
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -245,13 +233,7 @@ mod tests {
         // after poly 1: 2
         // after poly 2: 3
         // after poly 3: 4
-        assert_eq!(
-            out,
-            [
-                3, 7, 1, 255, 0, 0, 0, 0,
-                2, 2, 3, 4,
-            ]
-        );
+        assert_eq!(out, [3, 7, 1, 255, 0, 0, 0, 0, 2, 2, 3, 4,]);
     }
 
     #[test]
@@ -280,10 +262,7 @@ mod tests {
         const K: usize = 4;
         const OMEGA: usize = 8;
 
-        let input = [
-            3, 7, 1, 255, 0, 0, 0, 0,
-            2, 2, 3, 4,
-        ];
+        let input = [3, 7, 1, 255, 0, 0, 0, 0, 2, 2, 3, 4];
 
         let h = hint_bit_unpack::<K, OMEGA>(&input).unwrap();
 

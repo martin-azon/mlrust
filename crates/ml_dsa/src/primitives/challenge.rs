@@ -8,15 +8,10 @@
 //! signature flow. The rejection loop in this routine depends on XOF output
 //! derived from `c_tilde`.
 
-
-
 use mlrust_core::encode::bits::bytes_to_bits;
 use mlrust_core::params::{N, Q8380417};
 use mlrust_core::poly::Poly;
 use mlrust_core::symmetric::ml_dsa::{h_absorb_once, h_squeeze};
-
-
-
 
 /// FIPS 204 `SampleInBall`.
 ///
@@ -35,10 +30,9 @@ use mlrust_core::symmetric::ml_dsa::{h_absorb_once, h_squeeze};
 /// - `c_tilde.len() != LAMBDA_OVER_4`;
 /// - `TAU > 64`, because only 64 sign bits are read initially;
 /// - `TAU > N`.
-pub(crate) fn sample_in_ball<
-    const LAMBDA_OVER_4: usize,
-    const TAU: usize,
->(c_tilde: &[u8]) -> Poly<Q8380417> {
+pub(crate) fn sample_in_ball<const LAMBDA_OVER_4: usize, const TAU: usize>(
+    c_tilde: &[u8],
+) -> Poly<Q8380417> {
     assert_eq!(c_tilde.len(), LAMBDA_OVER_4);
     assert!(TAU <= 64);
     assert!(TAU <= N);
@@ -69,10 +63,6 @@ pub(crate) fn sample_in_ball<
 
     Poly::<Q8380417>::from_coeffs(c_coeffs)
 }
-
-
-
-
 
 #[cfg(test)]
 mod tests {

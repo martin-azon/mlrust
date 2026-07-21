@@ -4,12 +4,20 @@
 //!
 //! The implementation is split into:
 //!
-//! - [`internal`]: deterministic FIPS-style internal algorithms for key
-//!   generation, signing, and verification;
+//! - [`internal`]: deterministic internal algorithms for key generation,
+//!   signing, and verification;
 //! - [`params`]: parameter-set marker types and dispatch through
 //!   [`params::MlDsaParams`];
-//! - [`api`]: public message-oriented API that formats messages, obtains
-//!   randomness, and calls the parameter-set dispatch layer.
+//! - [`api`]: public message-oriented API that obtains randomness and calls
+//!   the parameter-set dispatch layer.
+//!
+//! Signing has a randomized public form. The public API obtains the required
+//! signing randomness, accepts caller-provided random byte generators, and
+//! dispatches to the parameter-set implementation.
+//!
+//! Verification is deterministic and returns `Ok(false)` for a well-formed but
+//! cryptographically invalid signature. Malformed encodings and invalid
+//! contexts are reported as errors.
 //!
 //! The internal signing and verification algorithms accept byte messages and
 //! contexts. They stream the pure ML-DSA formatted message into the transcript
@@ -17,39 +25,9 @@
 //!
 //! Public callers should use [`api`] rather than calling [`internal`] directly.
 
+pub(crate) mod api;
 pub(crate) mod internal;
 pub(crate) mod params;
 
-pub(crate) mod api;
-
 #[cfg(test)]
 mod tests;
-
-pub use params::MlDsaParams;
-
-pub use api::{
-    ml_dsa_keygen_with_rbg,
-    ml_dsa_sign_with_rbg,
-    ml_dsa_verify,
-    ml_dsa44_keygen_with_rbg,
-    ml_dsa44_sign_with_rbg,
-    ml_dsa44_verify,
-    ml_dsa65_keygen_with_rbg,
-    ml_dsa65_sign_with_rbg,
-    ml_dsa65_verify,
-    ml_dsa87_keygen_with_rbg,
-    ml_dsa87_sign_with_rbg,
-    ml_dsa87_verify,
-};
-
-#[cfg(feature = "getrandom")]
-pub use api::{
-    ml_dsa_keygen,
-    ml_dsa_sign,
-    ml_dsa44_keygen,
-    ml_dsa44_sign,
-    ml_dsa65_keygen,
-    ml_dsa65_sign,
-    ml_dsa87_keygen,
-    ml_dsa87_sign,
-};

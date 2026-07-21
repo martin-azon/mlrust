@@ -22,13 +22,10 @@
 //! ||v||∞ = max_j ||v_j||∞
 //! ```
 
-
-
 use crate::primitives::rounding::mod_pm_q;
 use mlrust_core::params::Q8380417;
 use mlrust_core::poly::{Poly, PolyVec};
 use subtle::{ConditionallySelectable, ConstantTimeGreater};
-
 
 /// Computes the absolute value of an `i32` as a `u32`, branchlessly.
 ///
@@ -46,13 +43,11 @@ fn ct_i32_abs(x: i32) -> u32 {
     (ux ^ mask).wrapping_sub(mask)
 }
 
-
 /// Returns `max(a, b)` branchlessly.
 #[inline]
 fn ct_u32_max(a: u32, b: u32) -> u32 {
     u32::conditional_select(&a, &b, b.ct_gt(&a))
 }
-
 
 /// Computes the centered coefficient norm over `Z_q`.
 ///
@@ -109,12 +104,10 @@ pub(crate) fn norm_polyvec_zq<const K: usize>(vec: PolyVec<Q8380417, K>) -> u32 
     max
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mlrust_core::params::{RingParams, N};
+    use mlrust_core::params::{N, RingParams};
 
     const Q: i32 = Q8380417::Q;
 
@@ -125,11 +118,7 @@ mod tests {
     fn mod_pm_q_ref(x: i32) -> i32 {
         let x_plus = reduce_q_ref(x);
 
-        if x_plus > Q / 2 {
-            x_plus - Q
-        } else {
-            x_plus
-        }
+        if x_plus > Q / 2 { x_plus - Q } else { x_plus }
     }
 
     fn norm_zq_ref(x: i32) -> u32 {
@@ -159,17 +148,7 @@ mod tests {
 
     #[test]
     fn ct_u32_max_matches_normal_max() {
-        let values = [
-            0u32,
-            1,
-            2,
-            17,
-            255,
-            256,
-            1024,
-            u32::MAX / 2,
-            u32::MAX,
-        ];
+        let values = [0u32, 1, 2, 17, 255, 256, 1024, u32::MAX / 2, u32::MAX];
 
         for &a in &values {
             for &b in &values {
@@ -224,26 +203,14 @@ mod tests {
 
     #[test]
     fn norm_poly_zq_returns_largest_coefficient_norm() {
-        let poly = poly_from_coeffs(&[
-            (0, 0),
-            (1, 7),
-            (2, -11),
-            (3, Q - 23),
-            (4, 1234),
-            (5, -999),
-        ]);
+        let poly = poly_from_coeffs(&[(0, 0), (1, 7), (2, -11), (3, Q - 23), (4, 1234), (5, -999)]);
 
         assert_eq!(norm_poly_zq(poly), 1234);
     }
 
     #[test]
     fn norm_poly_zq_handles_mod_q_boundary_coefficients() {
-        let poly = poly_from_coeffs(&[
-            (0, Q - 1),
-            (1, Q - 2),
-            (2, Q / 2),
-            (3, Q / 2 + 1),
-        ]);
+        let poly = poly_from_coeffs(&[(0, Q - 1), (1, Q - 2), (2, Q / 2), (3, Q / 2 + 1)]);
 
         assert_eq!(norm_poly_zq(poly), (Q / 2) as u32);
     }
@@ -269,11 +236,7 @@ mod tests {
 
         let poly = Poly::<Q8380417>::from_coeffs(coeffs);
 
-        let expected = coeffs
-            .iter()
-            .map(|&x| norm_zq_ref(x))
-            .max()
-            .unwrap();
+        let expected = coeffs.iter().map(|&x| norm_zq_ref(x)).max().unwrap();
 
         assert_eq!(norm_poly_zq(poly), expected);
     }

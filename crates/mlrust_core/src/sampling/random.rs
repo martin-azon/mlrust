@@ -15,7 +15,6 @@ pub enum RandomError {
     GeneratorFailure,
 }
 
-
 /// Trait for user-provided random byte generators.
 ///
 /// Implementations must fill the entire `output` buffer with random bytes or
@@ -29,7 +28,6 @@ pub trait RandomByteGenerator {
     /// the requested bytes.
     fn fill_bytes(&mut self, output: &mut [u8]) -> Result<(), RandomError>;
 }
-
 
 /// Fills and returns a fixed-size random byte array.
 ///
@@ -45,7 +43,6 @@ pub fn random_array<const N: usize, R: RandomByteGenerator + ?Sized>(
     rng.fill_bytes(&mut output[..])?;
     Ok(output)
 }
-
 
 /// Operating-system random byte generator.
 ///

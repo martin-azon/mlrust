@@ -1,8 +1,4 @@
-use super::internal::{
-    ml_dsa_keygen_internal,
-    ml_dsa_sign_internal,
-    ml_dsa_verify_internal,
-};
+use super::internal::{ml_dsa_keygen_internal, ml_dsa_sign_internal, ml_dsa_verify_internal};
 use super::params::MlDsaParams;
 
 use crate::constants::*;
@@ -50,10 +46,7 @@ fn check_param_trait<P: MlDsaParams>() {
 
     assert_eq!(
         P::SIG_BYTES,
-        P::LAMBDA_OVER_4
-            + P::L * 32 * P::BITLEN_2GAMMA1_MINUS_ONE
-            + P::OMEGA
-            + P::K
+        P::LAMBDA_OVER_4 + P::L * 32 * P::BITLEN_2GAMMA1_MINUS_ONE + P::OMEGA + P::K
     );
 }
 
@@ -184,13 +177,8 @@ fn mldsa44_internal_sign_verify_roundtrip() {
         ML_DSA_44_OMEGA,
         ML_DSA_44_SECRET_KEY_BYTES,
         ML_DSA_44_SIGNATURE_BYTES,
-    >(
-        keypair.secret_key(),
-        message,
-        EMPTY_CONTEXT,
-        &randomness,
-    )
-        .expect("signing should succeed");
+    >(keypair.secret_key(), message, EMPTY_CONTEXT, &randomness)
+    .expect("signing should succeed");
 
     assert_eq!(signature.as_bytes().len(), ML_DSA_44_SIGNATURE_BYTES);
 
@@ -212,13 +200,8 @@ fn mldsa44_internal_sign_verify_roundtrip() {
         ML_DSA_44_OMEGA,
         ML_DSA_44_PUBLIC_KEY_BYTES,
         ML_DSA_44_SIGNATURE_BYTES,
-    >(
-        keypair.public_key(),
-        message,
-        EMPTY_CONTEXT,
-        &signature,
-    )
-        .expect("verification should not error");
+    >(keypair.public_key(), message, EMPTY_CONTEXT, &signature)
+    .expect("verification should not error");
 
     assert!(ok);
 }
@@ -237,15 +220,11 @@ fn mldsa44_param_sign_verify_roundtrip() {
         EMPTY_CONTEXT,
         &randomness,
     )
-        .expect("signing should succeed");
+    .expect("signing should succeed");
 
-    let ok = <MlDsa44 as MlDsaParams>::verify(
-        keypair.public_key(),
-        message,
-        EMPTY_CONTEXT,
-        &signature,
-    )
-        .expect("verification should not error");
+    let ok =
+        <MlDsa44 as MlDsaParams>::verify(keypair.public_key(), message, EMPTY_CONTEXT, &signature)
+            .expect("verification should not error");
 
     assert!(ok);
 }
@@ -264,15 +243,11 @@ fn mldsa65_param_sign_verify_roundtrip() {
         EMPTY_CONTEXT,
         &randomness,
     )
-        .expect("signing should succeed");
+    .expect("signing should succeed");
 
-    let ok = <MlDsa65 as MlDsaParams>::verify(
-        keypair.public_key(),
-        message,
-        EMPTY_CONTEXT,
-        &signature,
-    )
-        .expect("verification should not error");
+    let ok =
+        <MlDsa65 as MlDsaParams>::verify(keypair.public_key(), message, EMPTY_CONTEXT, &signature)
+            .expect("verification should not error");
 
     assert!(ok);
 }
@@ -291,15 +266,11 @@ fn mldsa87_param_sign_verify_roundtrip() {
         EMPTY_CONTEXT,
         &randomness,
     )
-        .expect("signing should succeed");
+    .expect("signing should succeed");
 
-    let ok = <MlDsa87 as MlDsaParams>::verify(
-        keypair.public_key(),
-        message,
-        EMPTY_CONTEXT,
-        &signature,
-    )
-        .expect("verification should not error");
+    let ok =
+        <MlDsa87 as MlDsaParams>::verify(keypair.public_key(), message, EMPTY_CONTEXT, &signature)
+            .expect("verification should not error");
 
     assert!(ok);
 }
@@ -320,7 +291,7 @@ fn mldsa44_verify_rejects_modified_message() {
         EMPTY_CONTEXT,
         &randomness,
     )
-        .expect("signing should succeed");
+    .expect("signing should succeed");
 
     let ok = <MlDsa44 as MlDsaParams>::verify(
         keypair.public_key(),
@@ -328,7 +299,7 @@ fn mldsa44_verify_rejects_modified_message() {
         EMPTY_CONTEXT,
         &signature,
     )
-        .expect("verification should not error");
+    .expect("verification should not error");
 
     assert!(!ok);
 }
@@ -350,7 +321,7 @@ fn mldsa44_verify_rejects_modified_context() {
         signing_context,
         &randomness,
     )
-        .expect("signing should succeed");
+    .expect("signing should succeed");
 
     let ok = <MlDsa44 as MlDsaParams>::verify(
         keypair.public_key(),
@@ -358,7 +329,7 @@ fn mldsa44_verify_rejects_modified_context() {
         verification_context,
         &signature,
     )
-        .expect("verification should not error");
+    .expect("verification should not error");
 
     assert!(!ok);
 }
@@ -396,7 +367,7 @@ fn mldsa44_signing_is_deterministic_for_fixed_inputs() {
         EMPTY_CONTEXT,
         &randomness,
     )
-        .expect("first signing should succeed");
+    .expect("first signing should succeed");
 
     let sig1 = <MlDsa44 as MlDsaParams>::sign_from_seed(
         keypair.secret_key(),
@@ -404,7 +375,7 @@ fn mldsa44_signing_is_deterministic_for_fixed_inputs() {
         EMPTY_CONTEXT,
         &randomness,
     )
-        .expect("second signing should succeed");
+    .expect("second signing should succeed");
 
     assert_eq!(sig0.as_bytes(), sig1.as_bytes());
 }
@@ -423,7 +394,7 @@ fn mldsa44_param_sign_matches_direct_internal_sign() {
         EMPTY_CONTEXT,
         &randomness,
     )
-        .expect("parameter signing should succeed");
+    .expect("parameter signing should succeed");
 
     let direct = ml_dsa_sign_internal::<
         ML_DSA_44_K,
@@ -443,13 +414,8 @@ fn mldsa44_param_sign_matches_direct_internal_sign() {
         ML_DSA_44_OMEGA,
         ML_DSA_44_SECRET_KEY_BYTES,
         ML_DSA_44_SIGNATURE_BYTES,
-    >(
-        keypair.secret_key(),
-        message,
-        EMPTY_CONTEXT,
-        &randomness,
-    )
-        .expect("direct signing should succeed");
+    >(keypair.secret_key(), message, EMPTY_CONTEXT, &randomness)
+    .expect("direct signing should succeed");
 
     assert_eq!(via_params.as_bytes(), direct.as_bytes());
 }
@@ -468,15 +434,11 @@ fn mldsa44_param_verify_matches_direct_internal_verify() {
         EMPTY_CONTEXT,
         &randomness,
     )
-        .expect("signing should succeed");
+    .expect("signing should succeed");
 
-    let via_params = <MlDsa44 as MlDsaParams>::verify(
-        keypair.public_key(),
-        message,
-        EMPTY_CONTEXT,
-        &signature,
-    )
-        .expect("parameter verification should not error");
+    let via_params =
+        <MlDsa44 as MlDsaParams>::verify(keypair.public_key(), message, EMPTY_CONTEXT, &signature)
+            .expect("parameter verification should not error");
 
     let direct = ml_dsa_verify_internal::<
         ML_DSA_44_K,
@@ -496,13 +458,8 @@ fn mldsa44_param_verify_matches_direct_internal_verify() {
         ML_DSA_44_OMEGA,
         ML_DSA_44_PUBLIC_KEY_BYTES,
         ML_DSA_44_SIGNATURE_BYTES,
-    >(
-        keypair.public_key(),
-        message,
-        EMPTY_CONTEXT,
-        &signature,
-    )
-        .expect("direct verification should not error");
+    >(keypair.public_key(), message, EMPTY_CONTEXT, &signature)
+    .expect("direct verification should not error");
 
     assert_eq!(via_params, direct);
 }

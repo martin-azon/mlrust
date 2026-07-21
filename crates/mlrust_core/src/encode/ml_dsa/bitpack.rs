@@ -1,10 +1,8 @@
-//! ML-DSA bit packing and unpacking. 
+//! ML-DSA bit packing and unpacking.
 
-
-use crate::params::{Q8380417, N};
 use crate::encode::bits::{bit_pack, bit_unpack, bitlen_u32};
+use crate::params::{N, Q8380417};
 use crate::poly::Poly;
-
 
 /// FIPS 204 `SimpleBitPack(w, b)`.
 ///
@@ -22,11 +20,7 @@ use crate::poly::Poly;
 /// - `D != bitlen(b)`;
 /// - `out.len() != 32 * D`;
 /// - some coefficient is outside `[0, b]`.
-pub fn simple_bit_pack_q8380417<const D: usize>(
-    coeffs: &[i32; N],
-    b: i32,
-    out: &mut [u8]
-) {
+pub fn simple_bit_pack_q8380417<const D: usize>(coeffs: &[i32; N], b: i32, out: &mut [u8]) {
     assert!(b > 0);
     assert_eq!(D, bitlen_u32(b as u32));
     assert_eq!(out.len(), 32 * D);
@@ -38,8 +32,6 @@ pub fn simple_bit_pack_q8380417<const D: usize>(
 
     bit_pack::<D>(coeffs, out);
 }
-
-
 
 /// FIPS 204 `BitPack(w, a, b)`.
 ///
@@ -63,12 +55,7 @@ pub fn simple_bit_pack_q8380417<const D: usize>(
 /// - `D != bitlen(a + b)`;
 /// - `out.len() != 32 * D`;
 /// - some coefficient is outside `[-a, b]`.
-pub fn bit_pack_signed_q8380417<const D: usize>(
-    coeffs: &[i32; N],
-    a: i32,
-    b: i32,
-    out: &mut [u8]
-) {
+pub fn bit_pack_signed_q8380417<const D: usize>(coeffs: &[i32; N], a: i32, b: i32, out: &mut [u8]) {
     assert!(a >= 0);
     assert!(b >= 0);
     assert!(a + b > 0);
@@ -86,7 +73,6 @@ pub fn bit_pack_signed_q8380417<const D: usize>(
     bit_pack::<D>(&values, out);
 }
 
-
 /// FIPS 204 `SimpleBitUnpack(v, b)`.
 ///
 /// Decodes 256 coefficients by reading `D = bitlen(b)` bits per coefficient.
@@ -103,10 +89,7 @@ pub fn bit_pack_signed_q8380417<const D: usize>(
 /// - `D != bitlen(b)`;
 /// - `input.len() != 32 * D`.
 #[must_use]
-pub fn simple_bit_unpack_q8380417<const D: usize>(
-    input: &[u8],
-    b: i32,
-) -> Poly<Q8380417> {
+pub fn simple_bit_unpack_q8380417<const D: usize>(input: &[u8], b: i32) -> Poly<Q8380417> {
     assert!(b > 0);
     assert_eq!(D, bitlen_u32(b as u32));
     assert_eq!(input.len(), 32 * D);
@@ -139,11 +122,7 @@ pub fn simple_bit_unpack_q8380417<const D: usize>(
 /// - `D != bitlen(a + b)`;
 /// - `input.len() != 32 * D`.
 #[must_use]
-pub fn bit_unpack_q8380417<const D: usize>(
-    input: &[u8],
-    a: i32,
-    b: i32,
-) -> Poly<Q8380417> {
+pub fn bit_unpack_q8380417<const D: usize>(input: &[u8], a: i32, b: i32) -> Poly<Q8380417> {
     assert!(a >= 0);
     assert!(b >= 0);
     assert!(a + b > 0);
@@ -160,9 +139,6 @@ pub fn bit_unpack_q8380417<const D: usize>(
 
     Poly::from_coeffs(coeffs)
 }
-
-
-
 
 #[cfg(test)]
 mod tests {
@@ -215,7 +191,7 @@ mod tests {
         // can produce coefficients outside the nominal range.
         let input = [0xffu8; 32 * 4];
 
-        let decoded = simple_bit_unpack_q8380417::<4>(&input,13);
+        let decoded = simple_bit_unpack_q8380417::<4>(&input, 13);
 
         assert!(decoded.coeffs().iter().any(|&c| c > 13));
     }

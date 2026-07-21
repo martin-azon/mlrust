@@ -1,16 +1,7 @@
 use ml_kem::{
-    ml_kem512_keygen,
-    ml_kem512_keygen_with_rbg,
-    ml_kem512_encaps,
-    ml_kem512_encaps_with_rbg,
-    ml_kem512_decaps,
-    ml_kem768_keygen,
-    ml_kem768_encaps,
-    ml_kem768_decaps,
-    ml_kem1024_keygen,
-    ml_kem1024_encaps,
-    ml_kem1024_decaps,
-    MlKemError,
+    MlKemError, ml_kem512_decaps, ml_kem512_encaps, ml_kem512_encaps_with_rbg, ml_kem512_keygen,
+    ml_kem512_keygen_with_rbg, ml_kem768_decaps, ml_kem768_encaps, ml_kem768_keygen,
+    ml_kem1024_decaps, ml_kem1024_encaps, ml_kem1024_keygen,
 };
 
 use mlrust_core::sampling::random::{RandomByteGenerator, RandomError};
@@ -80,7 +71,6 @@ fn ml_kem1024_public_api_roundtrip() {
     }
 }
 
-
 #[test]
 fn ml_kem512_keygen_with_rbg_maps_randomness_failure() {
     let mut rbg = FailingRbg;
@@ -93,14 +83,10 @@ fn ml_kem512_keygen_with_rbg_maps_randomness_failure() {
 #[test]
 fn ml_kem512_encaps_with_rbg_maps_randomness_failure() {
     let mut keygen_rbg = RepeatingRbg { byte: 0x42 };
-    let keypair = ml_kem512_keygen_with_rbg(&mut keygen_rbg)
-        .expect("key generation succeeds");
+    let keypair = ml_kem512_keygen_with_rbg(&mut keygen_rbg).expect("key generation succeeds");
 
     let mut encaps_rbg = FailingRbg;
-    let result = ml_kem512_encaps_with_rbg(
-        keypair.encapsulation_key(),
-        &mut encaps_rbg,
-    );
+    let result = ml_kem512_encaps_with_rbg(keypair.encapsulation_key(), &mut encaps_rbg);
 
     assert!(matches!(result, Err(MlKemError::RandomnessFailure)));
 }

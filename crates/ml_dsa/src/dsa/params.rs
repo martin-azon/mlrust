@@ -1,82 +1,36 @@
 use crate::constants::{
-    MlDsa44,
-    ML_DSA_44_K,
-    ML_DSA_44_L,
-    ML_DSA_44_ETA,
-    ML_DSA_44_BITLEN_2ETA,
-    ML_DSA_44_GAMMA1,
-    ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE,
+    ML_DSA_44_BETA, ML_DSA_44_BITLEN_2ETA, ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE,
     ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32,
-    ML_DSA_44_TAU,
-    ML_DSA_44_BETA,
-    ML_DSA_44_GAMMA2,
-    ML_DSA_44_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
-    ML_DSA_44_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
-    ML_DSA_44_LAMBDA_OVER_4,
-    ML_DSA_44_D,
-    ML_DSA_44_OMEGA,
-    ML_DSA_44_PUBLIC_KEY_BYTES,
-    ML_DSA_44_SECRET_KEY_BYTES,
-    ML_DSA_44_SIGNATURE_BYTES,
-    MlDsa65,
-    ML_DSA_65_K,
-    ML_DSA_65_L,
-    ML_DSA_65_ETA,
-    ML_DSA_65_BITLEN_2ETA,
-    ML_DSA_65_GAMMA1,
-    ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE,
+    ML_DSA_44_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE, ML_DSA_44_D, ML_DSA_44_ETA,
+    ML_DSA_44_GAMMA1, ML_DSA_44_GAMMA2, ML_DSA_44_K,
+    ML_DSA_44_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE, ML_DSA_44_L,
+    ML_DSA_44_LAMBDA_OVER_4, ML_DSA_44_OMEGA, ML_DSA_44_PUBLIC_KEY_BYTES,
+    ML_DSA_44_SECRET_KEY_BYTES, ML_DSA_44_SIGNATURE_BYTES, ML_DSA_44_TAU, ML_DSA_65_BETA,
+    ML_DSA_65_BITLEN_2ETA, ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE,
     ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32,
-    ML_DSA_65_TAU,
-    ML_DSA_65_BETA,
-    ML_DSA_65_GAMMA2,
-    ML_DSA_65_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
-    ML_DSA_65_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
-    ML_DSA_65_LAMBDA_OVER_4,
-    ML_DSA_65_D,
-    ML_DSA_65_OMEGA,
-    ML_DSA_65_PUBLIC_KEY_BYTES,
-    ML_DSA_65_SECRET_KEY_BYTES,
-    ML_DSA_65_SIGNATURE_BYTES,
-    MlDsa87,
-    ML_DSA_87_K,
-    ML_DSA_87_L,
-    ML_DSA_87_ETA,
-    ML_DSA_87_BITLEN_2ETA,
-    ML_DSA_87_GAMMA1,
-    ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE,
+    ML_DSA_65_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE, ML_DSA_65_D, ML_DSA_65_ETA,
+    ML_DSA_65_GAMMA1, ML_DSA_65_GAMMA2, ML_DSA_65_K,
+    ML_DSA_65_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE, ML_DSA_65_L,
+    ML_DSA_65_LAMBDA_OVER_4, ML_DSA_65_OMEGA, ML_DSA_65_PUBLIC_KEY_BYTES,
+    ML_DSA_65_SECRET_KEY_BYTES, ML_DSA_65_SIGNATURE_BYTES, ML_DSA_65_TAU, ML_DSA_87_BETA,
+    ML_DSA_87_BITLEN_2ETA, ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE,
     ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32,
-    ML_DSA_87_TAU,
-    ML_DSA_87_BETA,
-    ML_DSA_87_GAMMA2,
-    ML_DSA_87_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
-    ML_DSA_87_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
-    ML_DSA_87_LAMBDA_OVER_4,
-    ML_DSA_87_D,
-    ML_DSA_87_OMEGA,
-    ML_DSA_87_PUBLIC_KEY_BYTES,
-    ML_DSA_87_SECRET_KEY_BYTES,
-    ML_DSA_87_SIGNATURE_BYTES,
+    ML_DSA_87_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE, ML_DSA_87_D, ML_DSA_87_ETA,
+    ML_DSA_87_GAMMA1, ML_DSA_87_GAMMA2, ML_DSA_87_K,
+    ML_DSA_87_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE, ML_DSA_87_L,
+    ML_DSA_87_LAMBDA_OVER_4, ML_DSA_87_OMEGA, ML_DSA_87_PUBLIC_KEY_BYTES,
+    ML_DSA_87_SECRET_KEY_BYTES, ML_DSA_87_SIGNATURE_BYTES, ML_DSA_87_TAU, MlDsa44, MlDsa65,
+    MlDsa87,
 };
 
 use crate::keys::{
-    MlDsa44Keypair,
-    MlDsa44PublicKey,
-    MlDsa44SecretKey,
-    MlDsa44Signature,
-    MlDsa65Keypair,
-    MlDsa65PublicKey,
-    MlDsa65SecretKey,
-    MlDsa65Signature,
-    MlDsa87Keypair,
-    MlDsa87PublicKey,
-    MlDsa87SecretKey,
-    MlDsa87Signature,
+    MlDsa44Keypair, MlDsa44PublicKey, MlDsa44SecretKey, MlDsa44Signature, MlDsa65Keypair,
+    MlDsa65PublicKey, MlDsa65SecretKey, MlDsa65Signature, MlDsa87Keypair, MlDsa87PublicKey,
+    MlDsa87SecretKey, MlDsa87Signature,
 };
 
 use crate::dsa::internal::{ml_dsa_keygen_internal, ml_dsa_sign_internal, ml_dsa_verify_internal};
 use crate::error::MlDsaError;
-
-
 
 /// Parameter-set trait for the three standardized ML-DSA instantiations.
 ///
@@ -92,7 +46,8 @@ use crate::error::MlDsaError;
 /// ```
 ///
 /// before computing the ML-DSA transcript hash.
-pub trait MlDsaParams: Sized {
+#[allow(dead_code)]
+pub(crate) trait MlDsaParams: Sized {
     /// Matrix row dimension `k`.
     const K: usize;
 
@@ -162,8 +117,6 @@ pub trait MlDsaParams: Sized {
     /// Maximum allowed hint weight.
     const OMEGA: usize;
 
-
-
     /// Serialized secret key length in bytes.
     const SK_BYTES: usize;
 
@@ -172,8 +125,6 @@ pub trait MlDsaParams: Sized {
 
     /// Serialized signature length in bytes.
     const SIG_BYTES: usize;
-
-
 
     /// Secret key type for this parameter set.
     type SecretKey;
@@ -187,8 +138,6 @@ pub trait MlDsaParams: Sized {
     /// Keypair type for this parameter set.
     type KeyPair;
 
-
-
     /// Deterministically generates a keypair from the 32-byte key-generation seed.
     fn keygen_from_seed(xi: &[u8; 32]) -> Self::KeyPair;
 
@@ -198,7 +147,7 @@ pub trait MlDsaParams: Sized {
         sk: &Self::SecretKey,
         message: &[u8],
         context: &[u8],
-        randomness: &[u8; 32]
+        randomness: &[u8; 32],
     ) -> Result<Self::Signature, MlDsaError>;
 
     /// Verifies a signature against a message and context.
@@ -206,11 +155,9 @@ pub trait MlDsaParams: Sized {
         pk: &Self::PublicKey,
         message: &[u8],
         context: &[u8],
-        signature: &Self::Signature
+        signature: &Self::Signature,
     ) -> Result<bool, MlDsaError>;
 }
-
-
 
 impl MlDsaParams for MlDsa44 {
     const K: usize = ML_DSA_44_K;
@@ -222,13 +169,14 @@ impl MlDsaParams for MlDsa44 {
     const BITLEN_2GAMMA1_MINUS_ONE: usize = ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE;
     const BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32;
     const GAMMA2: usize = ML_DSA_44_GAMMA2;
-    const BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = ML_DSA_44_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE;
-    const K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = ML_DSA_44_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE;
+    const BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize =
+        ML_DSA_44_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE;
+    const K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize =
+        ML_DSA_44_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE;
     const ETA: usize = ML_DSA_44_ETA;
     const BITLEN_2ETA: usize = ML_DSA_44_BITLEN_2ETA;
     const BETA: usize = ML_DSA_44_BETA;
     const OMEGA: usize = ML_DSA_44_OMEGA;
-
 
     const SK_BYTES: usize = ML_DSA_44_SECRET_KEY_BYTES;
     const PK_BYTES: usize = ML_DSA_44_PUBLIC_KEY_BYTES;
@@ -255,7 +203,7 @@ impl MlDsaParams for MlDsa44 {
         sk: &Self::SecretKey,
         message: &[u8],
         context: &[u8],
-        randomness: &[u8; 32]
+        randomness: &[u8; 32],
     ) -> Result<Self::Signature, MlDsaError> {
         ml_dsa_sign_internal::<
             ML_DSA_44_K,
@@ -282,7 +230,7 @@ impl MlDsaParams for MlDsa44 {
         pk: &Self::PublicKey,
         message: &[u8],
         context: &[u8],
-        signature: &Self::Signature
+        signature: &Self::Signature,
     ) -> Result<bool, MlDsaError> {
         ml_dsa_verify_internal::<
             ML_DSA_44_K,
@@ -306,9 +254,6 @@ impl MlDsaParams for MlDsa44 {
     }
 }
 
-
-
-
 impl MlDsaParams for MlDsa65 {
     const K: usize = ML_DSA_65_K;
     const L: usize = ML_DSA_65_L;
@@ -319,13 +264,14 @@ impl MlDsaParams for MlDsa65 {
     const BITLEN_2GAMMA1_MINUS_ONE: usize = ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE;
     const BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32;
     const GAMMA2: usize = ML_DSA_65_GAMMA2;
-    const BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = ML_DSA_65_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE;
-    const K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = ML_DSA_65_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE;
+    const BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize =
+        ML_DSA_65_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE;
+    const K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize =
+        ML_DSA_65_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE;
     const ETA: usize = ML_DSA_65_ETA;
     const BITLEN_2ETA: usize = ML_DSA_65_BITLEN_2ETA;
     const BETA: usize = ML_DSA_65_BETA;
     const OMEGA: usize = ML_DSA_65_OMEGA;
-
 
     const SK_BYTES: usize = ML_DSA_65_SECRET_KEY_BYTES;
     const PK_BYTES: usize = ML_DSA_65_PUBLIC_KEY_BYTES;
@@ -352,7 +298,7 @@ impl MlDsaParams for MlDsa65 {
         sk: &Self::SecretKey,
         message: &[u8],
         context: &[u8],
-        randomness: &[u8; 32]
+        randomness: &[u8; 32],
     ) -> Result<Self::Signature, MlDsaError> {
         ml_dsa_sign_internal::<
             ML_DSA_65_K,
@@ -379,7 +325,7 @@ impl MlDsaParams for MlDsa65 {
         pk: &Self::PublicKey,
         message: &[u8],
         context: &[u8],
-        signature: &Self::Signature
+        signature: &Self::Signature,
     ) -> Result<bool, MlDsaError> {
         ml_dsa_verify_internal::<
             ML_DSA_65_K,
@@ -403,9 +349,6 @@ impl MlDsaParams for MlDsa65 {
     }
 }
 
-
-
-
 impl MlDsaParams for MlDsa87 {
     const K: usize = ML_DSA_87_K;
     const L: usize = ML_DSA_87_L;
@@ -416,13 +359,14 @@ impl MlDsaParams for MlDsa87 {
     const BITLEN_2GAMMA1_MINUS_ONE: usize = ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE;
     const BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32;
     const GAMMA2: usize = ML_DSA_87_GAMMA2;
-    const BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = ML_DSA_87_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE;
-    const K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = ML_DSA_87_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE;
+    const BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize =
+        ML_DSA_87_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE;
+    const K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize =
+        ML_DSA_87_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE;
     const ETA: usize = ML_DSA_87_ETA;
     const BITLEN_2ETA: usize = ML_DSA_87_BITLEN_2ETA;
     const BETA: usize = ML_DSA_87_BETA;
     const OMEGA: usize = ML_DSA_87_OMEGA;
-
 
     const SK_BYTES: usize = ML_DSA_87_SECRET_KEY_BYTES;
     const PK_BYTES: usize = ML_DSA_87_PUBLIC_KEY_BYTES;
@@ -449,7 +393,7 @@ impl MlDsaParams for MlDsa87 {
         sk: &Self::SecretKey,
         message: &[u8],
         context: &[u8],
-        randomness: &[u8; 32]
+        randomness: &[u8; 32],
     ) -> Result<Self::Signature, MlDsaError> {
         ml_dsa_sign_internal::<
             ML_DSA_87_K,
@@ -476,7 +420,7 @@ impl MlDsaParams for MlDsa87 {
         pk: &Self::PublicKey,
         message: &[u8],
         context: &[u8],
-        signature: &Self::Signature
+        signature: &Self::Signature,
     ) -> Result<bool, MlDsaError> {
         ml_dsa_verify_internal::<
             ML_DSA_87_K,

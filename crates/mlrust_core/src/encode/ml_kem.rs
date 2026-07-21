@@ -6,8 +6,8 @@
 //! These operations are lossy for `D < 12`. They are used by ML-KEM ciphertext
 //! compression and by the byte encoding of compressed polynomial coefficients.
 
-use crate::params::{N, Q3329, RingParams};
 use crate::encode::bits::{bit_pack, bit_unpack};
+use crate::params::{N, Q3329, RingParams};
 use crate::poly::{Poly, PolyVec};
 
 fn round_div_u64(num: u64, den: u64) -> u64 {
@@ -113,7 +113,7 @@ pub fn compress_q3329_polyvec<const K: usize, const D: usize>(
 ) -> PolyVec<Q3329, K> {
     let mut polys = [Poly::<Q3329>::zero(); K];
 
-    for     i in 0..K {
+    for i in 0..K {
         polys[i] = compress_q3329_poly::<D>(&v.polys()[i]);
     }
 
@@ -133,7 +133,6 @@ pub fn decompress_q3329_polyvec<const K: usize, const D: usize>(
 
     PolyVec::from_polys(polys)
 }
-
 
 /// Encodes one ML-KEM polynomial using `ByteEncode_D`.
 ///

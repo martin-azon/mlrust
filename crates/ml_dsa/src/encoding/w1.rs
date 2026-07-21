@@ -16,8 +16,6 @@ use mlrust_core::encode::ml_dsa::simple_bit_pack_q8380417;
 use mlrust_core::params::{Q8380417, RingParams};
 use mlrust_core::poly::PolyVec;
 
-
-
 /// FIPS 204 `w1Encode`.
 ///
 /// Encodes the high-order vector `w1` for challenge hashing.
@@ -51,12 +49,12 @@ pub(crate) fn w1_encode<
     const BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize,
 >(
     w1: &PolyVec<Q8380417, K>,
-    out: &mut [u8]
+    out: &mut [u8],
 ) {
     assert!(GAMMA2 > 0);
     assert_eq!(
         BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
-        bitlen_u32(((Q8380417::Q - 1)/(2 * GAMMA2) as i32) as u32 - 1)
+        bitlen_u32(((Q8380417::Q - 1) / (2 * GAMMA2) as i32) as u32 - 1)
     );
     assert_eq!(
         out.len(),
@@ -72,8 +70,6 @@ pub(crate) fn w1_encode<
 
     let mut start = 0usize;
 
-
-
     for poly in w1_polys {
         simple_bit_pack_q8380417::<BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE>(
             poly.coeffs(),
@@ -84,8 +80,6 @@ pub(crate) fn w1_encode<
         start += packed_len;
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -112,10 +106,7 @@ mod tests {
         const GAMMA2: usize = 95_232;
         const BITS: usize = 6;
 
-        let w1 = PolyVec::from_polys([
-            poly_from_fn(|_| 0),
-            poly_from_fn(|i| (i as i32) % 16),
-        ]);
+        let w1 = PolyVec::from_polys([poly_from_fn(|_| 0), poly_from_fn(|i| (i as i32) % 16)]);
 
         let mut out = [0u8; 32 * K * BITS];
 

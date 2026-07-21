@@ -6,8 +6,6 @@
 //! Bits are packed little-endian within each byte: bit index `i` is stored at
 //! byte `i / 8`, bit position `i % 8`.
 
-
-
 /// Returns the number of bits needed to represent `x`.
 ///
 /// This uses the convention `bitlen(0) = 1`.
@@ -19,7 +17,6 @@ pub const fn bitlen_u32(x: u32) -> usize {
         32usize - x.leading_zeros() as usize
     }
 }
-
 
 /// Converts a bit slice into bytes.
 ///
@@ -37,7 +34,6 @@ pub fn bits_to_bytes(bits: &[u8], out: &mut [u8]) {
     }
 }
 
-
 /// Converts a byte slice into bits.
 ///
 /// # Panics
@@ -51,7 +47,6 @@ pub fn bytes_to_bits(bytes: &[u8], out: &mut [u8]) {
     }
 }
 
-
 /// Returns bit `bit_index` from `bytes`, using little-endian bit order.
 ///
 /// # Panics
@@ -62,7 +57,6 @@ pub fn get_bit(bytes: &[u8], bit_index: usize) -> u8 {
     assert!(bit_index < 8 * bytes.len());
     bytes[bit_index / 8] >> (bit_index % 8) & 1
 }
-
 
 /// Writes the `alpha` least significant bits of `x` into `out`.
 ///
@@ -78,7 +72,6 @@ pub fn int_to_bits(x: u32, alpha: usize, out: &mut [u8]) {
         *bit = ((x >> j) & 1) as u8;
     }
 }
-
 
 /// Interprets `bits` as a little-endian bit string.
 ///
@@ -101,7 +94,6 @@ pub fn bits_to_int(bits: &[u8]) -> u32 {
     x
 }
 
-
 /// Writes the `alpha` least significant bytes of `x` into `out`.
 ///
 /// # Panics
@@ -116,7 +108,6 @@ pub fn int_to_bytes(x: u32, alpha: usize, out: &mut [u8]) {
         *byte = ((x >> (8 * j)) & 0xff) as u8;
     }
 }
-
 
 /// Packs fixed-width nonnegative integers into bytes.
 ///
@@ -161,7 +152,6 @@ pub fn bit_pack<const D: usize>(values: &[i32], out: &mut [u8]) {
     }
 }
 
-
 /// Unpacks fixed-width nonnegative integers from bytes.
 ///
 /// This is the inverse of `bit_pack`.
@@ -193,7 +183,6 @@ pub fn bit_unpack<const D: usize>(input: &[u8], out: &mut [i32]) {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -211,10 +200,7 @@ mod tests {
 
     #[test]
     fn bits_to_bytes_known_pattern() {
-        let bits = [
-            1, 0, 1, 0, 1, 0, 1, 0,
-            0, 1, 0, 1, 0, 1, 0, 1,
-        ];
+        let bits = [1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1];
         let mut out = [0u8; 2];
 
         bits_to_bytes(&bits, &mut out);
@@ -229,13 +215,7 @@ mod tests {
 
         bytes_to_bits(&bytes, &mut bits);
 
-        assert_eq!(
-            bits,
-            [
-                1, 0, 1, 0, 1, 0, 1, 0,
-                0, 1, 0, 1, 0, 1, 0, 1,
-            ]
-        );
+        assert_eq!(bits, [1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1,]);
     }
 
     #[test]

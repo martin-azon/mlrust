@@ -1,22 +1,17 @@
 mod common;
 
-use common::{expected_hash, FixedChunksRbg};
+use common::hex::expected_hash;
+use common::rbg::FixedChunksRbg;
 
 use ml_dsa::{
-    ml_dsa44_keygen_with_rbg,
-    ml_dsa44_sign_with_rbg,
-    ml_dsa44_verify,
-    ml_dsa65_keygen_with_rbg,
-    ml_dsa65_sign_with_rbg,
-    ml_dsa65_verify,
-    ml_dsa87_keygen_with_rbg,
-    ml_dsa87_sign_with_rbg,
+    ml_dsa44_keygen_with_rbg, ml_dsa44_sign_with_rbg, ml_dsa44_verify, ml_dsa65_keygen_with_rbg,
+    ml_dsa65_sign_with_rbg, ml_dsa65_verify, ml_dsa87_keygen_with_rbg, ml_dsa87_sign_with_rbg,
     ml_dsa87_verify,
 };
 
 use sha3::{
-    digest::{ExtendableOutput, Update, XofReader},
     Shake128,
+    digest::{ExtendableOutput, Update, XofReader},
 };
 
 const ML_DSA_44_VECTORS: &str = include_str!("vectors/cctv/ML-DSA-44.txt");
@@ -42,20 +37,11 @@ fn cctv_accumulated_mldsa44(iterations: usize) -> [u8; 32] {
 
         let sign_chunks: [&[u8]; 1] = [randomness.as_ref()];
         let mut sign_rbg = FixedChunksRbg::new(&sign_chunks);
-        let signature = ml_dsa44_sign_with_rbg(
-            keypair.secret_key(),
-            message,
-            context,
-            &mut sign_rbg,
-        )
-            .expect("CCTV ML-DSA-44 signing should succeed");
+        let signature =
+            ml_dsa44_sign_with_rbg(keypair.secret_key(), message, context, &mut sign_rbg)
+                .expect("CCTV ML-DSA-44 signing should succeed");
 
-        let ok = ml_dsa44_verify(
-            keypair.public_key(),
-            message,
-            context,
-            &signature,
-        )
+        let ok = ml_dsa44_verify(keypair.public_key(), message, context, &signature)
             .expect("CCTV ML-DSA-44 verification should not error");
 
         assert!(ok);
@@ -90,20 +76,11 @@ fn cctv_accumulated_mldsa65(iterations: usize) -> [u8; 32] {
 
         let sign_chunks: [&[u8]; 1] = [randomness.as_ref()];
         let mut sign_rbg = FixedChunksRbg::new(&sign_chunks);
-        let signature = ml_dsa65_sign_with_rbg(
-            keypair.secret_key(),
-            message,
-            context,
-            &mut sign_rbg,
-        )
-            .expect("CCTV ML-DSA-65 signing should succeed");
+        let signature =
+            ml_dsa65_sign_with_rbg(keypair.secret_key(), message, context, &mut sign_rbg)
+                .expect("CCTV ML-DSA-65 signing should succeed");
 
-        let ok = ml_dsa65_verify(
-            keypair.public_key(),
-            message,
-            context,
-            &signature,
-        )
+        let ok = ml_dsa65_verify(keypair.public_key(), message, context, &signature)
             .expect("CCTV ML-DSA-65 verification should not error");
 
         assert!(ok);
@@ -138,20 +115,11 @@ fn cctv_accumulated_mldsa87(iterations: usize) -> [u8; 32] {
 
         let sign_chunks: [&[u8]; 1] = [randomness.as_ref()];
         let mut sign_rbg = FixedChunksRbg::new(&sign_chunks);
-        let signature = ml_dsa87_sign_with_rbg(
-            keypair.secret_key(),
-            message,
-            context,
-            &mut sign_rbg,
-        )
-            .expect("CCTV ML-DSA-87 signing should succeed");
+        let signature =
+            ml_dsa87_sign_with_rbg(keypair.secret_key(), message, context, &mut sign_rbg)
+                .expect("CCTV ML-DSA-87 signing should succeed");
 
-        let ok = ml_dsa87_verify(
-            keypair.public_key(),
-            message,
-            context,
-            &signature,
-        )
+        let ok = ml_dsa87_verify(keypair.public_key(), message, context, &signature)
             .expect("CCTV ML-DSA-87 verification should not error");
 
         assert!(ok);
@@ -168,7 +136,7 @@ fn cctv_accumulated_mldsa87(iterations: usize) -> [u8; 32] {
 }
 
 #[test]
-//#[ignore = "CCTV accumulated vector test; run with `cargo test -p ml_dsa cctv -- --ignored`"]
+#[ignore = "CCTV accumulated vector test; run with `cargo test -p ml_dsa cctv -- --ignored`"]
 fn cctv_accumulated_mldsa44_100_iterations() {
     let expected = expected_hash(ML_DSA_44_VECTORS, 100);
     let actual = cctv_accumulated_mldsa44(100);
@@ -177,7 +145,7 @@ fn cctv_accumulated_mldsa44_100_iterations() {
 }
 
 #[test]
-//#[ignore = "CCTV accumulated vector test; run with `cargo test -p ml_dsa cctv -- --ignored`"]
+#[ignore = "CCTV accumulated vector test; run with `cargo test -p ml_dsa cctv -- --ignored`"]
 fn cctv_accumulated_mldsa65_100_iterations() {
     let expected = expected_hash(ML_DSA_65_VECTORS, 100);
     let actual = cctv_accumulated_mldsa65(100);
@@ -186,7 +154,7 @@ fn cctv_accumulated_mldsa65_100_iterations() {
 }
 
 #[test]
-//#[ignore = "CCTV accumulated vector test; run with `cargo test -p ml_dsa cctv -- --ignored`"]
+#[ignore = "CCTV accumulated vector test; run with `cargo test -p ml_dsa cctv -- --ignored`"]
 fn cctv_accumulated_mldsa87_100_iterations() {
     let expected = expected_hash(ML_DSA_87_VECTORS, 100);
     let actual = cctv_accumulated_mldsa87(100);

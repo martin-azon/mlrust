@@ -1,13 +1,14 @@
 //! ML-DSA public-key and secret-key encoding.
 
-
-use mlrust_core::encode::ml_dsa::{bit_pack_signed_q8380417, bit_unpack_q8380417, simple_bit_pack_q8380417, simple_bit_unpack_q8380417};
+use crate::constants::{BITLEN_Q_MINUS_ONE, BITLEN_Q_MINUS_ONE_MINUS_D};
+use crate::error::MlDsaError;
+use crate::keys::{PublicKey, SecretKey};
+use mlrust_core::encode::ml_dsa::{
+    bit_pack_signed_q8380417, bit_unpack_q8380417, simple_bit_pack_q8380417,
+    simple_bit_unpack_q8380417,
+};
 use mlrust_core::params::Q8380417;
 use mlrust_core::poly::{Poly, PolyVec};
-use crate::error::MlDsaError;
-use crate::keys::{SecretKey, PublicKey};
-use crate::constants::{BITLEN_Q_MINUS_ONE, BITLEN_Q_MINUS_ONE_MINUS_D};
-
 
 /// Decoded ML-DSA secret key.
 ///
@@ -21,7 +22,6 @@ pub(crate) struct DecodedSecretKey<const K: usize, const L: usize> {
     pub(crate) t0: PolyVec<Q8380417, K>,
 }
 
-
 /// Decoded ML-DSA public key.
 ///
 /// This is an internal algebraic representation used by verification.
@@ -29,7 +29,6 @@ pub(crate) struct DecodedPublicKey<const K: usize> {
     pub(crate) rho: [u8; 32],
     pub(crate) t1: PolyVec<Q8380417, K>,
 }
-
 
 #[inline]
 fn coeffs_in_range(coeffs: &[i32], min: i32, max: i32) -> bool {
@@ -45,8 +44,6 @@ fn t0_bounds<const D: usize>() -> (i32, i32) {
 
     (two_d_minus_1 - 1, two_d_minus_1)
 }
-
-
 
 /// FIPS 204 `skEncode`.
 ///
@@ -64,8 +61,8 @@ pub(crate) fn sk_encode<
     const ETA: usize,
     const BITLEN_2ETA: usize,
     const SK_BYTES: usize,
-> (
-    dec_sk: &DecodedSecretKey<K, L>
+>(
+    dec_sk: &DecodedSecretKey<K, L>,
 ) -> SecretKey<SK_BYTES> {
     assert_eq!(SK_BYTES, 128 + 32 * ((K + L) * BITLEN_2ETA + D * K));
 
@@ -123,8 +120,6 @@ pub(crate) fn sk_encode<
     SecretKey::from_bytes(sk_bytes)
 }
 
-
-
 /// FIPS 204 `skDecode`.
 ///
 /// Decodes an ML-DSA secret key into its internal algebraic representation.
@@ -144,7 +139,9 @@ pub(crate) fn sk_decode<
     const ETA: usize,
     const BITLEN_2ETA: usize,
     const SK_BYTES: usize,
-> (enc_sk: &SecretKey<SK_BYTES>) -> Result<DecodedSecretKey<K, L>, MlDsaError> {
+>(
+    enc_sk: &SecretKey<SK_BYTES>,
+) -> Result<DecodedSecretKey<K, L>, MlDsaError> {
     if SK_BYTES != 128 + 32 * ((K + L) * BITLEN_2ETA + D * K) {
         return Err(MlDsaError::InvalidSecretKey);
     }
@@ -169,14 +166,11 @@ pub(crate) fn sk_decode<
     seed_k.copy_from_slice(&sk_bytes[32..64]);
     tr.copy_from_slice(&sk_bytes[64..128]);
 
-    let mut start= 128usize;
+    let mut start = 128usize;
 
     for poly in &mut s1_polys {
-        *poly = bit_unpack_q8380417::<BITLEN_2ETA>(
-            &sk_bytes[start..start + short_poly_len],
-            eta,
-            eta
-        );
+        *poly =
+            bit_unpack_q8380417::<BITLEN_2ETA>(&sk_bytes[start..start + short_poly_len], eta, eta);
 
         if !coeffs_in_range(poly.coeffs(), -eta, eta) {
             return Err(MlDsaError::InvalidSecretKey);
@@ -186,11 +180,8 @@ pub(crate) fn sk_decode<
     }
 
     for poly in &mut s2_polys {
-        *poly = bit_unpack_q8380417::<BITLEN_2ETA>(
-            &sk_bytes[start..start + short_poly_len],
-            eta,
-            eta
-        );
+        *poly =
+            bit_unpack_q8380417::<BITLEN_2ETA>(&sk_bytes[start..start + short_poly_len], eta, eta);
 
         if !coeffs_in_range(poly.coeffs(), -eta, eta) {
             return Err(MlDsaError::InvalidSecretKey);
@@ -200,16 +191,12 @@ pub(crate) fn sk_decode<
     }
 
     for poly in &mut t0_polys {
-        *poly = bit_unpack_q8380417::<D>(
-            &sk_bytes[start..start + t0_poly_len],
-            t0_a,
-            t0_b,
-        );
+        *poly = bit_unpack_q8380417::<D>(&sk_bytes[start..start + t0_poly_len], t0_a, t0_b);
 
         start += t0_poly_len;
     }
 
-    let dec_sk = DecodedSecretKey{
+    let dec_sk = DecodedSecretKey {
         rho,
         seed_k,
         tr,
@@ -220,8 +207,6 @@ pub(crate) fn sk_decode<
     Ok(dec_sk)
 }
 
-
-
 /// FIPS 204 `pkEncode`.
 ///
 /// Encodes the public seed `rho` and vector `t1` into an ML-DSA public key.
@@ -230,11 +215,9 @@ pub(crate) fn sk_decode<
 ///
 /// Panics if `PK_BYTES` does not match the parameter-set public-key length, or
 /// if any coefficient of `t1` is outside the expected packing range.
-pub(crate) fn pk_encode<
-    const K: usize,
-    const D: usize,
-    const PK_BYTES: usize,
->(dec_pk: &DecodedPublicKey<K>) -> PublicKey<PK_BYTES> {
+pub(crate) fn pk_encode<const K: usize, const D: usize, const PK_BYTES: usize>(
+    dec_pk: &DecodedPublicKey<K>,
+) -> PublicKey<PK_BYTES> {
     assert_eq!(PK_BYTES, 32 + 32 * K * (BITLEN_Q_MINUS_ONE - D));
 
     let mut pk_bytes = [0u8; PK_BYTES];
@@ -251,7 +234,7 @@ pub(crate) fn pk_encode<
         simple_bit_pack_q8380417::<BITLEN_Q_MINUS_ONE_MINUS_D>(
             poly.coeffs(),
             bound,
-            &mut pk_bytes[start..(start + packed_len)]
+            &mut pk_bytes[start..(start + packed_len)],
         );
 
         start += packed_len;
@@ -259,8 +242,6 @@ pub(crate) fn pk_encode<
 
     PublicKey::from_bytes(pk_bytes)
 }
-
-
 
 /// FIPS 204 `pkDecode`.
 ///
@@ -271,10 +252,9 @@ pub(crate) fn pk_encode<
 /// Returns [`MlDsaError::InvalidPublicKey`] if the parameter-set byte length is
 /// inconsistent with the expected public-key layout.
 
-pub(crate) fn pk_decode<
-    const K: usize,
-    const PK_BYTES: usize,
-> (enc_pk: &PublicKey<PK_BYTES>) -> Result<DecodedPublicKey<K>, MlDsaError> {
+pub(crate) fn pk_decode<const K: usize, const PK_BYTES: usize>(
+    enc_pk: &PublicKey<PK_BYTES>,
+) -> Result<DecodedPublicKey<K>, MlDsaError> {
     if PK_BYTES != 32 + 32 * K * BITLEN_Q_MINUS_ONE_MINUS_D {
         return Err(MlDsaError::InvalidPublicKey);
     }
@@ -294,19 +274,17 @@ pub(crate) fn pk_decode<
     for poly in &mut t1_polys {
         *poly = simple_bit_unpack_q8380417::<BITLEN_Q_MINUS_ONE_MINUS_D>(
             &pk_bytes[start..(start + packed_len)],
-            bound
+            bound,
         );
 
         start += packed_len;
     }
 
-    Ok(DecodedPublicKey{
+    Ok(DecodedPublicKey {
         rho,
-        t1: PolyVec::from_polys(t1_polys)
+        t1: PolyVec::from_polys(t1_polys),
     })
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -406,8 +384,7 @@ mod tests {
         };
 
         let encoded = sk_encode::<K, L, D, ETA, BITLEN_2ETA, SK_BYTES>(&decoded);
-        let decoded_again =
-            sk_decode::<K, L, D, ETA, BITLEN_2ETA, SK_BYTES>(&encoded).unwrap();
+        let decoded_again = sk_decode::<K, L, D, ETA, BITLEN_2ETA, SK_BYTES>(&encoded).unwrap();
 
         assert_eq!(decoded_again.rho, decoded.rho);
         assert_eq!(decoded_again.seed_k, decoded.seed_k);

@@ -19,9 +19,6 @@
 //! type level. The associated constants themselves are plain `usize` values so
 //! that lower-level const-generic routines can be instantiated directly.
 
-
-
-
 /// Zero-sized marker type for ML-DSA-44.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MlDsa44 {}
@@ -33,8 +30,6 @@ pub enum MlDsa65 {}
 /// Zero-sized marker type for ML-DSA-87.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MlDsa87 {}
-
-
 
 /// Bit length of `q - 1`, where `q = 8_380_417`.
 pub const BITLEN_Q_MINUS_ONE: usize = 23;
@@ -49,9 +44,6 @@ pub const BITLEN_Q_MINUS_ONE: usize = 23;
 ///
 /// where `q = 8_380_417` and `d = 13`.
 pub const BITLEN_Q_MINUS_ONE_MINUS_D: usize = 10;
-
-
-
 
 /// Matrix row dimension `k` for ML-DSA-44.
 pub const ML_DSA_44_K: usize = 4;
@@ -128,9 +120,6 @@ pub const ML_DSA_44_BETA: usize = 78;
 /// Maximum allowed hint weight.
 pub const ML_DSA_44_OMEGA: usize = 80;
 
-
-
-
 /// Matrix row dimension `k` for ML-DSA-65.
 pub const ML_DSA_65_K: usize = 6;
 
@@ -205,9 +194,6 @@ pub const ML_DSA_65_BETA: usize = 196;
 
 /// Maximum allowed hint weight.
 pub const ML_DSA_65_OMEGA: usize = 55;
-
-
-
 
 /// Matrix row dimension `k` for ML-DSA-87.
 pub const ML_DSA_87_K: usize = 8;
@@ -284,9 +270,6 @@ pub const ML_DSA_87_BETA: usize = 120;
 /// Maximum allowed hint weight.
 pub const ML_DSA_87_OMEGA: usize = 75;
 
-
-
-
 /// Length in bytes of an ML-DSA-44 secret key.
 pub const ML_DSA_44_SECRET_KEY_BYTES: usize = 2560;
 
@@ -295,9 +278,6 @@ pub const ML_DSA_44_PUBLIC_KEY_BYTES: usize = 1312;
 
 /// Length in bytes of an ML-DSA-44 signature.
 pub const ML_DSA_44_SIGNATURE_BYTES: usize = 2420;
-
-
-
 
 /// Length in bytes of an ML-DSA-65 secret key.
 pub const ML_DSA_65_SECRET_KEY_BYTES: usize = 4032;
@@ -308,9 +288,6 @@ pub const ML_DSA_65_PUBLIC_KEY_BYTES: usize = 1952;
 /// Length in bytes of an ML-DSA-65 signature.
 pub const ML_DSA_65_SIGNATURE_BYTES: usize = 3309;
 
-
-
-
 /// Length in bytes of an ML-DSA-87 secret key.
 pub const ML_DSA_87_SECRET_KEY_BYTES: usize = 4896;
 
@@ -319,10 +296,6 @@ pub const ML_DSA_87_PUBLIC_KEY_BYTES: usize = 2592;
 
 /// Length in bytes of an ML-DSA-87 signature.
 pub const ML_DSA_87_SIGNATURE_BYTES: usize = 4627;
-
-
-
-
 
 #[cfg(test)]
 mod tests {
@@ -336,15 +309,9 @@ mod tests {
     fn shared_bit_lengths_are_consistent() {
         assert_eq!(Q, 8_380_417);
 
-        assert_eq!(
-            BITLEN_Q_MINUS_ONE,
-            bitlen_u32((Q - 1) as u32)
-        );
+        assert_eq!(BITLEN_Q_MINUS_ONE, bitlen_u32((Q - 1) as u32));
 
-        assert_eq!(
-            BITLEN_Q_MINUS_ONE_MINUS_D,
-            BITLEN_Q_MINUS_ONE - ML_DSA_44_D
-        );
+        assert_eq!(BITLEN_Q_MINUS_ONE_MINUS_D, BITLEN_Q_MINUS_ONE - ML_DSA_44_D);
 
         assert_eq!(ML_DSA_44_D, 13);
         assert_eq!(ML_DSA_65_D, 13);
@@ -392,22 +359,13 @@ mod tests {
             bitlen_u32(((Q - 1) / (2 * gamma2 as i32)) as u32 - 1)
         );
 
-        assert_eq!(
-            w1_encoded_bytes,
-            32 * k * bitlen_w1_coeff
-        );
+        assert_eq!(w1_encoded_bytes, 32 * k * bitlen_w1_coeff);
 
         assert_eq!(beta, tau * eta);
 
-        assert_eq!(
-            pk_bytes,
-            32 + 32 * k * (bitlen_u32((Q - 1) as u32) - d)
-        );
+        assert_eq!(pk_bytes, 32 + 32 * k * (bitlen_u32((Q - 1) as u32) - d));
 
-        assert_eq!(
-            sk_bytes,
-            128 + 32 * ((l + k) * bitlen_2eta + d * k)
-        );
+        assert_eq!(sk_bytes, 128 + 32 * ((l + k) * bitlen_2eta + d * k));
 
         assert_eq!(
             sig_bytes,

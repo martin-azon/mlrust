@@ -5,8 +5,9 @@ edition = "2024"
 
 [dependencies]
 ml_kem = { path = "../ml_kem", default-features = false }
+ml_dsa = { path = "../ml_dsa", default-features = false }
 
 [features]
 default = ["std", "getrandom"]
-std = ["ml_kem/std"]
-getrandom = ["ml_kem/getrandom"]
+std = ["ml_kem/std", "ml_dsa/std"]
+getrandom = ["ml_kem/getrandom", "ml_dsa/getrandom"]

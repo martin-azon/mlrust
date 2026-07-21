@@ -29,8 +29,6 @@ pub fn sha3_512(input: &[u8], output: &mut [u8; 64]) {
     output.copy_from_slice(&digest);
 }
 
-
-
 /// SHAKE128 absorbing state.
 ///
 /// This state accepts input. Once finalized, it becomes a `Shake128Reader`
@@ -39,10 +37,8 @@ pub struct Shake128State {
     hasher: Shake128,
 }
 
-
 /// SHAKE128 reader after absorption has been finalized.
 pub type Shake128Reader = <Shake128 as ExtendableOutput>::Reader;
-
 
 impl Shake128State {
     /// Creates a new SHAKE128 absorbing state.
@@ -88,7 +84,6 @@ impl Default for Shake128State {
     }
 }
 
-
 /// Initializes a SHAKE128 absorbing state.
 #[must_use]
 pub fn shake128_init() -> Shake128State {
@@ -126,9 +121,6 @@ pub fn shake128(input: &[u8], output: &mut [u8]) {
     shake128_squeeze(&mut reader, output);
 }
 
-
-
-
 /// SHAKE256 absorbing state.
 ///
 /// This state accepts input. Once finalized, it becomes a `Shake256Reader`
@@ -137,10 +129,8 @@ pub struct Shake256State {
     hasher: Shake256,
 }
 
-
 /// SHAKE256 reader after absorption has been finalized.
 pub type Shake256Reader = <Shake256 as ExtendableOutput>::Reader;
-
 
 impl Shake256State {
     /// Creates a new SHAKE256 absorbing state.
@@ -186,7 +176,6 @@ impl Default for Shake256State {
     }
 }
 
-
 /// Initializes a SHAKE256 absorbing state.
 #[must_use]
 pub fn shake256_init() -> Shake256State {
@@ -222,8 +211,6 @@ pub fn shake256(input: &[u8], output: &mut [u8]) {
     let mut reader = shake256_absorb_once(input);
     shake256_squeeze(&mut reader, output);
 }
-
-
 
 #[cfg(test)]
 mod tests {

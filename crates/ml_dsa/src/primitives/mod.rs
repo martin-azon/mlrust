@@ -15,7 +15,7 @@
 //! - [`norm`]: infinity norms used by signing and verification rejection
 //!   checks.
 
-pub(crate) mod sampling;
 pub(crate) mod challenge;
-pub(crate) mod rounding;
 pub(crate) mod norm;
+pub(crate) mod rounding;
+pub(crate) mod sampling;

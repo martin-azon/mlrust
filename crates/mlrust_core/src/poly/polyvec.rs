@@ -170,7 +170,6 @@ impl<P: RingParams, const K: usize> PolyVec<P, K> {
         out
     }
 
-
     /// Multiplies every polynomial in the vector by the same integer constant.
     ///
     /// For each vector index `i`, this computes:
@@ -196,8 +195,7 @@ impl<P: RingParams, const K: usize> PolyVec<P, K> {
 
         PolyVec::from_polys(polys_output)
     }
-    
-    
+
     /// Converts an NTT-domain polynomial vector from Montgomery representation
     /// to ordinary coefficient representatives.
     ///
@@ -267,7 +265,7 @@ impl<P: NttDomainMul, const K: usize> PolyVec<P, K> {
     /// polynomial vector is also in the NTT/Montgomery domain.
     #[must_use]
     pub fn mul_by_poly_ntt(&self, other: &Poly<P>) -> PolyVec<P, K> {
-        let mut res_coeffs= [Poly::<P>::zero(); K];
+        let mut res_coeffs = [Poly::<P>::zero(); K];
 
         for i in 0..K {
             res_coeffs[i] = self.polys[i].mul_ntt(&other);
@@ -275,8 +273,6 @@ impl<P: NttDomainMul, const K: usize> PolyVec<P, K> {
 
         PolyVec::from_polys(res_coeffs)
     }
-
-
 
     /// Computes the NTT-domain scalar product of two polynomial vectors.
     ///

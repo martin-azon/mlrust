@@ -8,6 +8,7 @@
 //! also be reused internally for K-PKE objects, whose decapsulation-key lengths
 //! are smaller than final ML-KEM decapsulation-key lengths.
 
+use crate::MlKemError;
 use crate::constants::{
     ML_KEM_512_CIPHERTEXT_BYTES, ML_KEM_512_DECAPS_KEY_BYTES, ML_KEM_512_ENCAPS_KEY_BYTES,
     ML_KEM_768_CIPHERTEXT_BYTES, ML_KEM_768_DECAPS_KEY_BYTES, ML_KEM_768_ENCAPS_KEY_BYTES,
@@ -16,10 +17,6 @@ use crate::constants::{
 };
 use mlrust_core::params::Q3329;
 use mlrust_core::poly::PolyVec;
-use crate::MlKemError;
-
-
-
 
 // --------------------------------------------------------------------
 // Defining generic structs for each of the keys
@@ -117,8 +114,6 @@ impl<const EK_BYTES: usize, const DK_BYTES: usize> MlKemKeypair<EK_BYTES, DK_BYT
         Self { ek, dk }
     }
 }
-
-
 
 // --------------------------------------------------------------------
 // Defining key types for each of the instantiations of ML-KEM

@@ -1,18 +1,11 @@
 mod common;
 
-use common::{FailingRbg, FixedChunksRbg};
+use common::rbg::{FailingRbg, FixedChunksRbg};
 
 use ml_dsa::{
-    ml_dsa44_keygen_with_rbg,
-    ml_dsa44_sign_with_rbg,
-    ml_dsa44_verify,
-    ml_dsa65_keygen_with_rbg,
-    ml_dsa65_sign_with_rbg,
-    ml_dsa65_verify,
-    ml_dsa87_keygen_with_rbg,
-    ml_dsa87_sign_with_rbg,
-    ml_dsa87_verify,
-    MlDsaError,
+    MlDsaError, ml_dsa44_keygen_with_rbg, ml_dsa44_sign_with_rbg, ml_dsa44_verify,
+    ml_dsa65_keygen_with_rbg, ml_dsa65_sign_with_rbg, ml_dsa65_verify, ml_dsa87_keygen_with_rbg,
+    ml_dsa87_sign_with_rbg, ml_dsa87_verify,
 };
 
 macro_rules! define_mldsa_public_api_tests {
@@ -45,21 +38,11 @@ macro_rules! define_mldsa_public_api_tests {
 
             let sign_chunks: [&[u8]; 1] = [randomness.as_ref()];
             let mut sign_rbg = FixedChunksRbg::new(&sign_chunks);
-            let signature = $sign(
-                keypair.secret_key(),
-                message,
-                context,
-                &mut sign_rbg,
-            )
-            .expect("signing succeeds");
+            let signature = $sign(keypair.secret_key(), message, context, &mut sign_rbg)
+                .expect("signing succeeds");
 
-            let ok = $verify(
-                keypair.public_key(),
-                message,
-                context,
-                &signature,
-            )
-            .expect("verification does not error");
+            let ok = $verify(keypair.public_key(), message, context, &signature)
+                .expect("verification does not error");
 
             assert!(ok);
         }
@@ -79,21 +62,11 @@ macro_rules! define_mldsa_public_api_tests {
 
             let sign_chunks: [&[u8]; 1] = [randomness.as_ref()];
             let mut sign_rbg = FixedChunksRbg::new(&sign_chunks);
-            let signature = $sign(
-                keypair.secret_key(),
-                message,
-                context,
-                &mut sign_rbg,
-            )
-            .expect("signing succeeds");
+            let signature = $sign(keypair.secret_key(), message, context, &mut sign_rbg)
+                .expect("signing succeeds");
 
-            let ok = $verify(
-                keypair.public_key(),
-                modified_message,
-                context,
-                &signature,
-            )
-            .expect("verification does not error");
+            let ok = $verify(keypair.public_key(), modified_message, context, &signature)
+                .expect("verification does not error");
 
             assert!(!ok);
         }
@@ -146,12 +119,7 @@ macro_rules! define_mldsa_public_api_tests {
 
             let sign_chunks: [&[u8]; 1] = [randomness.as_ref()];
             let mut sign_rbg = FixedChunksRbg::new(&sign_chunks);
-            let result = $sign(
-                keypair.secret_key(),
-                message,
-                &context,
-                &mut sign_rbg,
-            );
+            let result = $sign(keypair.secret_key(), message, &context, &mut sign_rbg);
 
             assert!(matches!(result, Err(MlDsaError::InvalidLength)));
         }
@@ -170,23 +138,13 @@ macro_rules! define_mldsa_public_api_tests {
 
             let sign_chunks0: [&[u8]; 1] = [randomness.as_ref()];
             let mut sign_rbg0 = FixedChunksRbg::new(&sign_chunks0);
-            let sig0 = $sign(
-                keypair.secret_key(),
-                message,
-                context,
-                &mut sign_rbg0,
-            )
-            .expect("first signing succeeds");
+            let sig0 = $sign(keypair.secret_key(), message, context, &mut sign_rbg0)
+                .expect("first signing succeeds");
 
             let sign_chunks1: [&[u8]; 1] = [randomness.as_ref()];
             let mut sign_rbg1 = FixedChunksRbg::new(&sign_chunks1);
-            let sig1 = $sign(
-                keypair.secret_key(),
-                message,
-                context,
-                &mut sign_rbg1,
-            )
-            .expect("second signing succeeds");
+            let sig1 = $sign(keypair.secret_key(), message, context, &mut sign_rbg1)
+                .expect("second signing succeeds");
 
             assert_eq!(sig0.as_bytes(), sig1.as_bytes());
         }
@@ -218,13 +176,8 @@ macro_rules! define_mldsa_public_api_tests {
             )
             .expect("signing succeeds");
 
-            let ok = $verify(
-                verifying_keypair.public_key(),
-                message,
-                context,
-                &signature,
-            )
-            .expect("verification does not error");
+            let ok = $verify(verifying_keypair.public_key(), message, context, &signature)
+                .expect("verification does not error");
 
             assert!(!ok);
         }
@@ -279,7 +232,6 @@ define_mldsa_public_api_tests!(
     "ML-DSA-87"
 );
 
-
 #[test]
 fn ml_dsa44_keygen_with_rbg_maps_randomness_failure() {
     let mut rbg = FailingRbg;
@@ -294,16 +246,10 @@ fn ml_dsa44_sign_with_rbg_maps_randomness_failure() {
     let xi = [0x91u8; 32];
     let keygen_chunks: [&[u8]; 1] = [xi.as_ref()];
     let mut keygen_rbg = FixedChunksRbg::new(&keygen_chunks);
-    let keypair = ml_dsa44_keygen_with_rbg(&mut keygen_rbg)
-        .expect("key generation succeeds");
+    let keypair = ml_dsa44_keygen_with_rbg(&mut keygen_rbg).expect("key generation succeeds");
 
     let mut sign_rbg = FailingRbg;
-    let result = ml_dsa44_sign_with_rbg(
-        keypair.secret_key(),
-        b"message",
-        b"",
-        &mut sign_rbg,
-    );
+    let result = ml_dsa44_sign_with_rbg(keypair.secret_key(), b"message", b"", &mut sign_rbg);
 
     assert!(matches!(result, Err(MlDsaError::RandomnessFailure)));
 }

@@ -10,15 +10,13 @@
 //! These routines are internal ML-DSA primitives. They are not exposed as part
 //! of the public crate API.
 
-
-use mlrust_core::encode::bits::{int_to_bytes, bitlen_u32};
-use mlrust_core::encode::ml_dsa::{bit_unpack_q8380417, coeff_from_half_byte, coeff_from_three_bytes};
-use mlrust_core::params::{Q8380417, N};
+use mlrust_core::encode::bits::{bitlen_u32, int_to_bytes};
+use mlrust_core::encode::ml_dsa::{
+    bit_unpack_q8380417, coeff_from_half_byte, coeff_from_three_bytes,
+};
+use mlrust_core::params::{N, Q8380417, RingParams};
 use mlrust_core::poly::{Poly, PolyMat, PolyVec};
 use mlrust_core::symmetric::ml_dsa::{g_absorb_once, g_squeeze, h, h_absorb_once, h_squeeze};
-
-
-
 
 #[inline]
 fn write_u8(x: usize, out: &mut [u8]) {
@@ -36,12 +34,16 @@ fn write_u16(x: usize, out: &mut [u8]) {
     int_to_bytes(x as u32, 2, out);
 }
 
-
 /// FIPS 204 `RejNTTPoly`.
 ///
 /// Samples a polynomial over `q = 8380417` by repeatedly reading three-byte
 /// candidates from ML-DSA `G`, accepting only candidates strictly smaller than
 /// `q`.
+///
+/// The returned polynomial is an `A_hat` entry, meaning it is already in the
+/// NTT domain. Since this implementation represents NTT-domain coefficients in
+/// Montgomery form, accepted coefficients are converted with
+/// [`Q8380417::to_montgomery`] before being stored.
 ///
 /// The input is normally `seed || j || i` during matrix expansion, hence the
 /// expected length of 34 bytes.
@@ -64,15 +66,13 @@ pub(crate) fn rej_ntt_poly(seed: &[u8; 34]) -> Poly<Q8380417> {
         let candidates = coeff_from_three_bytes(s[0], s[1], s[2]);
 
         if bool::from(candidates.is_some()) {
-            a_coeffs[j] = candidates.unwrap();
+            a_coeffs[j] = Q8380417::to_montgomery(candidates.unwrap());
             j += 1;
         }
     }
 
     Poly::<Q8380417>::from_coeffs(a_coeffs)
 }
-
-
 
 /// FIPS 204 `RejBoundedPoly`.
 ///
@@ -121,8 +121,6 @@ pub(crate) fn rej_bounded_poly<const ETA: usize>(seed: &[u8; 66]) -> Poly<Q83804
     Poly::<Q8380417>::from_coeffs(a_coeffs)
 }
 
-
-
 /// FIPS 204 `ExpandA`.
 ///
 /// Expands the public matrix `A` from the 32-byte public matrix seed `rho`.
@@ -165,8 +163,6 @@ pub(crate) fn expand_a<const K: usize, const L: usize>(rho: &[u8; 32]) -> PolyMa
     PolyMat::<Q8380417, K, L>::from_rows(rows)
 }
 
-
-
 /// FIPS 204 `ExpandS`.
 ///
 /// Expands the secret vectors `s1` and `s2` from the 64-byte secret expansion
@@ -183,11 +179,9 @@ pub(crate) fn expand_a<const K: usize, const L: usize>(rho: &[u8; 32]) -> PolyMa
 /// - `L + K - 1` does not fit in two bytes;
 /// - `ETA` is not supported by `coeff_from_half_byte`.
 #[must_use]
-pub(crate) fn expand_s<
-    const K: usize,
-    const L: usize,
-    const ETA: usize
->(rho_prime: &[u8; 64]) -> (PolyVec<Q8380417, L>, PolyVec<Q8380417, K>) {
+pub(crate) fn expand_s<const K: usize, const L: usize, const ETA: usize>(
+    rho_prime: &[u8; 64],
+) -> (PolyVec<Q8380417, L>, PolyVec<Q8380417, K>) {
     if L + K > 0 {
         assert!(L + K - 1 <= u16::MAX as usize);
     }
@@ -210,7 +204,6 @@ pub(crate) fn expand_s<
 
     (PolyVec::from_polys(polys_s1), PolyVec::from_polys(polys_s2))
 }
-
 
 /// FIPS 204 `ExpandMask`.
 ///
@@ -240,8 +233,8 @@ pub(crate) fn expand_mask<
     const BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize,
 >(
     rho_prime: &[u8; 64],
-    nonce: usize
-) -> PolyVec<Q8380417, L>{
+    nonce: usize,
+) -> PolyVec<Q8380417, L> {
     assert!(GAMMA1 > 0);
     assert_eq!(
         BITLEN_2GAMMA1_MINUS_ONE,
@@ -271,13 +264,12 @@ pub(crate) fn expand_mask<
         y_polys[r] = bit_unpack_q8380417::<BITLEN_2GAMMA1_MINUS_ONE>(
             &bytes,
             (GAMMA1 - 1) as i32,
-            GAMMA1 as i32
+            GAMMA1 as i32,
         );
     }
 
     PolyVec::from_polys(y_polys)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -295,8 +287,9 @@ mod tests {
         let poly = rej_ntt_poly(&seed);
 
         for &coeff in poly.coeffs() {
-            assert!(0 <= coeff);
-            assert!(coeff < Q8380417::Q);
+            let decoded = Q8380417::freeze(Q8380417::from_montgomery(coeff));
+
+            assert!((0..Q8380417::Q).contains(&decoded));
         }
     }
 
@@ -557,11 +550,7 @@ mod tests {
         let mut bytes = [0u8; BYTES];
         h(&seed, &mut bytes);
 
-        let expected = bit_unpack_q8380417::<BITS>(
-            &bytes,
-            (GAMMA1 - 1) as i32,
-            GAMMA1 as i32,
-        );
+        let expected = bit_unpack_q8380417::<BITS>(&bytes, (GAMMA1 - 1) as i32, GAMMA1 as i32);
 
         assert_eq!(y.polys()[0], expected);
     }
@@ -586,11 +575,7 @@ mod tests {
             let mut bytes = [0u8; BYTES];
             h(&seed, &mut bytes);
 
-            let expected = bit_unpack_q8380417::<BITS>(
-                &bytes,
-                (GAMMA1 - 1) as i32,
-                GAMMA1 as i32,
-            );
+            let expected = bit_unpack_q8380417::<BITS>(&bytes, (GAMMA1 - 1) as i32, GAMMA1 as i32);
 
             assert_eq!(y.polys()[r], expected);
         }
@@ -632,9 +617,6 @@ mod tests {
 
         let rho_prime = [0u8; 64];
 
-        let _ = expand_mask::<L, GAMMA1, BITS, BYTES>(
-            &rho_prime,
-            u16::MAX as usize,
-        );
+        let _ = expand_mask::<L, GAMMA1, BITS, BYTES>(&rho_prime, u16::MAX as usize);
     }
 }

@@ -4,8 +4,6 @@ use core::fmt;
 use mlrust_core::error::PqcCoreError;
 use mlrust_core::sampling::random::RandomError;
 
-
-
 /// Errors returned by the ML-DSA public API.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MlDsaError {
@@ -31,33 +29,19 @@ pub enum MlDsaError {
     Core(PqcCoreError),
 }
 
-
 impl fmt::Display for MlDsaError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MlDsaError::RandomnessFailure => {
-                f.write_str("randomness generation failed")
-            }
-            MlDsaError::InvalidLength => {
-                f.write_str("invalid ML-DSA input length")
-            }
-            MlDsaError::InvalidPublicKey => {
-                f.write_str("invalid ML-DSA public key")
-            }
-            MlDsaError::InvalidSecretKey => {
-                f.write_str("invalid ML-DSA secret key")
-            }
-            MlDsaError::InvalidSignature => {
-                f.write_str("invalid ML-DSA signature")
-            }
-            MlDsaError::VerificationFailed => {
-                f.write_str("ML-DSA signature verification failed")
-            }
-            Self::Core(err) => write!(f, "ML-DSA core error: {err}")
+            MlDsaError::RandomnessFailure => f.write_str("randomness generation failed"),
+            MlDsaError::InvalidLength => f.write_str("invalid ML-DSA input length"),
+            MlDsaError::InvalidPublicKey => f.write_str("invalid ML-DSA public key"),
+            MlDsaError::InvalidSecretKey => f.write_str("invalid ML-DSA secret key"),
+            MlDsaError::InvalidSignature => f.write_str("invalid ML-DSA signature"),
+            MlDsaError::VerificationFailed => f.write_str("ML-DSA signature verification failed"),
+            Self::Core(err) => write!(f, "ML-DSA core error: {err}"),
         }
     }
 }
-
 
 #[cfg(feature = "std")]
 impl std::error::Error for MlDsaError {
@@ -68,7 +52,6 @@ impl std::error::Error for MlDsaError {
         }
     }
 }
-
 
 impl From<RandomError> for MlDsaError {
     fn from(_: RandomError) -> Self {

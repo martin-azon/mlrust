@@ -23,24 +23,24 @@
 //!
 //! This module implements pure ML-DSA, not HashML-DSA.
 
-
-
-use crate::encoding::{pk_decode, pk_encode, sig_decode, sig_encode, sk_decode, sk_encode, w1_encode, DecodedPublicKey, DecodedSecretKey, DecodedSignature};
+use crate::encoding::{
+    DecodedPublicKey, DecodedSecretKey, DecodedSignature, pk_decode, pk_encode, sig_decode,
+    sig_encode, sk_decode, sk_encode, w1_encode,
+};
 use crate::error::MlDsaError;
 use crate::keys::{MlDsaKeypair, PublicKey, SecretKey, Signature};
 use crate::primitives::challenge::sample_in_ball;
 use crate::primitives::norm::norm_polyvec_zq;
-use crate::primitives::rounding::{high_bits_vec, low_bits_vec, make_hint_vec, mod_pm_q_polyvec, power2round_vec, use_hint_vec};
+use crate::primitives::rounding::{
+    high_bits_vec, low_bits_vec, make_hint_vec, mod_pm_q_polyvec, power2round_vec, use_hint_vec,
+};
 use crate::primitives::sampling::{expand_a, expand_mask, expand_s};
 
 use mlrust_core::encode::bits::{bitlen_u32, int_to_bytes};
+use mlrust_core::error::PqcCoreError;
 use mlrust_core::params::{Q8380417, RingParams};
 use mlrust_core::poly::PolyVec;
-use mlrust_core::symmetric::ml_dsa::{h, h_init, h_absorb, h_finalize, h_squeeze, Shake256State};
-use mlrust_core::error::PqcCoreError;
-
-
-
+use mlrust_core::symmetric::ml_dsa::{Shake256State, h, h_absorb, h_finalize, h_init, h_squeeze};
 
 /// Absorbs the pure ML-DSA formatted message into an active SHAKE256 state.
 ///
@@ -82,7 +82,6 @@ fn absorb_formatted_message(
     Ok(())
 }
 
-
 /// Deterministic ML-DSA internal key generation.
 ///
 /// This implements the FIPS-style key-generation flow for one ML-DSA
@@ -119,11 +118,15 @@ pub(crate) fn ml_dsa_keygen_internal<
     const BITLEN_2ETA: usize,
     const SK_BYTES: usize,
     const PK_BYTES: usize,
-> (randomness_xi: &[u8; 32]) -> MlDsaKeypair<SK_BYTES, PK_BYTES> {
+>(
+    randomness_xi: &[u8; 32],
+) -> MlDsaKeypair<SK_BYTES, PK_BYTES> {
     assert_eq!(BITLEN_2ETA, bitlen_u32(2 * ETA as u32));
-    assert_eq!(PK_BYTES, 32 + 32 * K * (bitlen_u32(Q8380417::Q as u32 - 1) - D));
+    assert_eq!(
+        PK_BYTES,
+        32 + 32 * K * (bitlen_u32(Q8380417::Q as u32 - 1) - D)
+    );
     assert_eq!(SK_BYTES, 128 + 32 * ((L + K) * BITLEN_2ETA + D * K));
-
 
     let mut input_hash = [0u8; 34];
 
@@ -155,20 +158,22 @@ pub(crate) fn ml_dsa_keygen_internal<
 
     let (t1, t0) = power2round_vec::<K, D>(&t);
 
-    let pk = pk_encode::<K, D, PK_BYTES>(
-        &DecodedPublicKey{rho, t1}
-    );
+    let pk = pk_encode::<K, D, PK_BYTES>(&DecodedPublicKey { rho, t1 });
 
     let mut tr = [0u8; 64];
     h(pk.as_bytes(), &mut tr);
 
-    let sk = sk_encode::<K, L, D, ETA, BITLEN_2ETA, SK_BYTES>(
-        &DecodedSecretKey{rho, seed_k, tr, s1, s2, t0}
-    );
+    let sk = sk_encode::<K, L, D, ETA, BITLEN_2ETA, SK_BYTES>(&DecodedSecretKey {
+        rho,
+        seed_k,
+        tr,
+        s1,
+        s2,
+        t0,
+    });
 
     MlDsaKeypair::from_parts(sk, pk)
 }
-
 
 /// Deterministic ML-DSA internal signing.
 ///
@@ -228,28 +233,28 @@ pub(crate) fn ml_dsa_sign_internal<
     const BETA: usize,
     const OMEGA: usize,
     const SK_BYTES: usize,
-    const SIG_BYTES: usize
-> (
+    const SIG_BYTES: usize,
+>(
     sk: &SecretKey<SK_BYTES>,
     message: &[u8],
     context: &[u8],
-    randomness: &[u8; 32]
+    randomness: &[u8; 32],
 ) -> Result<Signature<SIG_BYTES>, MlDsaError> {
     assert_eq!(BITLEN_2ETA, bitlen_u32(2 * ETA as u32));
     assert_eq!(BITLEN_2GAMMA1_MINUS_ONE, bitlen_u32(2 * GAMMA1 as u32 - 1));
-    assert_eq!(BITLEN_2GAMMA1_MINUS_ONE_TIMES_32, BITLEN_2GAMMA1_MINUS_ONE * 32);
+    assert_eq!(
+        BITLEN_2GAMMA1_MINUS_ONE_TIMES_32,
+        BITLEN_2GAMMA1_MINUS_ONE * 32
+    );
     assert_eq!(
         BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
-        bitlen_u32(((Q8380417::Q - 1)/(2 * GAMMA2 as i32)) as u32 - 1)
+        bitlen_u32(((Q8380417::Q - 1) / (2 * GAMMA2 as i32)) as u32 - 1)
     );
     assert_eq!(
         K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
-        K * 32 * (bitlen_u32(((Q8380417::Q - 1)/(2 * GAMMA2 as i32)) as u32 - 1))
+        K * 32 * (bitlen_u32(((Q8380417::Q - 1) / (2 * GAMMA2 as i32)) as u32 - 1))
     );
-    assert_eq!(
-        SK_BYTES,
-        128 + 32 * ((L + K) * BITLEN_2ETA + D * K)
-    );
+    assert_eq!(SK_BYTES, 128 + 32 * ((L + K) * BITLEN_2ETA + D * K));
     assert_eq!(
         SIG_BYTES,
         LAMBDA_OVER_4 + L * 32 * (1 + bitlen_u32(GAMMA1 as u32 - 1)) + OMEGA + K
@@ -278,7 +283,7 @@ pub(crate) fn ml_dsa_sign_internal<
     absorb_formatted_message(&mut state1, message, context)?;
     let mut reader1 = h_finalize(state1);
 
-    let mut mu= [0u8; 64];
+    let mut mu = [0u8; 64];
     h_squeeze(&mut reader1, &mut mu);
 
     let mut state2 = h_init();
@@ -301,9 +306,10 @@ pub(crate) fn ml_dsa_sign_internal<
             return Err(MlDsaError::Core(PqcCoreError::RejectionSamplingFailed));
         }
 
-        let y = expand_mask::<
-            L, GAMMA1, BITLEN_2GAMMA1_MINUS_ONE, BITLEN_2GAMMA1_MINUS_ONE_TIMES_32
-        >(&rho_double_prime, kappa);
+        let y = expand_mask::<L, GAMMA1, BITLEN_2GAMMA1_MINUS_ONE, BITLEN_2GAMMA1_MINUS_ONE_TIMES_32>(
+            &rho_double_prime,
+            kappa,
+        );
 
         let mut y_hat = y;
         y_hat.ntt();
@@ -315,9 +321,7 @@ pub(crate) fn ml_dsa_sign_internal<
 
         let mut w1_encoded = [0u8; K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE];
 
-        w1_encode::<
-            K, GAMMA2, BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE
-        >(&w1, &mut w1_encoded);
+        w1_encode::<K, GAMMA2, BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE>(&w1, &mut w1_encoded);
 
         let mut c_tilde = [0u8; LAMBDA_OVER_4];
 
@@ -356,26 +360,29 @@ pub(crate) fn ml_dsa_sign_internal<
 
             let ct0_small = norm_polyvec_zq(ct0) < GAMMA2 as u32;
             if ct0_small && h_weight <= OMEGA {
-                let dec_sig = DecodedSignature::<K, L, LAMBDA_OVER_4>{
+                let dec_sig = DecodedSignature::<K, L, LAMBDA_OVER_4> {
                     c_tilde,
                     z: mod_pm_q_polyvec(z),
-                    hint
+                    hint,
                 };
 
                 return Ok(sig_encode::<
-                    K, L, LAMBDA_OVER_4, GAMMA1, BITLEN_2GAMMA1_MINUS_ONE, OMEGA, SIG_BYTES
+                    K,
+                    L,
+                    LAMBDA_OVER_4,
+                    GAMMA1,
+                    BITLEN_2GAMMA1_MINUS_ONE,
+                    OMEGA,
+                    SIG_BYTES,
                 >(&dec_sig));
-
             }
         }
 
         kappa = kappa
             .checked_add(L)
             .ok_or(MlDsaError::Core(PqcCoreError::RejectionSamplingFailed))?;
-
     }
 }
-
 
 /// ML-DSA internal verification.
 ///
@@ -444,23 +451,26 @@ pub(crate) fn ml_dsa_verify_internal<
     const BETA: usize,
     const OMEGA: usize,
     const PK_BYTES: usize,
-    const SIG_BYTES: usize
-> (
+    const SIG_BYTES: usize,
+>(
     pk: &PublicKey<PK_BYTES>,
     message: &[u8],
     context: &[u8],
-    signature: &Signature<SIG_BYTES>
+    signature: &Signature<SIG_BYTES>,
 ) -> Result<bool, MlDsaError> {
     assert_eq!(BITLEN_2ETA, bitlen_u32(2 * ETA as u32));
     assert_eq!(BITLEN_2GAMMA1_MINUS_ONE, bitlen_u32(2 * GAMMA1 as u32 - 1));
-    assert_eq!(BITLEN_2GAMMA1_MINUS_ONE_TIMES_32, BITLEN_2GAMMA1_MINUS_ONE * 32);
+    assert_eq!(
+        BITLEN_2GAMMA1_MINUS_ONE_TIMES_32,
+        BITLEN_2GAMMA1_MINUS_ONE * 32
+    );
     assert_eq!(
         BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
         bitlen_u32(((Q8380417::Q - 1) / (2 * GAMMA2 as i32)) as u32 - 1)
     );
     assert_eq!(
         K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE,
-        K * 32 * (bitlen_u32(((Q8380417::Q - 1)/(2 * GAMMA2 as i32)) as u32 - 1))
+        K * 32 * (bitlen_u32(((Q8380417::Q - 1) / (2 * GAMMA2 as i32)) as u32 - 1))
     );
     assert_eq!(
         PK_BYTES,
@@ -477,10 +487,11 @@ pub(crate) fn ml_dsa_verify_internal<
     assert!(GAMMA2 > BETA);
     assert_eq!((Q8380417::Q - 1) % (2 * GAMMA2 as i32), 0);
 
-    let dec_pk= pk_decode::<K, PK_BYTES>(pk)?;
-    let dec_sig = sig_decode::<
-        K, L, LAMBDA_OVER_4, GAMMA1, BITLEN_2GAMMA1_MINUS_ONE, OMEGA, SIG_BYTES
-    >(signature)?;
+    let dec_pk = pk_decode::<K, PK_BYTES>(pk)?;
+    let dec_sig =
+        sig_decode::<K, L, LAMBDA_OVER_4, GAMMA1, BITLEN_2GAMMA1_MINUS_ONE, OMEGA, SIG_BYTES>(
+            signature,
+        )?;
 
     let t1 = dec_pk.t1;
     let z = dec_sig.z;
@@ -489,7 +500,6 @@ pub(crate) fn ml_dsa_verify_internal<
 
     let a_hat = expand_a::<K, L>(&dec_pk.rho);
 
-
     let mut tr = [0u8; 64];
     h(pk.as_bytes(), &mut tr);
     let mut state1 = h_init();
@@ -497,9 +507,8 @@ pub(crate) fn ml_dsa_verify_internal<
     absorb_formatted_message(&mut state1, message, context)?;
     let mut reader1 = h_finalize(state1);
 
-    let mut mu= [0u8; 64];
+    let mut mu = [0u8; 64];
     h_squeeze(&mut reader1, &mut mu);
-
 
     let mut c = sample_in_ball::<LAMBDA_OVER_4, TAU>(&dec_sig.c_tilde);
 
@@ -520,18 +529,15 @@ pub(crate) fn ml_dsa_verify_internal<
     let w1_bis = use_hint_vec::<K, GAMMA2>(&dec_sig.hint, &w_bis_approx);
 
     let mut w1_encoded = [0u8; K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE];
-    w1_encode::<
-        K, GAMMA2, BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE
-    >(&w1_bis, &mut w1_encoded);
+    w1_encode::<K, GAMMA2, BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE>(&w1_bis, &mut w1_encoded);
 
     let mut state2 = h_init();
     h_absorb(&mut state2, &mu);
     h_absorb(&mut state2, &w1_encoded);
     let mut reader2 = h_finalize(state2);
 
-    let mut c_tilde_bis= [0u8; LAMBDA_OVER_4];
+    let mut c_tilde_bis = [0u8; LAMBDA_OVER_4];
     h_squeeze(&mut reader2, &mut c_tilde_bis);
-
 
     let commitments_match = dec_sig.c_tilde == c_tilde_bis;
     Ok(norm_z_small && commitments_match)

@@ -1,4 +1,25 @@
 //! ML-KEM key generation, encapsulation, and decapsulation.
+//!
+//! This module contains the ML-KEM key-encapsulation implementation.
+//!
+//! The implementation is split into:
+//!
+//! - [`internal`]: deterministic internal algorithms for key generation,
+//!   encapsulation, and decapsulation;
+//! - [`params`]: parameter-set marker types and dispatch through
+//!   [`params::MlKemParams`];
+//! - [`api`]: public API that obtains randomness, accepts caller-provided
+//!   random byte generators, and calls the parameter-set dispatch layer.
+//!
+//! Key generation and encapsulation have randomized public forms. The public
+//! API obtains the required random byte strings and passes them to the
+//! deterministic parameter-set implementation.
+//!
+//! Decapsulation is deterministic and infallible at the public API level.
+//! Invalid ciphertexts are handled by the ML-KEM implicit-rejection path rather
+//! than by returning an error.
+//!
+//! Public callers should use [`api`] rather than calling [`internal`] directly.
 
 pub(crate) mod api;
 pub(crate) mod internal;
@@ -6,32 +27,3 @@ pub(crate) mod params;
 
 #[cfg(test)]
 mod tests;
-
-pub use params::MlKemParams;
-
-pub use api::{
-    ml_kem_keygen_with_rbg,
-    ml_kem_encaps_with_rbg,
-    ml_kem_decaps,
-    ml_kem512_keygen_with_rbg,
-    ml_kem512_encaps_with_rbg,
-    ml_kem512_decaps,
-    ml_kem768_keygen_with_rbg,
-    ml_kem768_encaps_with_rbg,
-    ml_kem768_decaps,
-    ml_kem1024_keygen_with_rbg,
-    ml_kem1024_encaps_with_rbg,
-    ml_kem1024_decaps,
-};
-
-#[cfg(feature = "getrandom")]
-pub use api::{
-    ml_kem_keygen,
-    ml_kem_encaps,
-    ml_kem512_keygen,
-    ml_kem512_encaps,
-    ml_kem768_keygen,
-    ml_kem768_encaps,
-    ml_kem1024_keygen,
-    ml_kem1024_encaps,
-};

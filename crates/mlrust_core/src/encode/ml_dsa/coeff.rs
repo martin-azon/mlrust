@@ -1,11 +1,7 @@
 //! ML-DSA coefficient manipulation.
 
-
-
 use crate::params::{Q8380417, RingParams};
-use subtle::{CtOption, ConstantTimeLess, ConstantTimeGreater, ConditionallySelectable};
-
-
+use subtle::{ConditionallySelectable, ConstantTimeGreater, ConstantTimeLess, CtOption};
 
 /// FIPS 204 `CoeffFromThreeBytes`.
 ///
@@ -30,7 +26,6 @@ pub fn coeff_from_three_bytes(b0: u8, b1: u8, b2: u8) -> CtOption<i32> {
     let valid = z.ct_lt(&(Q8380417::Q as u32));
     CtOption::new(z as i32, valid)
 }
-
 
 /// Computes `x mod 5` for `0 <= x <= 15` without `%` or branches.
 ///
@@ -83,23 +78,20 @@ pub fn coeff_from_half_byte<const ETA: usize>(b: u8) -> CtOption<i32> {
 
     match ETA {
         2 => {
-            let valid = b.ct_lt(& 15u8);
+            let valid = b.ct_lt(&15u8);
             let r = mod5_ct(b);
             let coeff = 2i32 - r as i32;
             CtOption::new(coeff, valid)
         }
         4 => {
-            let valid = b.ct_lt(& 9u8);
+            let valid = b.ct_lt(&9u8);
             let coeff = 4i32 - (b as i32);
             CtOption::new(coeff, valid)
         }
 
-        _ => panic!("Unsupported ML-DSA eta")
+        _ => panic!("Unsupported ML-DSA eta"),
     }
 }
-
-
-
 
 #[cfg(test)]
 mod tests {
@@ -157,11 +149,7 @@ mod tests {
 
     #[test]
     fn coeff_from_half_byte_eta2_valid_values() {
-        let expected = [
-            2, 1, 0, -1, -2,
-            2, 1, 0, -1, -2,
-            2, 1, 0, -1, -2,
-        ];
+        let expected = [2, 1, 0, -1, -2, 2, 1, 0, -1, -2, 2, 1, 0, -1, -2];
 
         for b in 0u8..15 {
             let coeff = coeff_from_half_byte::<2>(b);

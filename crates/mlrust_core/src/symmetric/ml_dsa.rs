@@ -2,30 +2,13 @@
 //!
 //! This module provides the XOF-style wrappers used by ML-DSA.
 
-
 use crate::symmetric::generic_funcs::{
-    shake128,
-    shake128_absorb,
-    shake128_absorb_once,
-    shake128_finalize,
-    shake128_init,
-    shake128_squeeze,
-    shake256,
-    shake256_absorb,
-    shake256_absorb_once,
-    shake256_finalize,
-    shake256_init,
-    shake256_squeeze,
+    shake128, shake128_absorb, shake128_absorb_once, shake128_finalize, shake128_init,
+    shake128_squeeze, shake256, shake256_absorb, shake256_absorb_once, shake256_finalize,
+    shake256_init, shake256_squeeze,
 };
 
-pub use super::generic_funcs::{
-    Shake128Reader,
-    Shake128State,
-    Shake256Reader,
-    Shake256State,
-};
-
-
+pub use super::generic_funcs::{Shake128Reader, Shake128State, Shake256Reader, Shake256State};
 
 /// ML-DSA XOF function `H`.
 ///
@@ -62,8 +45,6 @@ pub fn h_squeeze(reader: &mut Shake256Reader, output: &mut [u8]) {
     shake256_squeeze(reader, output);
 }
 
-
-
 /// ML-DSA XOF function `G`.
 ///
 /// Computes SHAKE128.
@@ -98,8 +79,6 @@ pub fn g_absorb_once(input: &[u8]) -> Shake128Reader {
 pub fn g_squeeze(reader: &mut Shake128Reader, output: &mut [u8]) {
     shake128_squeeze(reader, output);
 }
-
-
 
 #[cfg(test)]
 mod tests {

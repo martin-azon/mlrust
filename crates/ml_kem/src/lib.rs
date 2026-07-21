@@ -16,7 +16,7 @@
 
 mod constants;
 mod error;
-pub mod kem;
+mod kem;
 mod keys;
 mod kpke;
 
@@ -25,36 +25,25 @@ pub use error::MlKemError;
 pub use constants::{MlKem512, MlKem768, MlKem1024};
 
 pub use keys::{
-    EncapsulationKey,
-    DecapsulationKey,
-    Ciphertext,
-    SharedSecret,
-    MlKem512EncapsulationKey, MlKem512DecapsulationKey, MlKem512Ciphertext, MlKem512Keypair,
-    MlKem768EncapsulationKey, MlKem768DecapsulationKey, MlKem768Ciphertext, MlKem768Keypair,
-    MlKem1024EncapsulationKey, MlKem1024DecapsulationKey, MlKem1024Ciphertext, MlKem1024Keypair,
+    Ciphertext, DecapsulationKey, EncapsulationKey, MlKem512Ciphertext, MlKem512DecapsulationKey,
+    MlKem512EncapsulationKey, MlKem512Keypair, MlKem768Ciphertext, MlKem768DecapsulationKey,
+    MlKem768EncapsulationKey, MlKem768Keypair, MlKem1024Ciphertext, MlKem1024DecapsulationKey,
+    MlKem1024EncapsulationKey, MlKem1024Keypair, SharedSecret,
 };
 
-pub use kem::{
-    ml_kem512_keygen_with_rbg,
-    ml_kem512_encaps_with_rbg,
-    ml_kem512_decaps,
-    ml_kem768_keygen_with_rbg,
-    ml_kem768_encaps_with_rbg,
-    ml_kem768_decaps,
-    ml_kem1024_keygen_with_rbg,
-    ml_kem1024_encaps_with_rbg,
-    ml_kem1024_decaps,
+pub use crate::kem::api::{
+    ml_kem_decaps, ml_kem_encaps_with_rbg, ml_kem_keygen_with_rbg, ml_kem512_decaps,
+    ml_kem512_encaps_with_rbg, ml_kem512_keygen_with_rbg, ml_kem768_decaps,
+    ml_kem768_encaps_with_rbg, ml_kem768_keygen_with_rbg, ml_kem1024_decaps,
+    ml_kem1024_encaps_with_rbg, ml_kem1024_keygen_with_rbg,
 };
 
 #[cfg(feature = "getrandom")]
-pub use kem::{
-    ml_kem512_keygen,
-    ml_kem512_encaps,
-    ml_kem768_keygen,
-    ml_kem768_encaps,
-    ml_kem1024_keygen,
-    ml_kem1024_encaps,
+pub use crate::kem::api::{
+    ml_kem_encaps, ml_kem_keygen, ml_kem512_encaps, ml_kem512_keygen, ml_kem768_encaps,
+    ml_kem768_keygen, ml_kem1024_encaps, ml_kem1024_keygen,
 };
+
 
 #[cfg(test)]
 mod test_utils;
