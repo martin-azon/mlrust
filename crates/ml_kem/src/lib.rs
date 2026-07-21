@@ -20,7 +20,6 @@ pub mod kem;
 mod keys;
 mod kpke;
 
-
 pub use error::MlKemError;
 
 pub use constants::{MlKem512, MlKem768, MlKem1024};
@@ -36,21 +35,25 @@ pub use keys::{
 };
 
 pub use kem::{
-    ml_kem512_keygen,
     ml_kem512_keygen_with_rbg,
-    ml_kem512_encaps,
     ml_kem512_encaps_with_rbg,
     ml_kem512_decaps,
-    ml_kem768_keygen,
     ml_kem768_keygen_with_rbg,
-    ml_kem768_encaps,
     ml_kem768_encaps_with_rbg,
     ml_kem768_decaps,
-    ml_kem1024_keygen,
     ml_kem1024_keygen_with_rbg,
-    ml_kem1024_encaps,
     ml_kem1024_encaps_with_rbg,
     ml_kem1024_decaps,
+};
+
+#[cfg(feature = "getrandom")]
+pub use kem::{
+    ml_kem512_keygen,
+    ml_kem512_encaps,
+    ml_kem768_keygen,
+    ml_kem768_encaps,
+    ml_kem1024_keygen,
+    ml_kem1024_encaps,
 };
 
 #[cfg(test)]

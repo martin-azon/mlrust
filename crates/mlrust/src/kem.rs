@@ -11,19 +11,23 @@ pub use ml_kem::{
     MlKem1024,
     MlKem1024EncapsulationKey, MlKem1024DecapsulationKey, MlKem1024Ciphertext, MlKem1024Keypair,
     MlKemError,
-    ml_kem512_keygen,
     ml_kem512_keygen_with_rbg,
-    ml_kem512_encaps,
     ml_kem512_encaps_with_rbg,
     ml_kem512_decaps,
-    ml_kem768_keygen,
     ml_kem768_keygen_with_rbg,
-    ml_kem768_encaps,
     ml_kem768_encaps_with_rbg,
     ml_kem768_decaps,
-    ml_kem1024_keygen,
     ml_kem1024_keygen_with_rbg,
-    ml_kem1024_encaps,
     ml_kem1024_encaps_with_rbg,
     ml_kem1024_decaps,
+};
+
+#[cfg(feature = "getrandom")]
+pub use ml_kem::{
+    ml_kem512_keygen,
+    ml_kem512_encaps,
+    ml_kem768_keygen,
+    ml_kem768_encaps,
+    ml_kem1024_keygen,
+    ml_kem1024_encaps,
 };

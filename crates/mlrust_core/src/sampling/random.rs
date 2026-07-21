@@ -7,16 +7,12 @@
 //! The abstraction is intentionally byte-oriented. ML-KEM and ML-DSA use random
 //! byte strings as seeds or signing randomness, and then derive structured
 //! objects from those bytes using their protocol-specific algorithms.
-//!
-
-
-
 
 /// Error returned by a random byte generator.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RandomError {
     /// The random byte generator failed to fill the requested buffer.
-    GeneratorFailure
+    GeneratorFailure,
 }
 
 
@@ -51,16 +47,14 @@ pub fn random_array<const N: usize, R: RandomByteGenerator + ?Sized>(
 }
 
 
-
 /// Operating-system random byte generator.
 ///
 /// This is a convenience backend using the `getrandom` crate. Protocol crates
-/// should also expose APIs accepting a caller-provided [`RandomByteGenerator`]
-/// so users can supply their own RBG.
+/// also expose APIs accepting a caller-provided [`RandomByteGenerator`] so users
+/// can supply their own RBG.
 #[cfg(feature = "getrandom")]
 #[derive(Clone, Copy, Debug, Default)]
 pub struct OsRandom;
-
 
 #[cfg(feature = "getrandom")]
 impl RandomByteGenerator for OsRandom {
@@ -68,7 +62,6 @@ impl RandomByteGenerator for OsRandom {
         getrandom::fill(output).map_err(|_| RandomError::GeneratorFailure)
     }
 }
-
 
 /// Fills and returns a fixed-size random byte array using [`OsRandom`].
 ///

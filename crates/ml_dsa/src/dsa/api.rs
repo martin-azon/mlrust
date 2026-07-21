@@ -16,8 +16,10 @@
 //! This module implements pure ML-DSA, not HashML-DSA.
 
 
+use mlrust_core::sampling::random::{random_array, RandomByteGenerator};
+
 #[cfg(feature = "getrandom")]
-use mlrust_core::sampling::random::{random_array, os_random_array, RandomByteGenerator};
+use mlrust_core::sampling::random::os_random_array;
 
 use crate::constants::{MlDsa44, MlDsa65, MlDsa87};
 use crate::dsa::params::MlDsaParams;
@@ -65,7 +67,7 @@ pub fn ml_dsa_keygen<P: MlDsaParams>() -> Result<P::KeyPair, MlDsaError> {
 ///
 /// Returns [`MlDsaError::RandomnessFailure`] if `rbg` fails.
 pub fn ml_dsa_keygen_with_rbg<P: MlDsaParams, R: RandomByteGenerator + ?Sized>(
-    rbg: &mut R
+    rbg: &mut R,
 ) -> Result<P::KeyPair, MlDsaError> {
     let xi = random_array::<32, _>(rbg)?;
 
@@ -106,7 +108,7 @@ pub fn ml_dsa_sign_with_rbg<P: MlDsaParams, R: RandomByteGenerator + ?Sized>(
     sk: &P::SecretKey,
     message: &[u8],
     context: &[u8],
-    rbg: &mut R
+    rbg: &mut R,
 ) -> Result<P::Signature, MlDsaError> {
     let randomness = random_array::<32, _>(rbg)?;
 
@@ -132,7 +134,7 @@ pub fn ml_dsa_verify<P: MlDsaParams>(
 ///
 /// Returns [`MlDsaError::RandomnessFailure`] if operating-system randomness
 /// generation fails.
- #[cfg(feature = "getrandom")]
+#[cfg(feature = "getrandom")]
 pub fn ml_dsa44_keygen() -> Result<MlDsa44Keypair, MlDsaError> {
     ml_dsa_keygen::<MlDsa44>()
 }
@@ -144,7 +146,7 @@ pub fn ml_dsa44_keygen() -> Result<MlDsa44Keypair, MlDsaError> {
 ///
 /// Returns [`MlDsaError::RandomnessFailure`] if `rbg` fails.
 pub fn ml_dsa44_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
-    rbg: &mut R
+    rbg: &mut R,
 ) -> Result<MlDsa44Keypair, MlDsaError> {
     ml_dsa_keygen_with_rbg::<MlDsa44, R>(rbg)
 }
@@ -156,7 +158,7 @@ pub fn ml_dsa44_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
 ///
 /// Returns an error if randomness generation fails, the context is too long, or
 /// the secret key is malformed.
- #[cfg(feature = "getrandom")]
+#[cfg(feature = "getrandom")]
 pub fn ml_dsa44_sign(
     sk: &MlDsa44SecretKey,
     message: &[u8],
@@ -176,7 +178,7 @@ pub fn ml_dsa44_sign_with_rbg<R: RandomByteGenerator + ?Sized>(
     sk: &MlDsa44SecretKey,
     message: &[u8],
     context: &[u8],
-    rbg: &mut R
+    rbg: &mut R,
 ) -> Result<MlDsa44Signature, MlDsaError> {
     ml_dsa_sign_with_rbg::<MlDsa44, R>(sk, message, context, rbg)
 }
@@ -207,7 +209,7 @@ pub fn ml_dsa44_verify(
 ///
 /// Returns [`MlDsaError::RandomnessFailure`] if operating-system randomness
 /// generation fails.
- #[cfg(feature = "getrandom")]
+#[cfg(feature = "getrandom")]
 pub fn ml_dsa65_keygen() -> Result<MlDsa65Keypair, MlDsaError> {
     ml_dsa_keygen::<MlDsa65>()
 }
@@ -219,7 +221,7 @@ pub fn ml_dsa65_keygen() -> Result<MlDsa65Keypair, MlDsaError> {
 ///
 /// Returns [`MlDsaError::RandomnessFailure`] if `rbg` fails.
 pub fn ml_dsa65_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
-    rbg: &mut R
+    rbg: &mut R,
 ) -> Result<MlDsa65Keypair, MlDsaError> {
     ml_dsa_keygen_with_rbg::<MlDsa65, R>(rbg)
 }
@@ -231,7 +233,7 @@ pub fn ml_dsa65_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
 ///
 /// Returns an error if randomness generation fails, the context is too long, or
 /// the secret key is malformed.
- #[cfg(feature = "getrandom")]
+#[cfg(feature = "getrandom")]
 pub fn ml_dsa65_sign(
     sk: &MlDsa65SecretKey,
     message: &[u8],
@@ -251,7 +253,7 @@ pub fn ml_dsa65_sign_with_rbg<R: RandomByteGenerator + ?Sized>(
     sk: &MlDsa65SecretKey,
     message: &[u8],
     context: &[u8],
-    rbg: &mut R
+    rbg: &mut R,
 ) -> Result<MlDsa65Signature, MlDsaError> {
     ml_dsa_sign_with_rbg::<MlDsa65, R>(sk, message, context, rbg)
 }
@@ -282,7 +284,7 @@ pub fn ml_dsa65_verify(
 ///
 /// Returns [`MlDsaError::RandomnessFailure`] if operating-system randomness
 /// generation fails.
- #[cfg(feature = "getrandom")]
+#[cfg(feature = "getrandom")]
 pub fn ml_dsa87_keygen() -> Result<MlDsa87Keypair, MlDsaError> {
     ml_dsa_keygen::<MlDsa87>()
 }
@@ -294,7 +296,7 @@ pub fn ml_dsa87_keygen() -> Result<MlDsa87Keypair, MlDsaError> {
 ///
 /// Returns [`MlDsaError::RandomnessFailure`] if `rbg` fails.
 pub fn ml_dsa87_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
-    rbg: &mut R
+    rbg: &mut R,
 ) -> Result<MlDsa87Keypair, MlDsaError> {
     ml_dsa_keygen_with_rbg::<MlDsa87, R>(rbg)
 }
@@ -306,7 +308,7 @@ pub fn ml_dsa87_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
 ///
 /// Returns an error if randomness generation fails, the context is too long, or
 /// the secret key is malformed.
- #[cfg(feature = "getrandom")]
+#[cfg(feature = "getrandom")]
 pub fn ml_dsa87_sign(
     sk: &MlDsa87SecretKey,
     message: &[u8],
@@ -326,7 +328,7 @@ pub fn ml_dsa87_sign_with_rbg<R: RandomByteGenerator + ?Sized>(
     sk: &MlDsa87SecretKey,
     message: &[u8],
     context: &[u8],
-    rbg: &mut R
+    rbg: &mut R,
 ) -> Result<MlDsa87Signature, MlDsaError> {
     ml_dsa_sign_with_rbg::<MlDsa87, R>(sk, message, context, rbg)
 }

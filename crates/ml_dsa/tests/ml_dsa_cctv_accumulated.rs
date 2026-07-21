@@ -1,17 +1,17 @@
 mod common;
 
-use common::expected_hash;
+use common::{expected_hash, FixedChunksRbg};
 
 use ml_dsa::{
-    ml_dsa_keygen44_from_seed,
-    ml_dsa_keygen65_from_seed,
-    ml_dsa_keygen87_from_seed,
-    ml_dsa_sign44_from_seed,
-    ml_dsa_sign65_from_seed,
-    ml_dsa_sign87_from_seed,
-    ml_dsa_verify44,
-    ml_dsa_verify65,
-    ml_dsa_verify87,
+    ml_dsa44_keygen_with_rbg,
+    ml_dsa44_sign_with_rbg,
+    ml_dsa44_verify,
+    ml_dsa65_keygen_with_rbg,
+    ml_dsa65_sign_with_rbg,
+    ml_dsa65_verify,
+    ml_dsa87_keygen_with_rbg,
+    ml_dsa87_sign_with_rbg,
+    ml_dsa87_verify,
 };
 
 use sha3::{
@@ -35,17 +35,22 @@ fn cctv_accumulated_mldsa44(iterations: usize) -> [u8; 32] {
         let mut seed = [0u8; 32];
         seed_source.read(&mut seed);
 
-        let keypair = ml_dsa_keygen44_from_seed(&seed);
+        let keygen_chunks: [&[u8]; 1] = [seed.as_ref()];
+        let mut keygen_rbg = FixedChunksRbg::new(&keygen_chunks);
+        let keypair = ml_dsa44_keygen_with_rbg(&mut keygen_rbg)
+            .expect("CCTV ML-DSA-44 key generation should succeed");
 
-        let signature = ml_dsa_sign44_from_seed(
+        let sign_chunks: [&[u8]; 1] = [randomness.as_ref()];
+        let mut sign_rbg = FixedChunksRbg::new(&sign_chunks);
+        let signature = ml_dsa44_sign_with_rbg(
             keypair.secret_key(),
             message,
             context,
-            &randomness,
+            &mut sign_rbg,
         )
             .expect("CCTV ML-DSA-44 signing should succeed");
 
-        let ok = ml_dsa_verify44(
+        let ok = ml_dsa44_verify(
             keypair.public_key(),
             message,
             context,
@@ -78,17 +83,22 @@ fn cctv_accumulated_mldsa65(iterations: usize) -> [u8; 32] {
         let mut seed = [0u8; 32];
         seed_source.read(&mut seed);
 
-        let keypair = ml_dsa_keygen65_from_seed(&seed);
+        let keygen_chunks: [&[u8]; 1] = [seed.as_ref()];
+        let mut keygen_rbg = FixedChunksRbg::new(&keygen_chunks);
+        let keypair = ml_dsa65_keygen_with_rbg(&mut keygen_rbg)
+            .expect("CCTV ML-DSA-65 key generation should succeed");
 
-        let signature = ml_dsa_sign65_from_seed(
+        let sign_chunks: [&[u8]; 1] = [randomness.as_ref()];
+        let mut sign_rbg = FixedChunksRbg::new(&sign_chunks);
+        let signature = ml_dsa65_sign_with_rbg(
             keypair.secret_key(),
             message,
             context,
-            &randomness,
+            &mut sign_rbg,
         )
             .expect("CCTV ML-DSA-65 signing should succeed");
 
-        let ok = ml_dsa_verify65(
+        let ok = ml_dsa65_verify(
             keypair.public_key(),
             message,
             context,
@@ -121,17 +131,22 @@ fn cctv_accumulated_mldsa87(iterations: usize) -> [u8; 32] {
         let mut seed = [0u8; 32];
         seed_source.read(&mut seed);
 
-        let keypair = ml_dsa_keygen87_from_seed(&seed);
+        let keygen_chunks: [&[u8]; 1] = [seed.as_ref()];
+        let mut keygen_rbg = FixedChunksRbg::new(&keygen_chunks);
+        let keypair = ml_dsa87_keygen_with_rbg(&mut keygen_rbg)
+            .expect("CCTV ML-DSA-87 key generation should succeed");
 
-        let signature = ml_dsa_sign87_from_seed(
+        let sign_chunks: [&[u8]; 1] = [randomness.as_ref()];
+        let mut sign_rbg = FixedChunksRbg::new(&sign_chunks);
+        let signature = ml_dsa87_sign_with_rbg(
             keypair.secret_key(),
             message,
             context,
-            &randomness,
+            &mut sign_rbg,
         )
             .expect("CCTV ML-DSA-87 signing should succeed");
 
-        let ok = ml_dsa_verify87(
+        let ok = ml_dsa87_verify(
             keypair.public_key(),
             message,
             context,
