@@ -227,11 +227,8 @@ checksum = "88904434abc2901f197fe8cc55f0445e7ded921dba5911dad2e2b39b48e663c4"
 name = "ml_dsa"
 version = "0.1.0"
 dependencies = [
- "getrandom",
- "hex",
  "mlrust_core",
  "sha3 0.10.9",
- "signature",
  "subtle",
 ]
 
@@ -374,12 +371,6 @@ dependencies = [
  "keccak 0.2.0",
  "sponge-cursor",
 ]
-
-[[package]]
-name = "signature"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28d567dcbaf0049cb8ac2608a76cd95ff9e4412e1899d389ee400918ca7537f5"
 
 [[package]]
 name = "sponge-cursor"

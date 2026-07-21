@@ -4,14 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["std"]
-std = [
-    "mlrust_core/std",
-]
+default = ["std", "getrandom"]
+std = ["mlrust_core/std"]
+getrandom = ["mlrust_core/getrandom"]
 
 
 [dependencies]
-mlrust_core = {path = "../mlrust_core", version = "1.0.0", features = ["getrandom"] }
+mlrust_core = {path = "../mlrust_core"}
 
 [dev-dependencies]
 hex = "0.4"

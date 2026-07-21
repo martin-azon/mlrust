@@ -5,8 +5,9 @@
 //! parameterized by an [`MlKemParams`] marker type, and the concrete wrappers
 //! expose the three standardized ML-KEM parameter sets.
 
-use mlrust_core::sampling::random::{os_random_array, random_array, RandomByteGenerator};
 
+#[cfg(feature = "getrandom")]
+use mlrust_core::sampling::random::{os_random_array, random_array, RandomByteGenerator};
 
 use crate::error::MlKemError;
 use crate::keys::{
@@ -29,15 +30,25 @@ use super::params::MlKemParams;
 ///
 /// # Errors
 ///
-/// Returns [`MlKemError::RandomnessFailure`] if randomness generation
-/// fails.
+/// Returns [`MlKemError::RandomnessFailure`] if operating-system randomness
+/// generation fails.
+ #[cfg(feature = "getrandom")]
 pub fn ml_kem_keygen<P: MlKemParams>() -> Result<P::Keypair, MlKemError> {
-    let d = os_random_array()?;
-    let z = os_random_array()?;
+    let d = os_random_array::<32>()?;
+    let z = os_random_array::<32>()?;
 
     Ok(P::keygen_from_seed(&d, &z))
 }
 
+
+/// Generates an ML-KEM keypair using a caller-provided random byte generator.
+///
+/// The generator is used to produce the two 32-byte seeds required by
+/// deterministic ML-KEM key generation.
+///
+/// # Errors
+///
+/// Returns [`MlKemError::RandomnessFailure`] if `rbg` fails.
 pub fn ml_kem_keygen_with_rbg<P: MlKemParams, R: RandomByteGenerator + ?Sized>(
     rbg: &mut R,
 ) -> Result<P::Keypair, MlKemError> {
@@ -48,7 +59,7 @@ pub fn ml_kem_keygen_with_rbg<P: MlKemParams, R: RandomByteGenerator + ?Sized>(
 }
 
 
-/// Encapsulates a shared secret to an ML-KEM encapsulation key.
+/// Generates an ML-KEM encapsulation key.
 ///
 /// This is the randomized public form of ML-KEM encapsulation. It samples the
 /// 32-byte encapsulation randomness internally, derives a shared secret, and
@@ -56,17 +67,26 @@ pub fn ml_kem_keygen_with_rbg<P: MlKemParams, R: RandomByteGenerator + ?Sized>(
 ///
 /// # Errors
 ///
-/// Returns [`MlKemError::RandomnessFailure`] if randomness generation
-/// fails.
+/// Returns [`MlKemError::RandomnessFailure`] if operating-system randomness
+/// generation fails.
+ #[cfg(feature = "getrandom")]
 pub fn ml_kem_encaps<P: MlKemParams>(
     ek: &P::EncapsulationKey,
 ) -> Result<(SharedSecret, P::Ciphertext), MlKemError> {
-    let m = os_random_array()?;
+    let m = os_random_array::<32>()?;
 
     Ok(P::encaps_from_seed(ek, &m))
 }
 
 
+
+/// Generates an ML-KEM encapsulation key using a caller-provided random byte generator.
+///
+/// The generator is used to produce the 32-byte encapsulation seed.
+///
+/// # Errors
+///
+/// Returns [`MlKemError::RandomnessFailure`] if `rbg` fails.
 pub fn ml_kem_encaps_with_rbg<P: MlKemParams, R: RandomByteGenerator + ?Sized>(
     ek: &P::EncapsulationKey,
     rbg: &mut R,
@@ -102,6 +122,11 @@ pub fn ml_kem512_keygen() -> Result<MlKem512Keypair, MlKemError> {
 }
 
 
+/// Generates an ML-KEM-512 keypair using a caller-provided random byte generator.
+///
+/// # Errors
+///
+/// Returns [`MlKemError::RandomnessFailure`] if `rbg` fails.
 pub fn ml_kem512_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
     rbg: &mut R
 ) -> Result<MlKem512Keypair, MlKemError> {
@@ -109,7 +134,7 @@ pub fn ml_kem512_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
 }
 
 
-/// Encapsulates a shared secret to an ML-KEM-512 encapsulation key.
+/// Generates an ML-KEM-512 encapsulation key.
 ///
 /// # Errors
 ///
@@ -122,6 +147,11 @@ pub fn ml_kem512_encaps(
 }
 
 
+/// Generates an ML-KEM-512 encapsulation key using a caller-provided RBG.
+///
+/// # Errors
+///
+/// Returns [`MlKemError::RandomnessFailure`] if `rbg` fails.
 pub fn ml_kem512_encaps_with_rbg<R: RandomByteGenerator + ?Sized>(
     ek: &MlKem512EncapsulationKey,
     rbg: &mut R
@@ -151,6 +181,11 @@ pub fn ml_kem768_keygen() -> Result<MlKem768Keypair, MlKemError> {
 }
 
 
+/// Generates an ML-KEM-768 keypair using a caller-provided random byte generator.
+///
+/// # Errors
+///
+/// Returns [`MlKemError::RandomnessFailure`] if `rbg` fails.
 pub fn ml_kem768_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
     rbg: &mut R
 ) -> Result<MlKem768Keypair, MlKemError> {
@@ -158,7 +193,7 @@ pub fn ml_kem768_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
 }
 
 
-/// Encapsulates a shared secret to an ML-KEM-768 encapsulation key.
+/// Generates an ML-KEM-768 encapsulation key.
 ///
 /// # Errors
 ///
@@ -171,6 +206,11 @@ pub fn ml_kem768_encaps(
 }
 
 
+/// Generates an ML-KEM-768 encapsulation key using a caller-provided RBG.
+///
+/// # Errors
+///
+/// Returns [`MlKemError::RandomnessFailure`] if `rbg` fails.
 pub fn ml_kem768_encaps_with_rbg<R: RandomByteGenerator + ?Sized>(
     ek: &MlKem768EncapsulationKey,
     rbg: &mut R
@@ -200,13 +240,19 @@ pub fn ml_kem1024_keygen() -> Result<MlKem1024Keypair, MlKemError> {
 }
 
 
+/// Generates an ML-KEM-1024 keypair using a caller-provided random byte generator.
+///
+/// # Errors
+///
+/// Returns [`MlKemError::RandomnessFailure`] if `rbg` fails.
 pub fn ml_kem1024_keygen_with_rbg<R: RandomByteGenerator + ?Sized>(
     rbg: &mut R
 ) -> Result<MlKem1024Keypair, MlKemError> {
     ml_kem_keygen_with_rbg::<MlKem1024, R>(rbg)
 }
 
-/// Encapsulates a shared secret to an ML-KEM-1024 encapsulation key.
+
+/// Generates an ML-KEM-1024 encapsulation key.
 ///
 /// # Errors
 ///
@@ -219,6 +265,11 @@ pub fn ml_kem1024_encaps(
 }
 
 
+/// Generates an ML-KEM-1024 encapsulation key using a caller-provided RBG.
+///
+/// # Errors
+///
+/// Returns [`MlKemError::RandomnessFailure`] if `rbg` fails.
 pub fn ml_kem1024_encaps_with_rbg<R: RandomByteGenerator + ?Sized>(
     ek: &MlKem1024EncapsulationKey,
     rbg: &mut R

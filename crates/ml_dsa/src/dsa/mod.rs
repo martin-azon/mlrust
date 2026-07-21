@@ -11,8 +11,11 @@
 //! - [`api`]: public message-oriented API that formats messages, obtains
 //!   randomness, and calls the parameter-set dispatch layer.
 //!
-//! The internal algorithms operate on already formatted messages `M'`. Public
-//! callers should use [`api`] rather than calling [`internal`] directly.
+//! The internal signing and verification algorithms accept byte messages and
+//! contexts. They stream the pure ML-DSA formatted message into the transcript
+//! without allocating a separate formatted-message buffer.
+//!
+//! Public callers should use [`api`] rather than calling [`internal`] directly.
 
 pub(crate) mod internal;
 pub(crate) mod params;

@@ -57,10 +57,12 @@ pub fn random_array<const N: usize, R: RandomByteGenerator + ?Sized>(
 /// This is a convenience backend using the `getrandom` crate. Protocol crates
 /// should also expose APIs accepting a caller-provided [`RandomByteGenerator`]
 /// so users can supply their own RBG.
+#[cfg(feature = "getrandom")]
 #[derive(Clone, Copy, Debug, Default)]
 pub struct OsRandom;
 
 
+#[cfg(feature = "getrandom")]
 impl RandomByteGenerator for OsRandom {
     fn fill_bytes(&mut self, output: &mut [u8]) -> Result<(), RandomError> {
         getrandom::fill(output).map_err(|_| RandomError::GeneratorFailure)
@@ -73,6 +75,7 @@ impl RandomByteGenerator for OsRandom {
 /// # Errors
 ///
 /// Returns [`RandomError::GeneratorFailure`] if the operating-system RNG fails.
+#[cfg(feature = "getrandom")]
 pub fn os_random_array<const N: usize>() -> Result<[u8; N], RandomError> {
     let mut rng = OsRandom;
 

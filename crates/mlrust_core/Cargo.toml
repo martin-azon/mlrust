@@ -6,7 +6,7 @@ edition = "2024"
 [features]
 default = ["std"]
 std = []
-
+getrandom = ["dep:getrandom"]
 
 [dependencies]
 subtle = { version = "2", default-features = false }

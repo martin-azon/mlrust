@@ -39,15 +39,21 @@ pub use keys::{
 
 
 pub use dsa::api::{
-    ml_dsa_keygen44_from_seed,
-    ml_dsa_sign44_from_seed,
-    ml_dsa_verify44,
-    ml_dsa_keygen65_from_seed,
-    ml_dsa_sign65_from_seed,
-    ml_dsa_verify65,
-    ml_dsa_keygen87_from_seed,
-    ml_dsa_sign87_from_seed,
-    ml_dsa_verify87,
+    ml_dsa44_keygen,
+    ml_dsa44_keygen_with_rbg,
+    ml_dsa44_sign,
+    ml_dsa44_sign_with_rbg,
+    ml_dsa44_verify,
+    ml_dsa65_keygen,
+    ml_dsa65_keygen_with_rbg,
+    ml_dsa65_sign,
+    ml_dsa65_sign_with_rbg,
+    ml_dsa65_verify,
+    ml_dsa87_keygen,
+    ml_dsa87_keygen_with_rbg,
+    ml_dsa87_sign,
+    ml_dsa87_sign_with_rbg,
+    ml_dsa87_verify,
 };
 
 #[cfg(test)]
