@@ -10,114 +10,150 @@ use crate::encode::bits::{bit_pack, bit_unpack};
 use crate::params::{N, Q3329, RingParams};
 use crate::poly::{Poly, PolyVec};
 
-fn round_div_u64(num: u64, den: u64) -> u64 {
-    assert_ne!(den, 0);
 
-    (num + den / 2) / den
-}
 
-/// Helper function that compresses an integer modulo `q` into an integer modulo `2^D`.
-fn compress_q<const D: usize, P: RingParams>(x: i32) -> u16 {
-    assert!(D > 0);
-    assert!(D <= 16);
-
-    let q = P::Q as u64;
-    let x = P::freeze(x) as u64;
-    let scale = 1u64 << D;
-
-    let rounded = round_div_u64(scale * x, q);
-
-    (rounded & (scale - 1)) as u16
-}
-
-/// Helper function that decompresses an integer modulo `2^D` into an integer modulo `q`.
-fn decompress_q<const D: usize, P: RingParams>(y: u16) -> i32 {
-    assert!(D > 0);
-    assert!(D <= 16);
-
-    let q = P::Q as u64;
-    let scale = 1u64 << D;
-    let y = (y as u64) & (scale - 1);
-
-    round_div_u64(q * y, scale) as i32
-}
-
-/// Helper function that compresses all coefficients of a polynomial.
-/// These are initially integers modulo `q` and turned into integers modulo `2^D`.
-fn compress_q_poly<const D: usize, P: RingParams>(p: &Poly<P>) -> Poly<P> {
-    assert!(D > 0);
-    assert!(D <= 16);
-
-    let mut coeffs = p.into_coeffs();
-
-    for coeff in coeffs.iter_mut() {
-        *coeff = compress_q::<D, P>(*coeff) as i32;
-    }
-
-    Poly::from_coeffs(coeffs)
-}
-
-/// Helper function that decompresses all coefficients of a polynomial.
-/// These are initially integers modulo `2^D` and turned into integers modulo `q`.
-fn decompress_q_poly<const D: usize, P: RingParams>(p: &Poly<P>) -> Poly<P> {
-    assert!(D > 0);
-    assert!(D <= 16);
-
-    let mut coeffs = p.into_coeffs();
-
-    for coeff in coeffs.iter_mut() {
-        *coeff = decompress_q::<D, P>(*coeff as u16);
-    }
-
-    Poly::from_coeffs(coeffs)
-}
-
-/// Compresses an integer mod `q = 3329` into an integer mod `2^D`.
+/// Division-free ML-KEM compression for `q = 3329`.
+///
+/// # Side-channel note
+///
+/// ML-KEM compression is used during decapsulation re-encryption. Its inputs
+/// are therefore secret-dependent in the decapsulation path.
+///
+/// This function intentionally avoids division by `3329`. Secret-dependent
+/// division by the public modulus is the KyberSlash class of timing leakage.
+/// Instead, this uses exact reciprocal-multiplication replacements for the
+/// ML-KEM compression widths used by FIPS 203.
+///
+/// For every canonical coefficient `0 <= x < 3329`, this computes the same
+/// value as:
 ///
 /// ```text
-/// Compress_d(x) = round((2^d / q) * x) mod 2^d
+/// round((2^D * x) / 3329) mod 2^D
 /// ```
-#[must_use]
-pub fn compress_q3329<const D: usize>(x: i32) -> u16 {
-    compress_q::<D, Q3329>(x)
+///
+/// without a data-dependent division.
+///
+/// Supported widths:
+///
+/// - `D = 1`: message-bit compression;
+/// - `D = 4`: ML-KEM-512/768 `v` compression;
+/// - `D = 5`: ML-KEM-1024 `v` compression;
+/// - `D = 10`: ML-KEM-512/768 `u` compression;
+/// - `D = 11`: ML-KEM-1024 `u` compression.
+#[inline]
+fn compress_q3329_coefficient<const D: usize>(x: i32) -> u16 {
+    assert!(matches!(D, 1 | 4 | 5 | 10 | 11));
+
+    let x = Q3329::freeze(x) as u32;
+
+    let (rounding, multiplier, shift): (u64, u64, u32) = match D {
+        1 | 4 => (1_665, 80_635, 28),
+        5 => (1_664, 40_318, 27),
+        10 => (1_665, 1_290_167, 32),
+        11 => (1_664, 645_084, 31),
+        _ => unreachable!("unsupported ML-KEM compression width"),
+    };
+
+    let scaled = ((x as u64) << D) + rounding;
+    let rounded = (scaled * multiplier) >> shift;
+
+    (rounded as u16) & ((1u16 << D) - 1)
 }
 
-/// Decompresses an integer mod `2^D` into an integer mod `q = 3329`.
+
+#[inline]
+fn decompress_q3329_coefficient<const D: usize>(y: u16) -> i32 {
+    assert!(D > 0);
+    assert!(D <= 12);
+
+    let mask = (1u32 << D) - 1;
+    let y = (y as u32) & mask;
+
+    (((Q3329::Q as u32) * y + (1u32 << (D - 1))) >> D) as i32
+}
+
+
+/// Compresses one coefficient modulo `q = 3329`
+///
+/// ```text
+/// Compress_d(x) = round((2^D * x) / 3329) mod 2^D
+/// ```
+///
+/// This is a division-free ML-KEM compression routine. See
+/// [`compress_q3329_coefficient`] for the side-channel rationale.
+#[must_use]
+pub fn compress_q3329<const D: usize>(x: i32) -> u16 {
+    compress_q3329_coefficient::<D>(x)
+}
+
+
+/// Decompresses one coefficient modulo `q = 3329`.
 ///
 /// ```text
 /// Decompress_d(y) = round((q / 2^d) * y)
 /// ```
+///
+/// This uses a shift by `D` rather than division by `2^D`.
 #[must_use]
 pub fn decompress_q3329<const D: usize>(y: u16) -> i32 {
-    decompress_q::<D, Q3329>(y)
+    decompress_q3329_coefficient::<D>(y)
 }
 
-/// Compresses all coefficients of a polynomial.
-/// These are initially integers modulo `q` and turned into integers modulo `2^D`.
+
+/// Compresses each coefficient of a polynomial modulo `q = 3329`.
+///
+/// # Side-channel note
+///
+/// This routine is used in K-PKE encryption and in ML-KEM decapsulation
+/// re-encryption. It must remain division-free.
 #[must_use]
 pub fn compress_q3329_poly<const D: usize>(p: &Poly<Q3329>) -> Poly<Q3329> {
-    compress_q_poly::<D, Q3329>(p)
+    assert!(matches!(D, 1 | 4 | 5 | 10 | 11));
+
+    let mut coeffs = p.into_coeffs();
+
+    for coeff in coeffs.iter_mut() {
+        *coeff = compress_q3329_coefficient::<D>(*coeff) as i32;
+    }
+
+    Poly::from_coeffs(coeffs)
 }
 
 /// Decompresses all coefficients of a polynomial.
 /// These are initially integers modulo `2^D` and turned into integers modulo `q`.
 #[must_use]
 pub fn decompress_q3329_poly<const D: usize>(p: &Poly<Q3329>) -> Poly<Q3329> {
-    decompress_q_poly::<D, Q3329>(p)
-}
+    assert!(D > 0);
+    assert!(D <= 12);
 
-/// Compresses all polynomials in a vector of polynomials.
-#[must_use]
-pub fn compress_q3329_polyvec<const K: usize, const D: usize>(
-    v: &PolyVec<Q3329, K>,
-) -> PolyVec<Q3329, K> {
-    let mut polys = [Poly::<Q3329>::zero(); K];
+    let mut coeffs = p.into_coeffs();
 
-    for i in 0..K {
-        polys[i] = compress_q3329_poly::<D>(&v.polys()[i]);
+    for coeff in coeffs.iter_mut() {
+        *coeff = decompress_q3329_coefficient::<D>(*coeff as u16);
     }
 
-    PolyVec::from_polys(polys)
+    Poly::from_coeffs(coeffs)
+
+}
+
+
+/// Compresses each coefficient of a polynomial vector modulo `q = 3329`.
+///
+/// # Side-channel note
+///
+/// This routine is used in K-PKE encryption and in ML-KEM decapsulation
+/// re-encryption. It must remain division-free.
+#[must_use]
+pub fn compress_q3329_polyvec<const K: usize, const D: usize>(
+    pv: &PolyVec<Q3329, K>,
+) -> PolyVec<Q3329, K> {
+    let mut polys_output = [Poly::<Q3329>::zero(); K];
+
+    for i in 0..K {
+        polys_output[i] = compress_q3329_poly::<D>(&pv.polys()[i]);
+    }
+
+    PolyVec::from_polys(polys_output)
 }
 
 /// Decompresses all polynomials in a vector of polynomials.
@@ -310,7 +346,7 @@ mod tests {
 
     #[test]
     fn compress_q3329_outputs_fit_in_d_bits() {
-        for d in [1usize, 4, 5, 10, 11, 12] {
+        for d in [1usize, 4, 5, 10, 11] {
             for x in 0..Q3329::Q {
                 let c = match d {
                     1 => compress_q3329::<1>(x),
@@ -318,7 +354,6 @@ mod tests {
                     5 => compress_q3329::<5>(x),
                     10 => compress_q3329::<10>(x),
                     11 => compress_q3329::<11>(x),
-                    12 => compress_q3329::<12>(x),
                     _ => unreachable!(),
                 };
 
@@ -442,5 +477,28 @@ mod tests {
 
         assert_eq!(&encoded_vec[..384], &encoded_p0);
         assert_eq!(&encoded_vec[384..], &encoded_p1);
+    }
+
+    #[test]
+    fn compress_q3329_matches_reference_division_for_all_ml_kem_widths() {
+        fn check<const D: usize>() {
+            for x in 0..Q3329::Q {
+                let expected = ((((x as u32) << D) + (Q3329::Q as u32 / 2))
+                    / (Q3329::Q as u32))
+                    & ((1u32 << D) - 1);
+
+                assert_eq!(
+                    compress_q3329::<D>(x) as u32,
+                    expected,
+                    "D={D}, x={x}",
+                );
+            }
+        }
+
+        check::<1>();
+        check::<4>();
+        check::<5>();
+        check::<10>();
+        check::<11>();
     }
 }

@@ -9,6 +9,19 @@
 //!
 //! These routines are internal ML-DSA primitives. They are not exposed as part
 //! of the public crate API.
+//!
+//! # Side-channel note
+//!
+//! This module contains both public-seed and secret-seed samplers.
+//!
+//! Rejection sampling for `ExpandA` depends only on public matrix seeds and is
+//! allowed to be variable-time.
+//!
+//! Rejection sampling for `ExpandS` depends on secret key-generation seed
+//! material. This implementation is suitable for correctness and conformance
+//! testing, but it should not be advertised as a fully hardened key-generation
+//! implementation against local side-channel observation.
+
 
 use mlrust_core::encode::bits::{bitlen_u32, int_to_bytes};
 use mlrust_core::encode::ml_dsa::{

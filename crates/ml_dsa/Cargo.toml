@@ -13,5 +13,6 @@ getrandom = ["mlrust_core/getrandom"]
 mlrust_core = {path = "../mlrust_core" }
 subtle = "2.6.1"
 
+
 [dev-dependencies]
 sha3 = "0.10" 

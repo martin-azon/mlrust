@@ -36,6 +36,7 @@ use crate::primitives::rounding::{
 };
 use crate::primitives::sampling::{expand_a, expand_mask, expand_s};
 
+use mlrust_core::ct::ct_eq;
 use mlrust_core::encode::bits::{bitlen_u32, int_to_bytes};
 use mlrust_core::error::PqcCoreError;
 use mlrust_core::params::{Q8380417, RingParams};
@@ -216,6 +217,17 @@ pub(crate) fn ml_dsa_keygen_internal<
 ///
 /// Panics if the supplied const-generic parameters are inconsistent with the
 /// ML-DSA object sizes, bit-length formulas, or public parameter constraints.
+///
+/// # Side-channel note
+///
+/// This routine implements the standard ML-DSA rejection-sampling signing
+/// loop. The number of loop iterations and acceptance path are data-dependent.
+///
+/// This implementation is intended to be constant-time for the core arithmetic
+/// and comparison primitives where practical, but it is not a masked or
+/// fixed-time signing implementation. Deployments requiring resistance to
+/// local timing, cache, EM, or power-analysis attacks should use additional
+/// implementation-level countermeasures and empirical leakage testing.
 pub(crate) fn ml_dsa_sign_internal<
     const K: usize,
     const L: usize,
@@ -539,6 +551,6 @@ pub(crate) fn ml_dsa_verify_internal<
     let mut c_tilde_bis = [0u8; LAMBDA_OVER_4];
     h_squeeze(&mut reader2, &mut c_tilde_bis);
 
-    let commitments_match = dec_sig.c_tilde == c_tilde_bis;
+    let commitments_match = bool::from(ct_eq(&dec_sig.c_tilde, &c_tilde_bis));
     Ok(norm_z_small && commitments_match)
 }

@@ -10,6 +10,9 @@ use mlrust_core::encode::ml_dsa::{
 use mlrust_core::params::Q8380417;
 use mlrust_core::poly::{Poly, PolyVec};
 
+use subtle::{Choice};
+use mlrust_core::ct::i32::coeffs_in_range_ct;
+
 /// Decoded ML-DSA secret key.
 ///
 /// This is an internal algebraic representation used by signing.
@@ -30,10 +33,6 @@ pub(crate) struct DecodedPublicKey<const K: usize> {
     pub(crate) t1: PolyVec<Q8380417, K>,
 }
 
-#[inline]
-fn coeffs_in_range(coeffs: &[i32], min: i32, max: i32) -> bool {
-    coeffs.iter().all(|&c| min <= c && c <= max)
-}
 
 #[inline]
 fn t0_bounds<const D: usize>() -> (i32, i32) {
@@ -167,14 +166,13 @@ pub(crate) fn sk_decode<
     tr.copy_from_slice(&sk_bytes[64..128]);
 
     let mut start = 128usize;
+    let mut valid = Choice::from(1);
 
     for poly in &mut s1_polys {
         *poly =
             bit_unpack_q8380417::<BITLEN_2ETA>(&sk_bytes[start..start + short_poly_len], eta, eta);
 
-        if !coeffs_in_range(poly.coeffs(), -eta, eta) {
-            return Err(MlDsaError::InvalidSecretKey);
-        }
+        valid &= coeffs_in_range_ct(poly.coeffs(), -eta, eta);
 
         start += short_poly_len;
     }
@@ -183,9 +181,7 @@ pub(crate) fn sk_decode<
         *poly =
             bit_unpack_q8380417::<BITLEN_2ETA>(&sk_bytes[start..start + short_poly_len], eta, eta);
 
-        if !coeffs_in_range(poly.coeffs(), -eta, eta) {
-            return Err(MlDsaError::InvalidSecretKey);
-        }
+        valid &= coeffs_in_range_ct(poly.coeffs(), -eta, eta);
 
         start += short_poly_len;
     }
@@ -194,6 +190,10 @@ pub(crate) fn sk_decode<
         *poly = bit_unpack_q8380417::<D>(&sk_bytes[start..start + t0_poly_len], t0_a, t0_b);
 
         start += t0_poly_len;
+    }
+
+    if !bool::from(valid) {
+        return Err(MlDsaError::InvalidSecretKey);
     }
 
     let dec_sk = DecodedSecretKey {

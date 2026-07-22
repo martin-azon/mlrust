@@ -7,8 +7,9 @@
 //! Parameter checks are ordinary assertions because parameters are compile-time
 //! public constants.
 
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater};
+use subtle::{Choice, ConstantTimeGreater};
 
+use mlrust_core::ct::i32::{ct_i32_gt, ct_i32_eq, ct_i32_ge, ct_i32_select};
 use mlrust_core::encode::ml_dsa::hint::HintVec;
 use mlrust_core::params::{N, Q8380417, RingParams};
 use mlrust_core::poly::{Poly, PolyVec};
@@ -20,23 +21,6 @@ fn reduce_q_canonical(r: i32) -> i32 {
     Q8380417::freeze(r)
 }
 
-#[inline]
-fn ct_i32_eq(x: i32, y: i32) -> Choice {
-    (x as u32).ct_eq(&(y as u32))
-}
-
-#[inline]
-fn ct_i32_gt(x: i32, y: i32) -> Choice {
-    let x = (x as u32) ^ 0x8000_0000;
-    let y = (y as u32) ^ 0x8000_0000;
-
-    x.ct_gt(&y)
-}
-
-#[inline]
-fn ct_i32_ge(x: i32, y: i32) -> Choice {
-    ct_i32_gt(x, y) | ct_i32_eq(x, y)
-}
 
 /// Centered reduction modulo `2^D`.
 ///
@@ -59,7 +43,7 @@ pub(crate) fn mod_pm_power2<const D: usize>(r: i32) -> i32 {
 
     let use_centered = (r0 as u32).ct_gt(&(half as u32));
 
-    i32::conditional_select(&r0, &centered, use_centered)
+    ct_i32_select(r0, centered, use_centered)
 }
 
 /// Returns the centered reduction modulo `q` of an integer.
@@ -70,7 +54,7 @@ pub(crate) fn mod_pm_q(r: i32) -> i32 {
     let centered = r_plus - Q;
     let use_centered = ct_i32_gt(r_plus, Q / 2);
 
-    i32::conditional_select(&r_plus, &centered, use_centered)
+    ct_i32_select(r_plus, centered, use_centered)
 }
 
 /// Returns the centered reduction modulo `q` of a polynomial.
@@ -175,8 +159,8 @@ pub(crate) fn decompose<const GAMMA2: usize>(r: i32) -> (i32, i32) {
     let r0_special = r0_raw - 1;
     let r1_special = 0;
 
-    let r1 = i32::conditional_select(&r1_raw, &r1_special, special);
-    let r0 = i32::conditional_select(&r0_raw, &r0_special, special);
+    let r1 = ct_i32_select(r1_raw, r1_special, special);
+    let r0 = ct_i32_select(r0_raw, r0_special, special);
 
     (r1, r0)
 }
@@ -194,12 +178,15 @@ pub(crate) fn low_bits<const GAMMA2: usize>(r: i32) -> i32 {
 }
 
 /// FIPS 204 `MakeHint`.
+///
+/// Returns `Choice(1)` if adding `z` to `r` changes the high bits of `r`,
+/// and `Choice(0)` otherwise.
 #[inline]
 pub(crate) fn make_hint<const GAMMA2: usize>(z: i32, r: i32) -> Choice {
     let h0 = high_bits::<GAMMA2>(r);
     let h1 = high_bits::<GAMMA2>(r + z);
 
-    !h0.ct_eq(&h1)
+    !ct_i32_eq(h0, h1)
 }
 
 /// FIPS 204 `UseHint`.
@@ -216,13 +203,13 @@ pub(crate) fn use_hint<const GAMMA2: usize>(hint: Choice, r: i32) -> i32 {
 
     let r1_plus_raw = r1 + 1;
     let r1_minus_raw = r1 - 1;
-    let r1_plus = i32::conditional_select(&r1_plus_raw, &0, ct_i32_eq(r1_plus_raw, m));
-    let r1_minus = i32::conditional_select(&r1_minus_raw, &(m - 1), ct_i32_eq(r1, 0));
+    let r1_plus = ct_i32_select(r1_plus_raw, 0, ct_i32_eq(r1_plus_raw, m));
+    let r1_minus = ct_i32_select(r1_minus_raw, m - 1, ct_i32_eq(r1, 0));
 
     let r0_positive = ct_i32_gt(r0, 0);
-    let corrected = i32::conditional_select(&r1_minus, &r1_plus, r0_positive);
+    let corrected = ct_i32_select(r1_minus, r1_plus, r0_positive);
 
-    i32::conditional_select(&r1, &corrected, hint)
+    ct_i32_select(r1, corrected, hint)
 }
 
 /// Applies FIPS 204 `Power2Round` coefficientwise to a polynomial.
