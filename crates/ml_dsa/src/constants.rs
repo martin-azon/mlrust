@@ -31,8 +31,10 @@ pub enum MlDsa65 {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MlDsa87 {}
 
+
+
 /// Bit length of `q - 1`, where `q = 8_380_417`.
-pub const BITLEN_Q_MINUS_ONE: usize = 23;
+pub(crate)const BITLEN_Q_MINUS_ONE: usize = 23;
 
 /// Number of bits used to encode one `t1` coefficient.
 ///
@@ -43,39 +45,39 @@ pub const BITLEN_Q_MINUS_ONE: usize = 23;
 /// ```
 ///
 /// where `q = 8_380_417` and `d = 13`.
-pub const BITLEN_Q_MINUS_ONE_MINUS_D: usize = 10;
+pub(crate)const BITLEN_Q_MINUS_ONE_MINUS_D: usize = 10;
 
 /// Matrix row dimension `k` for ML-DSA-44.
-pub const ML_DSA_44_K: usize = 4;
+pub(crate)const ML_DSA_44_K: usize = 4;
 
 /// Matrix column dimension `l` for ML-DSA-44.
-pub const ML_DSA_44_L: usize = 4;
+pub(crate)const ML_DSA_44_L: usize = 4;
 
 /// Number of low bits split from `t` by `Power2Round`.
-pub const ML_DSA_44_D: usize = 13;
+pub(crate)const ML_DSA_44_D: usize = 13;
 
 /// Number of nonzero coefficients in the challenge polynomial `c`.
-pub const ML_DSA_44_TAU: usize = 39;
+pub(crate)const ML_DSA_44_TAU: usize = 39;
 
 /// Challenge digest length in bytes, equal to `lambda / 4`.
-pub const ML_DSA_44_LAMBDA_OVER_4: usize = 32;
+pub(crate)const ML_DSA_44_LAMBDA_OVER_4: usize = 32;
 
 /// Masking bound `gamma1`.
-pub const ML_DSA_44_GAMMA1: usize = 1 << 17;
+pub(crate)const ML_DSA_44_GAMMA1: usize = 1 << 17;
 
 /// Number of bits used to encode one `z` coefficient:
 ///
 /// ```text
 /// bitlen(2 * gamma1 - 1)
 /// ```
-pub const ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE: usize = 18;
+pub(crate)const ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE: usize = 18;
 
 /// Number of bytes used to encode one `z` polynomial:
 ///
 /// ```text
 /// 32 * bitlen(2 * gamma1 - 1)
 /// ```
-pub const ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = 576;
+pub(crate)const ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = 576;
 
 /// Rounding parameter `gamma2`.
 ///
@@ -84,73 +86,73 @@ pub const ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = 576;
 /// ```text
 /// gamma2 = (q - 1) / 88
 /// ```
-pub const ML_DSA_44_GAMMA2: usize = 95_232;
+pub(crate)const ML_DSA_44_GAMMA2: usize = 95_232;
 
 /// Number of bits used to encode one `w1` coefficient:
 ///
 /// ```text
 /// bitlen((q - 1) / (2 * gamma2) - 1)
 /// ```
-pub const ML_DSA_44_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 6;
+pub(crate)const ML_DSA_44_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 6;
 
 /// Number of bytes used to encode the full `w1` vector:
 ///
 /// ```text
 /// 32 * k * bitlen((q - 1) / (2 * gamma2) - 1)
 /// ```
-pub const ML_DSA_44_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 768;
+pub(crate)const ML_DSA_44_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 768;
 
 /// Secret-vector sampling bound `eta`.
-pub const ML_DSA_44_ETA: usize = 2;
+pub(crate)const ML_DSA_44_ETA: usize = 2;
 
 /// Number of bits used to encode one short secret coefficient:
 ///
 /// ```text
 /// bitlen(2 * eta)
 /// ```
-pub const ML_DSA_44_BITLEN_2ETA: usize = 3;
+pub(crate)const ML_DSA_44_BITLEN_2ETA: usize = 3;
 
 /// Signing rejection offset:
 ///
 /// ```text
 /// beta = tau * eta
 /// ```
-pub const ML_DSA_44_BETA: usize = 78;
+pub(crate)const ML_DSA_44_BETA: usize = 78;
 
 /// Maximum allowed hint weight.
-pub const ML_DSA_44_OMEGA: usize = 80;
+pub(crate)const ML_DSA_44_OMEGA: usize = 80;
 
 /// Matrix row dimension `k` for ML-DSA-65.
-pub const ML_DSA_65_K: usize = 6;
+pub(crate)const ML_DSA_65_K: usize = 6;
 
 /// Matrix column dimension `l` for ML-DSA-65.
-pub const ML_DSA_65_L: usize = 5;
+pub(crate)const ML_DSA_65_L: usize = 5;
 
 /// Number of low bits split from `t` by `Power2Round`.
-pub const ML_DSA_65_D: usize = 13;
+pub(crate)const ML_DSA_65_D: usize = 13;
 
 /// Number of nonzero coefficients in the challenge polynomial `c`.
-pub const ML_DSA_65_TAU: usize = 49;
+pub(crate)const ML_DSA_65_TAU: usize = 49;
 
 /// Challenge digest length in bytes, equal to `lambda / 4`.
-pub const ML_DSA_65_LAMBDA_OVER_4: usize = 48;
+pub(crate)const ML_DSA_65_LAMBDA_OVER_4: usize = 48;
 
 /// Masking bound `gamma1`.
-pub const ML_DSA_65_GAMMA1: usize = 1 << 19;
+pub(crate)const ML_DSA_65_GAMMA1: usize = 1 << 19;
 
 /// Number of bits used to encode one `z` coefficient:
 ///
 /// ```text
 /// bitlen(2 * gamma1 - 1)
 /// ```
-pub const ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE: usize = 20;
+pub(crate)const ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE: usize = 20;
 
 /// Number of bytes used to encode one `z` polynomial:
 ///
 /// ```text
 /// 32 * bitlen(2 * gamma1 - 1)
 /// ```
-pub const ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = 640;
+pub(crate)const ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = 640;
 
 /// Rounding parameter `gamma2`.
 ///
@@ -159,73 +161,73 @@ pub const ML_DSA_65_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = 640;
 /// ```text
 /// gamma2 = (q - 1) / 88
 /// ```
-pub const ML_DSA_65_GAMMA2: usize = 261_888;
+pub(crate)const ML_DSA_65_GAMMA2: usize = 261_888;
 
 /// Number of bits used to encode one `w1` coefficient:
 ///
 /// ```text
 /// bitlen((q - 1) / (2 * gamma2) - 1)
 /// ```
-pub const ML_DSA_65_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 4;
+pub(crate)const ML_DSA_65_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 4;
 
 /// Number of bytes used to encode the full `w1` vector:
 ///
 /// ```text
 /// 32 * k * bitlen((q - 1) / (2 * gamma2) - 1)
 /// ```
-pub const ML_DSA_65_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 768;
+pub(crate)const ML_DSA_65_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 768;
 
 /// Secret-vector sampling bound `eta`.
-pub const ML_DSA_65_ETA: usize = 4;
+pub(crate)const ML_DSA_65_ETA: usize = 4;
 
 /// Number of bits used to encode one short secret coefficient:
 ///
 /// ```text
 /// bitlen(2 * eta)
 /// ```
-pub const ML_DSA_65_BITLEN_2ETA: usize = 4;
+pub(crate)const ML_DSA_65_BITLEN_2ETA: usize = 4;
 
 /// Signing rejection offset:
 ///
 /// ```text
 /// beta = tau * eta
 /// ```
-pub const ML_DSA_65_BETA: usize = 196;
+pub(crate)const ML_DSA_65_BETA: usize = 196;
 
 /// Maximum allowed hint weight.
-pub const ML_DSA_65_OMEGA: usize = 55;
+pub(crate)const ML_DSA_65_OMEGA: usize = 55;
 
 /// Matrix row dimension `k` for ML-DSA-87.
-pub const ML_DSA_87_K: usize = 8;
+pub(crate)const ML_DSA_87_K: usize = 8;
 
 /// Matrix column dimension `l` for ML-DSA-87.
-pub const ML_DSA_87_L: usize = 7;
+pub(crate)const ML_DSA_87_L: usize = 7;
 
 /// Number of low bits split from `t` by `Power2Round`.
-pub const ML_DSA_87_D: usize = 13;
+pub(crate)const ML_DSA_87_D: usize = 13;
 
 /// Number of nonzero coefficients in the challenge polynomial `c`.
-pub const ML_DSA_87_TAU: usize = 60;
+pub(crate)const ML_DSA_87_TAU: usize = 60;
 
 /// Challenge digest length in bytes, equal to `lambda / 4`.
-pub const ML_DSA_87_LAMBDA_OVER_4: usize = 64;
+pub(crate)const ML_DSA_87_LAMBDA_OVER_4: usize = 64;
 
 /// Masking bound `gamma1`.
-pub const ML_DSA_87_GAMMA1: usize = 1 << 19;
+pub(crate)const ML_DSA_87_GAMMA1: usize = 1 << 19;
 
 /// Number of bits used to encode one `z` coefficient:
 ///
 /// ```text
 /// bitlen(2 * gamma1 - 1)
 /// ```
-pub const ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE: usize = 20;
+pub(crate)const ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE: usize = 20;
 
 /// Number of bytes used to encode one `z` polynomial:
 ///
 /// ```text
 /// 32 * bitlen(2 * gamma1 - 1)
 /// ```
-pub const ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = 640;
+pub(crate)const ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = 640;
 
 /// Rounding parameter `gamma2`.
 ///
@@ -234,41 +236,41 @@ pub const ML_DSA_87_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32: usize = 640;
 /// ```text
 /// gamma2 = (q - 1) / 88
 /// ```
-pub const ML_DSA_87_GAMMA2: usize = 261_888;
+pub(crate)const ML_DSA_87_GAMMA2: usize = 261_888;
 
 /// Number of bits used to encode one `w1` coefficient:
 ///
 /// ```text
 /// bitlen((q - 1) / (2 * gamma2) - 1)
 /// ```
-pub const ML_DSA_87_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 4;
+pub(crate)const ML_DSA_87_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 4;
 
 /// Number of bytes used to encode the full `w1` vector:
 ///
 /// ```text
 /// 32 * k * bitlen((q - 1) / (2 * gamma2) - 1)
 /// ```
-pub const ML_DSA_87_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 1024;
+pub(crate)const ML_DSA_87_K_TIMES_32_TIMES_BITLEN_Q_MINUS_ONE_OVER_2GAMMA2_MINUS_ONE: usize = 1024;
 
 /// Secret-vector sampling bound `eta`.
-pub const ML_DSA_87_ETA: usize = 2;
+pub(crate)const ML_DSA_87_ETA: usize = 2;
 
 /// Number of bits used to encode one short secret coefficient:
 ///
 /// ```text
 /// bitlen(2 * eta)
 /// ```
-pub const ML_DSA_87_BITLEN_2ETA: usize = 3;
+pub(crate)const ML_DSA_87_BITLEN_2ETA: usize = 3;
 
 /// Signing rejection offset:
 ///
 /// ```text
 /// beta = tau * eta
 /// ```
-pub const ML_DSA_87_BETA: usize = 120;
+pub(crate)const ML_DSA_87_BETA: usize = 120;
 
 /// Maximum allowed hint weight.
-pub const ML_DSA_87_OMEGA: usize = 75;
+pub(crate)const ML_DSA_87_OMEGA: usize = 75;
 
 /// Length in bytes of an ML-DSA-44 secret key.
 pub const ML_DSA_44_SECRET_KEY_BYTES: usize = 2560;

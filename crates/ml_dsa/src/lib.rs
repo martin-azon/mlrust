@@ -22,12 +22,24 @@ mod primitives;
 
 pub use error::MlDsaError;
 
-pub use constants::{MlDsa44, MlDsa65, MlDsa87};
+pub use constants::{
+    MlDsa44, MlDsa65, MlDsa87,
+    ML_DSA_44_PUBLIC_KEY_BYTES,
+    ML_DSA_44_SECRET_KEY_BYTES,
+    ML_DSA_44_SIGNATURE_BYTES,
+    ML_DSA_65_PUBLIC_KEY_BYTES,
+    ML_DSA_65_SECRET_KEY_BYTES,
+    ML_DSA_65_SIGNATURE_BYTES,
+    ML_DSA_87_PUBLIC_KEY_BYTES,
+    ML_DSA_87_SECRET_KEY_BYTES,
+    ML_DSA_87_SIGNATURE_BYTES,
+};
 
 pub use keys::{
-    MlDsa44Keypair, MlDsa44PublicKey, MlDsa44SecretKey, MlDsa44Signature, MlDsa65Keypair,
-    MlDsa65PublicKey, MlDsa65SecretKey, MlDsa65Signature, MlDsa87Keypair, MlDsa87PublicKey,
-    MlDsa87SecretKey, MlDsa87Signature, MlDsaKeypair, PublicKey, SecretKey, Signature,
+    MlDsaKeypair, PublicKey, SecretKey, Signature,
+    MlDsa44Keypair, MlDsa44PublicKey, MlDsa44SecretKey, MlDsa44Signature,
+    MlDsa65Keypair, MlDsa65PublicKey, MlDsa65SecretKey, MlDsa65Signature,
+    MlDsa87Keypair, MlDsa87PublicKey, MlDsa87SecretKey, MlDsa87Signature,
 };
 
 pub use dsa::api::{

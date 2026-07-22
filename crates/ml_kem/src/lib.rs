@@ -22,7 +22,19 @@ mod kpke;
 
 pub use error::MlKemError;
 
-pub use constants::{MlKem512, MlKem768, MlKem1024};
+pub use constants::{
+    MlKem512, MlKem768, MlKem1024,
+    ML_KEM_SHARED_SECRET_BYTES,
+    ML_KEM_512_ENCAPS_KEY_BYTES,
+    ML_KEM_512_DECAPS_KEY_BYTES,
+    ML_KEM_512_CIPHERTEXT_BYTES,
+    ML_KEM_768_ENCAPS_KEY_BYTES,
+    ML_KEM_768_DECAPS_KEY_BYTES,
+    ML_KEM_768_CIPHERTEXT_BYTES,
+    ML_KEM_1024_ENCAPS_KEY_BYTES,
+    ML_KEM_1024_DECAPS_KEY_BYTES,
+    ML_KEM_1024_CIPHERTEXT_BYTES,
+};
 
 pub use keys::{
     Ciphertext, DecapsulationKey, EncapsulationKey, MlKem512Ciphertext, MlKem512DecapsulationKey,
