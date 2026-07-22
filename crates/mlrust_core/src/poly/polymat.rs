@@ -6,14 +6,6 @@
 //! A polynomial matrix is stored row-wise as an array of [`PolyVec`] rows.
 //! The number of rows and columns are encoded at the type level using const
 //! generics.
-//!
-//! For example:
-//!
-//! ```ignore
-//! PolyMat<Q3329, 3, 3>     // 3 × 3 polynomial matrix over q = 3329
-//! PolyMat<Q8380417, 4, 5>  // 4 × 5 polynomial matrix over q = 8380417
-//! ```
-//!
 
 use super::{Poly, PolyVec};
 use crate::params::NttDomainMul;

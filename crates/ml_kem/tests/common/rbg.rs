@@ -9,6 +9,10 @@ impl<'a> FixedChunksRbg<'a> {
     pub fn new(chunks: &'a [&'a [u8]]) -> Self {
         Self { chunks, index: 0 }
     }
+
+    pub fn consumed_chunks(&self) -> usize {
+        self.index
+    }
 }
 
 impl RandomByteGenerator for FixedChunksRbg<'_> {
@@ -29,6 +33,20 @@ impl RandomByteGenerator for FixedChunksRbg<'_> {
     }
 }
 
+
+pub struct RepeatingRbg {
+    pub byte: u8,
+}
+
+impl RandomByteGenerator for RepeatingRbg {
+    fn fill_bytes(&mut self, output: &mut [u8]) -> Result<(), RandomError> {
+        output.fill(self.byte);
+        self.byte = self.byte.wrapping_add(1);
+
+        Ok(())
+    }
+}
+
 pub struct FailingRbg;
 
 impl RandomByteGenerator for FailingRbg {
@@ -36,3 +54,4 @@ impl RandomByteGenerator for FailingRbg {
         Err(RandomError::GeneratorFailure)
     }
 }
+

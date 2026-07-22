@@ -136,7 +136,7 @@ fn cctv_accumulated_mldsa87(iterations: usize) -> [u8; 32] {
 }
 
 #[test]
-#[ignore = "CCTV accumulated vector test; run with `cargo test -p ml_dsa cctv -- --ignored`"]
+#[ignore = "CCTV accumulated vector test"]
 fn cctv_accumulated_mldsa44_100_iterations() {
     let expected = expected_hash(ML_DSA_44_VECTORS, 100);
     let actual = cctv_accumulated_mldsa44(100);
@@ -145,7 +145,7 @@ fn cctv_accumulated_mldsa44_100_iterations() {
 }
 
 #[test]
-#[ignore = "CCTV accumulated vector test; run with `cargo test -p ml_dsa cctv -- --ignored`"]
+#[ignore = "CCTV accumulated vector test"]
 fn cctv_accumulated_mldsa65_100_iterations() {
     let expected = expected_hash(ML_DSA_65_VECTORS, 100);
     let actual = cctv_accumulated_mldsa65(100);
@@ -154,7 +154,7 @@ fn cctv_accumulated_mldsa65_100_iterations() {
 }
 
 #[test]
-#[ignore = "CCTV accumulated vector test; run with `cargo test -p ml_dsa cctv -- --ignored`"]
+#[ignore = "CCTV accumulated vector test"]
 fn cctv_accumulated_mldsa87_100_iterations() {
     let expected = expected_hash(ML_DSA_87_VECTORS, 100);
     let actual = cctv_accumulated_mldsa87(100);

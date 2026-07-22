@@ -6,13 +6,6 @@
 //! parameter `K`. The coefficient modulus and reduction routines are provided
 //! by the type parameter `P`, which implements [`crate::params::RingParams`].
 //!
-//! For example:
-//!
-//! ```ignore
-//! PolyVec<Q3329, 3>     // length-3 vector over q = 3329
-//! PolyVec<Q8380417, 4>  // length-4 vector over q = 8380417
-//! ```
-//!
 //! Like [`crate::poly::Poly`], coefficients are not necessarily canonical after
 //! every operation. Use [`PolyVec::freeze`] when canonical representatives in
 //! `[0, q)` are required.
@@ -36,12 +29,6 @@ impl<P: RingParams, const K: usize> PolyVec<P, K> {
     /// Returns the zero polynomial vector.
     ///
     /// Every polynomial in the vector is initialized to [`Poly::zero`].
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let v = PolyVec::<Q3329, 3>::zero();
-    /// ```
     #[must_use]
     pub const fn zero() -> Self {
         Self {

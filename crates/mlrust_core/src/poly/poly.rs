@@ -7,13 +7,6 @@
 //! The coefficient modulus is not stored at runtime; instead, it is determined
 //! by the type parameter `P`, which implements [`crate::params::RingParams`].
 //!
-//! For example:
-//!
-//! ```ignore
-//! Poly<Q3329>     // polynomial modulo 3329, used by ML-KEM
-//! Poly<Q8380417>  // polynomial modulo 8380417, used by ML-DSA
-//! ```
-//!
 //! The type intentionally separates:
 //!
 //! - in-place operations such as [`Poly::add_assign`] and [`Poly::sub_assign`],
@@ -54,12 +47,6 @@ impl<P: RingParams> Poly<P> {
     /// Returns the zero polynomial.
     ///
     /// All coefficients are initialized to `0`.
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let p = Poly::<Q3329>::zero();
-    /// ```
     #[must_use]
     pub const fn zero() -> Self {
         Self {

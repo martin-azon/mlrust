@@ -1,31 +1,12 @@
+mod common;
+
+use common::rbg::{FixedChunksRbg, FailingRbg, RepeatingRbg};
+
 use ml_kem::{
     MlKemError, ml_kem512_decaps, ml_kem512_encaps, ml_kem512_encaps_with_rbg, ml_kem512_keygen,
     ml_kem512_keygen_with_rbg, ml_kem768_decaps, ml_kem768_encaps, ml_kem768_keygen,
     ml_kem1024_decaps, ml_kem1024_encaps, ml_kem1024_keygen,
 };
-
-use mlrust_core::sampling::random::{RandomByteGenerator, RandomError};
-
-struct FailingRbg;
-
-impl RandomByteGenerator for FailingRbg {
-    fn fill_bytes(&mut self, _output: &mut [u8]) -> Result<(), RandomError> {
-        Err(RandomError::GeneratorFailure)
-    }
-}
-
-struct RepeatingRbg {
-    byte: u8,
-}
-
-impl RandomByteGenerator for RepeatingRbg {
-    fn fill_bytes(&mut self, output: &mut [u8]) -> Result<(), RandomError> {
-        output.fill(self.byte);
-        self.byte = self.byte.wrapping_add(1);
-
-        Ok(())
-    }
-}
 
 const ROUNDS: usize = 10;
 
@@ -89,4 +70,42 @@ fn ml_kem512_encaps_with_rbg_maps_randomness_failure() {
     let result = ml_kem512_encaps_with_rbg(keypair.encapsulation_key(), &mut encaps_rbg);
 
     assert!(matches!(result, Err(MlKemError::RandomnessFailure)));
+}
+
+#[test]
+fn ml_kem512_keygen_with_rbg_consumes_two_chunks() {
+    let d = [0x51u8; 32];
+    let z = [0x52u8; 32];
+
+    let chunks: [&[u8]; 2] = [d.as_ref(), z.as_ref()];
+    let mut rbg = FixedChunksRbg::new(&chunks);
+
+    let _keypair = ml_kem512_keygen_with_rbg(&mut rbg)
+        .expect("keygen succeeds");
+
+    assert_eq!(rbg.consumed_chunks(), 2);
+}
+
+#[test]
+fn ml_kem512_encaps_with_rbg_consumes_one_chunk() {
+    let d = [0x51u8; 32];
+    let z = [0x52u8; 32];
+    let m = [0x53u8; 32];
+
+    let keygen_chunks: [&[u8]; 2] = [d.as_ref(), z.as_ref()];
+    let mut keygen_rbg = FixedChunksRbg::new(&keygen_chunks);
+
+    let keypair = ml_kem512_keygen_with_rbg(&mut keygen_rbg)
+        .expect("keygen succeeds");
+
+    let encaps_chunks: [&[u8]; 1] = [m.as_ref()];
+    let mut encaps_rbg = FixedChunksRbg::new(&encaps_chunks);
+
+    let _ = ml_kem512_encaps_with_rbg(
+        keypair.encapsulation_key(),
+        &mut encaps_rbg,
+    )
+        .expect("encapsulation succeeds");
+
+    assert_eq!(encaps_rbg.consumed_chunks(), 1);
 }

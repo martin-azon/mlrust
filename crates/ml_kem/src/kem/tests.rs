@@ -14,6 +14,10 @@ use crate::test_utils::{hex_array, hex_field, hex_field_any};
 use mlrust_core::encode::ml_kem::byte_encode_polyvec_q3329;
 use mlrust_core::symmetric::ml_kem::{g, h, j_concat};
 
+use sha3::digest::{ExtendableOutput, Update, XofReader};
+use shake::Shake128;
+
+
 const POLY_ENCODED_BYTES: usize = 384;
 
 fn pattern32(seed: u8) -> [u8; 32] {
@@ -162,6 +166,98 @@ fn assert_tampered_ciphertext_uses_fallback<
         &expected_fallback,
         "decapsulation of invalid ciphertext must return J(z || c)",
     );
+}
+
+fn cctv_accumulated_legacy<
+    const K: usize,
+    const EK_BYTES: usize,
+    const DK_BYTES: usize,
+    const DK_PKE_BYTES: usize,
+    const CT_BYTES: usize,
+    const ETA1: usize,
+    const ETA2: usize,
+    const DU: usize,
+    const DV: usize,
+>(
+    iterations: usize,
+) -> [u8; 32] {
+    let mut generator = Shake128::default().finalize_xof();
+    let mut accumulator = Shake128::default();
+
+    for _ in 0..iterations {
+        let mut d = [0u8; 32];
+        let mut z = [0u8; 32];
+        let mut m = [0u8; 32];
+        let mut invalid_ct_bytes = [0u8; CT_BYTES];
+
+        generator.read(&mut d);
+        generator.read(&mut z);
+
+        let keypair = ml_kem_keygen_internal_cctv_legacy::<
+            K,
+            EK_BYTES,
+            DK_BYTES,
+            DK_PKE_BYTES,
+            ETA1,
+        >(&d, &z);
+
+        accumulator.update(keypair.encapsulation_key().as_bytes());
+        accumulator.update(keypair.decapsulation_key().as_bytes());
+
+        generator.read(&mut m);
+
+        let (shared_secret, ciphertext) =
+            ml_kem_encaps_internal::<K, EK_BYTES, CT_BYTES, ETA1, ETA2, DU, DV>(
+                keypair.encapsulation_key(),
+                &m,
+            );
+
+        let decaps_shared_secret = ml_kem_decaps_internal::<
+            K,
+            DK_BYTES,
+            EK_BYTES,
+            DK_PKE_BYTES,
+            CT_BYTES,
+            ETA1,
+            ETA2,
+            DU,
+            DV,
+        >(keypair.decapsulation_key(), &ciphertext);
+
+        assert_eq!(
+            shared_secret.as_bytes(),
+            decaps_shared_secret.as_bytes(),
+            "valid ciphertext decapsulation must recover encapsulated shared secret",
+        );
+
+        accumulator.update(ciphertext.as_bytes());
+        accumulator.update(shared_secret.as_bytes());
+
+        generator.read(&mut invalid_ct_bytes);
+
+        let invalid_ciphertext = Ciphertext::<CT_BYTES>::from_bytes(invalid_ct_bytes);
+
+        let invalid_shared_secret = ml_kem_decaps_internal::<
+            K,
+            DK_BYTES,
+            EK_BYTES,
+            DK_PKE_BYTES,
+            CT_BYTES,
+            ETA1,
+            ETA2,
+            DU,
+            DV,
+        >(keypair.decapsulation_key(), &invalid_ciphertext);
+
+        accumulator.update(invalid_shared_secret.as_bytes());
+    }
+
+    let mut out = [0u8; 32];
+    let mut reader = accumulator.finalize_xof();
+
+    reader.read(&mut out);
+
+    out
 }
 
 #[test]
@@ -447,4 +543,41 @@ fn cctv_ml_kem1024_decaps_matches_intermediate_vector() {
     const V: &str = include_str!("../../tests/vectors/cctv/intermediate/ML-KEM-1024.txt");
 
     assert_cctv_kem_decaps::<4, 3168, 1568, 1536, 1568, 2, 2, 11, 5>(V);
+}
+
+
+#[test]
+#[ignore = "long legacy CCTV accumulated ML-KEM vector test"]
+fn cctv_accumulated_legacy_mlkem512_10_000_iterations() {
+    let expected = hex_array::<32>(
+        "845913ea5a308b803c764a9ed8e9d814ca1fd9c82ba43c7b1e64b79c7a6ec8e4",
+    );
+
+    let actual = cctv_accumulated_legacy::<2, 800, 1632, 768, 768, 3, 2, 10, 4>(10_000);
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+#[ignore = "long legacy CCTV accumulated ML-KEM vector test"]
+fn cctv_accumulated_legacy_mlkem768_10_000_iterations() {
+    let expected = hex_array::<32>(
+        "f7db260e1137a742e05fe0db9525012812b004d29040a5b606aad3d134b548d3",
+    );
+
+    let actual = cctv_accumulated_legacy::<3, 1184, 2400, 1152, 1088, 2, 2, 10, 4>(10_000);
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+#[ignore = "long legacy CCTV accumulated ML-KEM vector test"]
+fn cctv_accumulated_legacy_mlkem1024_10_000_iterations() {
+    let expected = hex_array::<32>(
+        "47ac888fe61544efc0518f46094b4f8a600965fc89822acb06dc7169d24f3543",
+    );
+
+    let actual = cctv_accumulated_legacy::<4, 1568, 3168, 1536, 1568, 2, 2, 11, 5>(10_000);
+
+    assert_eq!(actual, expected);
 }
