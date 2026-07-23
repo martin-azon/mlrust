@@ -223,7 +223,6 @@ impl<const N: usize> KpkeEncryptionKey<N> {
     pub(crate) const fn as_bytes(&self) -> &[u8; N] {
         &self.bytes
     }
-
 }
 
 impl<const N: usize> KpkeDecryptionKey<N> {

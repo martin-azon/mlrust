@@ -31,7 +31,6 @@ use mlrust_core::sampling::random::OsRandom;
 
 use mlrust_core::sampling::random::RandomByteGenerator;
 
-
 /// Generates an ML-KEM keypair for parameter set `P`.
 ///
 /// This is the randomized public form of ML-KEM key generation. It samples

@@ -10,34 +10,9 @@ use crate::encode::bits::{bit_pack, bit_unpack};
 use crate::params::{N, Q3329, RingParams};
 use crate::poly::{Poly, PolyVec};
 
-/// Division-free ML-KEM compression for `q = 3329`.
-///
-/// # Side-channel note
-///
-/// ML-KEM compression is used during decapsulation re-encryption. Its inputs
-/// are therefore secret-dependent in the decapsulation path.
-///
-/// This function intentionally avoids division by `3329`. Secret-dependent
-/// division by the public modulus is the KyberSlash class of timing leakage.
-/// Instead, this uses exact reciprocal-multiplication replacements for the
-/// ML-KEM compression widths used by FIPS 203.
-///
-/// For every canonical coefficient `0 <= x < 3329`, this computes the same
-/// value as:
-///
-/// ```text
-/// round((2^D * x) / 3329) mod 2^D
-/// ```
-///
-/// without a data-dependent division.
-///
-/// Supported widths:
-///
-/// - `D = 1`: message-bit compression;
-/// - `D = 4`: ML-KEM-512/768 `v` compression;
-/// - `D = 5`: ML-KEM-1024 `v` compression;
-/// - `D = 10`: ML-KEM-512/768 `u` compression;
-/// - `D = 11`: ML-KEM-1024 `u` compression.
+
+/// Division-free implementation of ML-KEM coefficient compression for
+/// `q = 3329`.
 #[inline]
 fn compress_q3329_coefficient<const D: usize>(x: i32) -> u16 {
     assert!(matches!(D, 1 | 4 | 5 | 10 | 11));
@@ -69,14 +44,37 @@ fn decompress_q3329_coefficient<const D: usize>(y: u16) -> i32 {
     (((Q3329::Q as u32) * y + (1u32 << (D - 1))) >> D) as i32
 }
 
-/// Compresses one coefficient modulo `q = 3329`
+
+/// Compresses one coefficient modulo `q = 3329`.
+///
+/// This is a division-free ML-KEM compression routine.
+///
+/// # Side-channel note
+///
+/// ML-KEM compression is used during decapsulation re-encryption. Its inputs
+/// are therefore secret-dependent in the decapsulation path.
+///
+/// This routine avoids division by `3329`. Secret-dependent division by the
+/// public modulus is the KyberSlash class of timing leakage. Instead, it uses
+/// exact reciprocal-multiplication replacements for the ML-KEM compression
+/// widths used by FIPS 203.
+///
+/// For every canonical coefficient `0 <= x < 3329`, this computes the same
+/// value as:
 ///
 /// ```text
-/// Compress_d(x) = round((2^D * x) / 3329) mod 2^D
+/// round((2^D * x) / 3329) mod 2^D
 /// ```
 ///
-/// This is a division-free ML-KEM compression routine. See
-/// [`compress_q3329_coefficient`] for the side-channel rationale.
+/// without a data-dependent division.
+///
+/// Supported widths:
+///
+/// - `D = 1`: message-bit compression;
+/// - `D = 4`: ML-KEM-512/768 `v` compression;
+/// - `D = 5`: ML-KEM-1024 `v` compression;
+/// - `D = 10`: ML-KEM-512/768 `u` compression;
+/// - `D = 11`: ML-KEM-1024 `u` compression.
 #[must_use]
 pub fn compress_q3329<const D: usize>(x: i32) -> u16 {
     compress_q3329_coefficient::<D>(x)

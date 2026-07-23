@@ -23,6 +23,99 @@
 //! Secret-bearing types such as secret keys zeroize their contents on drop.
 //! Public values such as public keys and signatures are ordinary serialized byte
 //! wrappers.
+//!
+//!
+//! # Example
+//!
+//! ML-DSA-44 with OS randomness, this example requires the default `getrandom` feature.
+//!
+//! ```
+//! use ml_dsa::{
+//!     ml_dsa44_keygen,
+//!     ml_dsa44_sign,
+//!     ml_dsa44_verify,
+//! };
+//!
+//! let message = b"example message";
+//! let context = b"example context";
+//!
+//! let keypair = ml_dsa44_keygen().expect("key generation succeeds");
+//!
+//! let signature = ml_dsa44_sign(
+//!     keypair.secret_key(),
+//!     message,
+//!     context,
+//! )
+//! .expect("signing succeeds");
+//!
+//! let valid = ml_dsa44_verify(
+//!     keypair.public_key(),
+//!     message,
+//!     context,
+//!     &signature,
+//! )
+//! .expect("verification should not fail on well-formed inputs");
+//!
+//! assert!(valid);
+//! ```
+//!
+//!
+//! # Example
+//!
+//! ML-DSA-44 with caller-provided randomness.
+//!
+//! ```
+//! use ml_dsa::{
+//!     ml_dsa44_keygen_with_rbg,
+//!     ml_dsa44_sign_with_rbg,
+//!     ml_dsa44_verify,
+//! };
+//! use mlrust_core::sampling::random::{
+//!     RandomByteGenerator,
+//!     RandomError,
+//! };
+//!
+//! struct ExampleRbg {
+//!     byte: u8,
+//! }
+//!
+//! impl RandomByteGenerator for ExampleRbg {
+//!     fn fill_bytes(&mut self, output: &mut [u8]) -> Result<(), RandomError> {
+//!         output.fill(self.byte);
+//!         self.byte = self.byte.wrapping_add(1);
+//!         Ok(())
+//!     }
+//! }
+//!
+//! let message = b"example message";
+//! let context = b"example context";
+//! let mut rbg = ExampleRbg { byte: 1 };
+//!
+//! let keypair =
+//!     ml_dsa44_keygen_with_rbg(&mut rbg)
+//!         .expect("key generation succeeds");
+//!
+//! let signature =
+//!     ml_dsa44_sign_with_rbg(
+//!         keypair.secret_key(),
+//!         message,
+//!         context,
+//!         &mut rbg,
+//!     )
+//!     .expect("signing succeeds");
+//!
+//! let valid = ml_dsa44_verify(
+//!     keypair.public_key(),
+//!     message,
+//!     context,
+//!     &signature,
+//! )
+//! .expect("verification should not fail on well-formed inputs");
+//!
+//! assert!(valid);
+//! ```
+//!
+//! The `ExampleRbg` above is only for API illustration. Real deployments must use a cryptographically secure random byte generator.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]

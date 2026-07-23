@@ -21,7 +21,6 @@
 //!
 //! This module implements pure ML-DSA, not HashML-DSA.
 
-
 use crate::constants::{MlDsa44, MlDsa65, MlDsa87};
 use crate::dsa::params::MlDsaParams;
 use crate::error::MlDsaError;
