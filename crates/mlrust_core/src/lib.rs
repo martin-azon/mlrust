@@ -21,6 +21,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
+
+// Many arithmetic, encoding, and NTT routines intentionally use explicit
+// index-based loops because they mirror FIPS pseudocode and fixed-size array
+// layouts. In this codebase, those loops are often clearer than iterator
+// rewrites.
+#![allow(clippy::needless_range_loop)]
+
+
 extern crate alloc;
 
 pub mod error;

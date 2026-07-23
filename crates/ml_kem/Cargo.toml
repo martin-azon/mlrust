@@ -2,6 +2,10 @@
 name = "ml_kem"
 version = "0.1.0"
 edition = "2024"
+description = "Pure Rust ML-KEM implementation for the mlrust workspace"
+license = "Apache-2.0"
+repository = "https://github.com/martin-azon/mlrust"
+readme = "README.md"
 
 [features]
 default = ["std", "getrandom"]
@@ -10,7 +14,7 @@ getrandom = ["mlrust_core/getrandom"]
 
 
 [dependencies]
-mlrust_core = {path = "../mlrust_core"}
+mlrust_core = {version = "0.1.0", path = "../mlrust_core", default-features = false}
 sha3 = "0.12.0"
 shake = { version = "0.1.0", default-features = false }
 digest = "0.11.3"

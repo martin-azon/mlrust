@@ -250,7 +250,6 @@ pub(crate) fn pk_encode<const K: usize, const D: usize, const PK_BYTES: usize>(
 ///
 /// Returns [`MlDsaError::InvalidPublicKey`] if the parameter-set byte length is
 /// inconsistent with the expected public-key layout.
-
 pub(crate) fn pk_decode<const K: usize, const PK_BYTES: usize>(
     enc_pk: &PublicKey<PK_BYTES>,
 ) -> Result<DecodedPublicKey<K>, MlDsaError> {

@@ -2,12 +2,17 @@
 name = "mlrust"
 version = "0.1.0"
 edition = "2024"
+description = "High-level ML-KEM and ML-DSA API for the mlrust workspace"
+license = "Apache-2.0"
+repository = "https://github.com/martin-azon/mlrust"
+readme = "README.md"
 
 [dependencies]
-ml_kem = { path = "../ml_kem", default-features = false }
-ml_dsa = { path = "../ml_dsa", default-features = false }
+ml_kem = { version = "0.1.0", path = "../ml_kem", default-features = false }
+ml_dsa = { version = "0.1.0", path = "../ml_dsa", default-features = false }
+mlrust_core = { version = "0.1.0", path = "../mlrust_core", default-features = false }
 
 [features]
 default = ["std", "getrandom"]
-std = ["ml_kem/std", "ml_dsa/std"]
+std = ["mlrust_core/std", "ml_kem/std", "ml_dsa/std"]
 getrandom = ["ml_kem/getrandom", "ml_dsa/getrandom"]

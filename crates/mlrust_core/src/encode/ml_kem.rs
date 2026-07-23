@@ -10,7 +10,6 @@ use crate::encode::bits::{bit_pack, bit_unpack};
 use crate::params::{N, Q3329, RingParams};
 use crate::poly::{Poly, PolyVec};
 
-
 /// Division-free implementation of ML-KEM coefficient compression for
 /// `q = 3329`.
 #[inline]
@@ -43,7 +42,6 @@ fn decompress_q3329_coefficient<const D: usize>(y: u16) -> i32 {
 
     (((Q3329::Q as u32) * y + (1u32 << (D - 1))) >> D) as i32
 }
-
 
 /// Compresses one coefficient modulo `q = 3329`.
 ///

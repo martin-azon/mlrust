@@ -16,6 +16,7 @@
 //! internal reduced representation. Call [`Poly::freeze`] when canonical
 //! representatives in `[0, q)` are required.
 
+#[allow(clippy::module_inception)]
 mod poly;
 mod polymat;
 mod polyvec;

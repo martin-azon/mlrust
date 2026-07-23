@@ -2,6 +2,10 @@
 name = "mlrust_core"
 version = "0.1.0"
 edition = "2024"
+description = "Shared finite-field, polynomial, encoding, sampling, and symmetric primitives for mlrust"
+license = "Apache-2.0"
+repository = "https://github.com/martin-azon/mlrust"
+readme = "README.md"
 
 [features]
 default = ["std"]

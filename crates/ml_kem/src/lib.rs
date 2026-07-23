@@ -26,34 +26,39 @@
 //! ciphertexts are ordinary serialized byte wrappers.
 //!
 //!
-//! # Example
 //!
-//! ML-KEM-512 with OS randomness, this example requires the default `getrandom` feature.
+//! # Examples
+//!
+//! ## OS randomness
+//!
+//! This example runs when the `getrandom` feature is enabled.
 //!
 //! ```
-//! use ml_kem::{
-//!     ml_kem512_decaps,
-//!     ml_kem512_encaps,
-//!     ml_kem512_keygen,
-//! };
+//! #[cfg(feature = "getrandom")]
+//! {
+//!     use ml_kem::{
+//!         ml_kem512_decaps,
+//!         ml_kem512_encaps,
+//!         ml_kem512_keygen,
+//!     };
 //!
-//! let keypair = ml_kem512_keygen().expect("key generation succeeds");
+//!     let keypair = ml_kem512_keygen().expect("key generation succeeds");
 //!
-//! let (ss_sender, ciphertext) =
-//!     ml_kem512_encaps(keypair.encapsulation_key())
-//!         .expect("encapsulation succeeds");
+//!     let (ss_sender, ciphertext) =
+//!         ml_kem512_encaps(keypair.encapsulation_key())
+//!             .expect("encapsulation succeeds");
 //!
-//! let ss_receiver =
-//!     ml_kem512_decaps(keypair.decapsulation_key(), &ciphertext);
+//!     let ss_receiver =
+//!         ml_kem512_decaps(keypair.decapsulation_key(), &ciphertext);
 //!
-//! assert_eq!(ss_sender.as_bytes(), ss_receiver.as_bytes());
+//!     assert_eq!(ss_sender.as_bytes(), ss_receiver.as_bytes());
+//! }
 //! ```
 //!
+//! ## Caller-provided randomness
 //!
-//! # Example
+//! This example compiles without the default `getrandom` feature.
 //!
-//! ML-KEM-512 with caller-provided randomness.
-//! 
 //! ```
 //! use ml_kem::{
 //!     ml_kem512_decaps,
@@ -96,11 +101,23 @@
 //! assert_eq!(ss_sender.as_bytes(), ss_receiver.as_bytes());
 //! ```
 //!
-//! The `ExampleRbg` above is only for API illustration. Real deployments must use a cryptographically secure random byte generator.
+//! The `ExampleRbg` above is only for API illustration. Real deployments must
+//! use a cryptographically secure random byte generator.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
+
+
+// Many arithmetic, encoding, and NTT routines intentionally use explicit
+// index-based loops because they mirror FIPS pseudocode and fixed-size array
+// layouts. In this codebase, those loops are often clearer than iterator
+// rewrites.
+#![allow(clippy::needless_range_loop)]
+
+// `Zeroizing<[u8; 32]>` is explicitly dereferenced in a few API wrappers to
+// preserve fixed-array reference types such as `&[u8; 32]`.
+#![allow(clippy::explicit_auto_deref)]
 
 mod constants;
 mod error;

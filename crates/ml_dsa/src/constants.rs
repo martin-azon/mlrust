@@ -320,6 +320,7 @@ mod tests {
         assert_eq!(ML_DSA_87_D, 13);
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn check_parameter_set(
         k: usize,
         l: usize,

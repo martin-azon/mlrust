@@ -25,44 +25,49 @@
 //! wrappers.
 //!
 //!
-//! # Example
 //!
-//! ML-DSA-44 with OS randomness, this example requires the default `getrandom` feature.
+//! # Examples
+//!
+//! ## OS randomness
+//!
+//! This example runs when the `getrandom` feature is enabled.
 //!
 //! ```
-//! use ml_dsa::{
-//!     ml_dsa44_keygen,
-//!     ml_dsa44_sign,
-//!     ml_dsa44_verify,
-//! };
+//! #[cfg(feature = "getrandom")]
+//! {
+//!     use ml_dsa::{
+//!         ml_dsa44_keygen,
+//!         ml_dsa44_sign,
+//!         ml_dsa44_verify,
+//!     };
 //!
-//! let message = b"example message";
-//! let context = b"example context";
+//!     let message = b"example message";
+//!     let context = b"example context";
 //!
-//! let keypair = ml_dsa44_keygen().expect("key generation succeeds");
+//!     let keypair = ml_dsa44_keygen().expect("key generation succeeds");
 //!
-//! let signature = ml_dsa44_sign(
-//!     keypair.secret_key(),
-//!     message,
-//!     context,
-//! )
-//! .expect("signing succeeds");
+//!     let signature = ml_dsa44_sign(
+//!         keypair.secret_key(),
+//!         message,
+//!         context,
+//!     )
+//!     .expect("signing succeeds");
 //!
-//! let valid = ml_dsa44_verify(
-//!     keypair.public_key(),
-//!     message,
-//!     context,
-//!     &signature,
-//! )
-//! .expect("verification should not fail on well-formed inputs");
+//!     let valid = ml_dsa44_verify(
+//!         keypair.public_key(),
+//!         message,
+//!         context,
+//!         &signature,
+//!     )
+//!     .expect("verification should not fail on well-formed inputs");
 //!
-//! assert!(valid);
+//!     assert!(valid);
+//! }
 //! ```
 //!
+//! ## Caller-provided randomness
 //!
-//! # Example
-//!
-//! ML-DSA-44 with caller-provided randomness.
+//! This example compiles without the default `getrandom` feature.
 //!
 //! ```
 //! use ml_dsa::{
@@ -115,11 +120,22 @@
 //! assert!(valid);
 //! ```
 //!
-//! The `ExampleRbg` above is only for API illustration. Real deployments must use a cryptographically secure random byte generator.
+//! The `ExampleRbg` above is only for API illustration. Real deployments must
+//! use a cryptographically secure random byte generator.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
+
+// Many arithmetic, encoding, and NTT routines intentionally use explicit
+// index-based loops because they mirror FIPS pseudocode and fixed-size array
+// layouts. In this codebase, those loops are often clearer than iterator
+// rewrites.
+#![allow(clippy::needless_range_loop)]
+
+// `Zeroizing<[u8; 32]>` is explicitly dereferenced in a few API wrappers to
+// preserve fixed-array reference types such as `&[u8; 32]`.
+#![allow(clippy::explicit_auto_deref)]
 
 mod constants;
 mod dsa;

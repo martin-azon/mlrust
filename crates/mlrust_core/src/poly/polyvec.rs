@@ -255,7 +255,7 @@ impl<P: NttDomainMul, const K: usize> PolyVec<P, K> {
         let mut res_coeffs = [Poly::<P>::zero(); K];
 
         for i in 0..K {
-            res_coeffs[i] = self.polys[i].mul_ntt(&other);
+            res_coeffs[i] = self.polys[i].mul_ntt(other);
         }
 
         PolyVec::from_polys(res_coeffs)
