@@ -5,10 +5,6 @@
 //! parameterized by an [`MlKemParams`] marker type, and the concrete wrappers
 //! expose the three standardized ML-KEM parameter sets.
 
-use mlrust_core::sampling::random::{RandomByteGenerator, random_array};
-
-#[cfg(feature = "getrandom")]
-use mlrust_core::sampling::random::os_random_array;
 
 use super::params::MlKemParams;
 use crate::constants::{MlKem512, MlKem768, MlKem1024};
@@ -19,6 +15,14 @@ use crate::keys::{
     MlKem1024Ciphertext, MlKem1024DecapsulationKey, MlKem1024EncapsulationKey, MlKem1024Keypair,
     SharedSecret,
 };
+
+use zeroize::Zeroizing;
+
+#[cfg(feature = "getrandom")]
+use mlrust_core::sampling::random::OsRandom;
+
+use mlrust_core::sampling::random::RandomByteGenerator;
+
 
 /// Generates an ML-KEM keypair for parameter set `P`.
 ///
@@ -32,10 +36,13 @@ use crate::keys::{
 /// generation fails.
 #[cfg(feature = "getrandom")]
 pub fn ml_kem_keygen<P: MlKemParams>() -> Result<P::Keypair, MlKemError> {
-    let d = os_random_array::<32>()?;
-    let z = os_random_array::<32>()?;
+    let mut d = Zeroizing::new([0u8; 32]);
+    let mut z = Zeroizing::new([0u8; 32]);
 
-    Ok(P::keygen_from_seed(&d, &z))
+    OsRandom.fill_bytes(d.as_mut())?;
+    OsRandom.fill_bytes(z.as_mut())?;
+
+    Ok(P::keygen_from_seed(&*d, &*z))
 }
 
 /// Generates an ML-KEM keypair using a caller-provided random byte generator.
@@ -49,10 +56,13 @@ pub fn ml_kem_keygen<P: MlKemParams>() -> Result<P::Keypair, MlKemError> {
 pub fn ml_kem_keygen_with_rbg<P: MlKemParams, R: RandomByteGenerator + ?Sized>(
     rbg: &mut R,
 ) -> Result<P::Keypair, MlKemError> {
-    let d = random_array::<32, _>(rbg)?;
-    let z = random_array::<32, _>(rbg)?;
+    let mut d = Zeroizing::new([0u8; 32]);
+    let mut z = Zeroizing::new([0u8; 32]);
 
-    Ok(P::keygen_from_seed(&d, &z))
+    rbg.fill_bytes(d.as_mut())?;
+    rbg.fill_bytes(z.as_mut())?;
+
+    Ok(P::keygen_from_seed(&*d, &*z))
 }
 
 /// Encapsulates a shared secret to an ML-KEM encapsulation key.
@@ -69,9 +79,11 @@ pub fn ml_kem_keygen_with_rbg<P: MlKemParams, R: RandomByteGenerator + ?Sized>(
 pub fn ml_kem_encaps<P: MlKemParams>(
     ek: &P::EncapsulationKey,
 ) -> Result<(SharedSecret, P::Ciphertext), MlKemError> {
-    let m = os_random_array::<32>()?;
+    let mut m = Zeroizing::new([0u8; 32]);
 
-    Ok(P::encaps_from_seed(ek, &m))
+    OsRandom.fill_bytes(m.as_mut())?;
+
+    Ok(P::encaps_from_seed(ek, &*m))
 }
 
 /// Encapsulates using a caller-provided random byte generator.
@@ -85,9 +97,11 @@ pub fn ml_kem_encaps_with_rbg<P: MlKemParams, R: RandomByteGenerator + ?Sized>(
     ek: &P::EncapsulationKey,
     rbg: &mut R,
 ) -> Result<(SharedSecret, P::Ciphertext), MlKemError> {
-    let m = random_array::<32, _>(rbg)?;
+    let mut m = Zeroizing::new([0u8; 32]);
 
-    Ok(P::encaps_from_seed(ek, &m))
+    rbg.fill_bytes(m.as_mut())?;
+
+    Ok(P::encaps_from_seed(ek, &*m))
 }
 
 /// Decapsulates an ML-KEM ciphertext.

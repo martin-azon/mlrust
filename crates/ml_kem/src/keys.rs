@@ -18,6 +18,8 @@ use crate::constants::{
 use mlrust_core::params::Q3329;
 use mlrust_core::poly::PolyVec;
 
+use zeroize::Zeroize;
+
 // --------------------------------------------------------------------
 // Defining generic structs for each of the keys
 // --------------------------------------------------------------------
@@ -63,6 +65,12 @@ pub struct EncapsulationKey<const N: usize> {
 }
 
 /// Fixed-size serialized ML-KEM decapsulation key.
+///
+/// This type contains secret key material and zeroizes its contents on drop.
+/// It does not implement `Copy` or `Debug`.
+///
+/// Use [`Self::as_bytes`] to borrow the serialized representation. Callers that
+/// copy those bytes are responsible for protecting and clearing the copy.c
 #[derive(Clone, PartialEq, Eq)]
 pub struct DecapsulationKey<const N: usize> {
     bytes: [u8; N],
@@ -82,6 +90,10 @@ pub struct Ciphertext<const N: usize> {
 }
 
 /// ML-KEM shared secret.
+///
+/// This type contains shared secret key material and zeroizes its contents on
+/// drop. Copy it only into protocol state that provides equivalent secret
+/// handling.
 #[derive(Clone, PartialEq, Eq)]
 pub struct SharedSecret {
     bytes: [u8; ML_KEM_SHARED_SECRET_BYTES],
@@ -101,8 +113,11 @@ impl<const EK_BYTES: usize, const DK_BYTES: usize> MlKemKeypair<EK_BYTES, DK_BYT
     }
 
     /// Splits the keypair into its encapsulation and decapsulation keys.
+    ///
+    /// This consumes the keypair and transfers ownership of both serialized keys.
+    /// The decapsulation key remains zeroized on drop.
     #[must_use]
-    pub const fn into_parts(self) -> (EncapsulationKey<EK_BYTES>, DecapsulationKey<DK_BYTES>) {
+    pub fn into_parts(self) -> (EncapsulationKey<EK_BYTES>, DecapsulationKey<DK_BYTES>) {
         (self.ek, self.dk)
     }
 
@@ -248,12 +263,6 @@ impl<const N: usize> DecapsulationKey<N> {
         &self.bytes
     }
 
-    /// Consumes the key and returns the serialized bytes.
-    #[must_use]
-    pub const fn into_bytes(self) -> [u8; N] {
-        self.bytes
-    }
-
     /// Constructs an ML-KEM decapsulation key from a byte slice.
     ///
     /// This is the checked slice-based counterpart to [`Self::from_bytes`].
@@ -271,6 +280,18 @@ impl<const N: usize> DecapsulationKey<N> {
         let mut out = [0u8; N];
         out.copy_from_slice(bytes);
         Ok(Self::from_bytes(out))
+    }
+}
+
+impl<const N: usize> Zeroize for DecapsulationKey<N> {
+    fn zeroize(&mut self) {
+        self.bytes.zeroize();
+    }
+}
+
+impl<const N: usize> Drop for DecapsulationKey<N> {
+    fn drop(&mut self) {
+        self.zeroize();
     }
 }
 
@@ -325,10 +346,16 @@ impl SharedSecret {
     pub const fn as_bytes(&self) -> &[u8; ML_KEM_SHARED_SECRET_BYTES] {
         &self.bytes
     }
+}
 
-    /// Consumes the shared secret and returns the bytes.
-    #[must_use]
-    pub const fn into_bytes(self) -> [u8; ML_KEM_SHARED_SECRET_BYTES] {
-        self.bytes
+impl Zeroize for SharedSecret {
+    fn zeroize(&mut self) {
+        self.bytes.zeroize();
+    }
+}
+
+impl Drop for SharedSecret {
+    fn drop(&mut self) {
+        self.zeroize();
     }
 }

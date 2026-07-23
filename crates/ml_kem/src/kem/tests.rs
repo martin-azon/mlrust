@@ -17,7 +17,6 @@ use mlrust_core::symmetric::ml_kem::{g, h, j_concat};
 use sha3::digest::{ExtendableOutput, Update, XofReader};
 use shake::Shake128;
 
-
 const POLY_ENCODED_BYTES: usize = 384;
 
 fn pattern32(seed: u8) -> [u8; 32] {
@@ -193,13 +192,8 @@ fn cctv_accumulated_legacy<
         generator.read(&mut d);
         generator.read(&mut z);
 
-        let keypair = ml_kem_keygen_internal_cctv_legacy::<
-            K,
-            EK_BYTES,
-            DK_BYTES,
-            DK_PKE_BYTES,
-            ETA1,
-        >(&d, &z);
+        let keypair =
+            ml_kem_keygen_internal_cctv_legacy::<K, EK_BYTES, DK_BYTES, DK_PKE_BYTES, ETA1>(&d, &z);
 
         accumulator.update(keypair.encapsulation_key().as_bytes());
         accumulator.update(keypair.decapsulation_key().as_bytes());
@@ -545,13 +539,11 @@ fn cctv_ml_kem1024_decaps_matches_intermediate_vector() {
     assert_cctv_kem_decaps::<4, 3168, 1568, 1536, 1568, 2, 2, 11, 5>(V);
 }
 
-
 #[test]
 #[ignore = "long legacy CCTV accumulated ML-KEM vector test"]
 fn cctv_accumulated_legacy_mlkem512_10_000_iterations() {
-    let expected = hex_array::<32>(
-        "845913ea5a308b803c764a9ed8e9d814ca1fd9c82ba43c7b1e64b79c7a6ec8e4",
-    );
+    let expected =
+        hex_array::<32>("845913ea5a308b803c764a9ed8e9d814ca1fd9c82ba43c7b1e64b79c7a6ec8e4");
 
     let actual = cctv_accumulated_legacy::<2, 800, 1632, 768, 768, 3, 2, 10, 4>(10_000);
 
@@ -561,9 +553,8 @@ fn cctv_accumulated_legacy_mlkem512_10_000_iterations() {
 #[test]
 #[ignore = "long legacy CCTV accumulated ML-KEM vector test"]
 fn cctv_accumulated_legacy_mlkem768_10_000_iterations() {
-    let expected = hex_array::<32>(
-        "f7db260e1137a742e05fe0db9525012812b004d29040a5b606aad3d134b548d3",
-    );
+    let expected =
+        hex_array::<32>("f7db260e1137a742e05fe0db9525012812b004d29040a5b606aad3d134b548d3");
 
     let actual = cctv_accumulated_legacy::<3, 1184, 2400, 1152, 1088, 2, 2, 10, 4>(10_000);
 
@@ -573,9 +564,8 @@ fn cctv_accumulated_legacy_mlkem768_10_000_iterations() {
 #[test]
 #[ignore = "long legacy CCTV accumulated ML-KEM vector test"]
 fn cctv_accumulated_legacy_mlkem1024_10_000_iterations() {
-    let expected = hex_array::<32>(
-        "47ac888fe61544efc0518f46094b4f8a600965fc89822acb06dc7169d24f3543",
-    );
+    let expected =
+        hex_array::<32>("47ac888fe61544efc0518f46094b4f8a600965fc89822acb06dc7169d24f3543");
 
     let actual = cctv_accumulated_legacy::<4, 1568, 3168, 1536, 1568, 2, 2, 11, 5>(10_000);
 

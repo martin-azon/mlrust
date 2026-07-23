@@ -14,6 +14,7 @@ mlrust_core = {path = "../mlrust_core"}
 sha3 = "0.12.0"
 shake = { version = "0.1.0", default-features = false }
 digest = "0.11.3"
+zeroize = { version = "1", default-features = false }
 
 [dev-dependencies]
 hex = "0.4"

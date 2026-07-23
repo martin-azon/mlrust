@@ -10,8 +10,8 @@ use mlrust_core::encode::ml_dsa::{
 use mlrust_core::params::Q8380417;
 use mlrust_core::poly::{Poly, PolyVec};
 
-use subtle::{Choice};
 use mlrust_core::ct::i32::coeffs_in_range_ct;
+use subtle::Choice;
 
 /// Decoded ML-DSA secret key.
 ///
@@ -32,7 +32,6 @@ pub(crate) struct DecodedPublicKey<const K: usize> {
     pub(crate) rho: [u8; 32],
     pub(crate) t1: PolyVec<Q8380417, K>,
 }
-
 
 #[inline]
 fn t0_bounds<const D: usize>() -> (i32, i32) {

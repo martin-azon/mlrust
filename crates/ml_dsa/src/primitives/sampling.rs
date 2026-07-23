@@ -22,7 +22,6 @@
 //! testing, but it should not be advertised as a fully hardened key-generation
 //! implementation against local side-channel observation.
 
-
 use mlrust_core::encode::bits::{bitlen_u32, int_to_bytes};
 use mlrust_core::encode::ml_dsa::{
     bit_unpack_q8380417, coeff_from_half_byte, coeff_from_three_bytes,

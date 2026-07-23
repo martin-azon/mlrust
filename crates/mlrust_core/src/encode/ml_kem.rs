@@ -10,8 +10,6 @@ use crate::encode::bits::{bit_pack, bit_unpack};
 use crate::params::{N, Q3329, RingParams};
 use crate::poly::{Poly, PolyVec};
 
-
-
 /// Division-free ML-KEM compression for `q = 3329`.
 ///
 /// # Side-channel note
@@ -60,7 +58,6 @@ fn compress_q3329_coefficient<const D: usize>(x: i32) -> u16 {
     (rounded as u16) & ((1u16 << D) - 1)
 }
 
-
 #[inline]
 fn decompress_q3329_coefficient<const D: usize>(y: u16) -> i32 {
     assert!(D > 0);
@@ -71,7 +68,6 @@ fn decompress_q3329_coefficient<const D: usize>(y: u16) -> i32 {
 
     (((Q3329::Q as u32) * y + (1u32 << (D - 1))) >> D) as i32
 }
-
 
 /// Compresses one coefficient modulo `q = 3329`
 ///
@@ -86,7 +82,6 @@ pub fn compress_q3329<const D: usize>(x: i32) -> u16 {
     compress_q3329_coefficient::<D>(x)
 }
 
-
 /// Decompresses one coefficient modulo `q = 3329`.
 ///
 /// ```text
@@ -98,7 +93,6 @@ pub fn compress_q3329<const D: usize>(x: i32) -> u16 {
 pub fn decompress_q3329<const D: usize>(y: u16) -> i32 {
     decompress_q3329_coefficient::<D>(y)
 }
-
 
 /// Compresses each coefficient of a polynomial modulo `q = 3329`.
 ///
@@ -133,9 +127,7 @@ pub fn decompress_q3329_poly<const D: usize>(p: &Poly<Q3329>) -> Poly<Q3329> {
     }
 
     Poly::from_coeffs(coeffs)
-
 }
-
 
 /// Compresses each coefficient of a polynomial vector modulo `q = 3329`.
 ///
@@ -483,15 +475,10 @@ mod tests {
     fn compress_q3329_matches_reference_division_for_all_ml_kem_widths() {
         fn check<const D: usize>() {
             for x in 0..Q3329::Q {
-                let expected = ((((x as u32) << D) + (Q3329::Q as u32 / 2))
-                    / (Q3329::Q as u32))
+                let expected = ((((x as u32) << D) + (Q3329::Q as u32 / 2)) / (Q3329::Q as u32))
                     & ((1u32 << D) - 1);
 
-                assert_eq!(
-                    compress_q3329::<D>(x) as u32,
-                    expected,
-                    "D={D}, x={x}",
-                );
+                assert_eq!(compress_q3329::<D>(x) as u32, expected, "D={D}, x={x}",);
             }
         }
 

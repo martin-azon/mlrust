@@ -15,10 +15,6 @@
 //!
 //! This module implements pure ML-DSA, not HashML-DSA.
 
-use mlrust_core::sampling::random::{RandomByteGenerator, random_array};
-
-#[cfg(feature = "getrandom")]
-use mlrust_core::sampling::random::os_random_array;
 
 use crate::constants::{MlDsa44, MlDsa65, MlDsa87};
 use crate::dsa::params::MlDsaParams;
@@ -28,6 +24,15 @@ use crate::keys::{
     MlDsa65PublicKey, MlDsa65SecretKey, MlDsa65Signature, MlDsa87Keypair, MlDsa87PublicKey,
     MlDsa87SecretKey, MlDsa87Signature,
 };
+
+use zeroize::Zeroizing;
+
+#[cfg(feature = "getrandom")]
+use mlrust_core::sampling::random::OsRandom;
+
+use mlrust_core::sampling::random::RandomByteGenerator;
+
+
 
 /// Generates an ML-DSA keypair using operating-system randomness.
 ///
@@ -41,9 +46,11 @@ use crate::keys::{
 /// generation fails.
 #[cfg(feature = "getrandom")]
 pub fn ml_dsa_keygen<P: MlDsaParams>() -> Result<P::KeyPair, MlDsaError> {
-    let xi = os_random_array::<32>()?;
+    let mut xi = Zeroizing::new([0u8; 32]);
 
-    Ok(P::keygen_from_seed(&xi))
+    OsRandom.fill_bytes(xi.as_mut())?;
+
+    Ok(P::keygen_from_seed(&*xi))
 }
 
 /// Generates an ML-DSA keypair using a caller-provided random byte generator.
@@ -57,9 +64,11 @@ pub fn ml_dsa_keygen<P: MlDsaParams>() -> Result<P::KeyPair, MlDsaError> {
 pub fn ml_dsa_keygen_with_rbg<P: MlDsaParams, R: RandomByteGenerator + ?Sized>(
     rbg: &mut R,
 ) -> Result<P::KeyPair, MlDsaError> {
-    let xi = random_array::<32, _>(rbg)?;
+    let mut xi = Zeroizing::new([0u8; 32]);
 
-    Ok(P::keygen_from_seed(&xi))
+    rbg.fill_bytes(xi.as_mut())?;
+
+    Ok(P::keygen_from_seed(&*xi))
 }
 
 /// Signs a message with ML-DSA using operating-system randomness.
@@ -77,9 +86,11 @@ pub fn ml_dsa_sign<P: MlDsaParams>(
     message: &[u8],
     context: &[u8],
 ) -> Result<P::Signature, MlDsaError> {
-    let randomness = os_random_array::<32>()?;
+    let mut randomness = Zeroizing::new([0u8; 32]);
 
-    P::sign_from_seed(sk, message, context, &randomness)
+    OsRandom.fill_bytes(randomness.as_mut())?;
+
+    P::sign_from_seed(sk, message, context, &*randomness)
 }
 
 /// Signs a message with ML-DSA using a caller-provided random byte generator.
@@ -96,9 +107,11 @@ pub fn ml_dsa_sign_with_rbg<P: MlDsaParams, R: RandomByteGenerator + ?Sized>(
     context: &[u8],
     rbg: &mut R,
 ) -> Result<P::Signature, MlDsaError> {
-    let randomness = random_array::<32, _>(rbg)?;
+    let mut randomness = Zeroizing::new([0u8; 32]);
 
-    P::sign_from_seed(sk, message, context, &randomness)
+    rbg.fill_bytes(randomness.as_mut())?;
+
+    P::sign_from_seed(sk, message, context, &*randomness)
 }
 
 /// Verifies a signature against a message with context.

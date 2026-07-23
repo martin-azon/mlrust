@@ -19,6 +19,8 @@ use crate::constants::{
 
 use crate::error::MlDsaError;
 
+use zeroize::Zeroize;
+
 // --------------------------------------------------------------------
 // Defining generic structs for the different keys
 // --------------------------------------------------------------------
@@ -28,10 +30,22 @@ use crate::error::MlDsaError;
 /// This type owns the exact byte representation of a secret key for one
 /// parameter set. It does not decode or validate the secret-key components.
 ///
-/// This type intentionally does not implement `Debug`, because it contains
-/// secret material.
+/// This type contains secret key material and zeroizes its contents on drop.
+/// It does not implement `Copy` or `Debug`.
+///
+/// Use [`Self::as_bytes`] to borrow the serialized representation. Callers that
+/// copy those bytes are responsible for protecting and clearing the copy.
 #[derive(Clone, PartialEq, Eq)]
 pub struct SecretKey<const N: usize> {
+    bytes: [u8; N],
+}
+
+/// Fixed-size serialized ML-DSA public key.
+///
+/// This type owns the exact byte representation of a secret key for one
+/// parameter set. It does not decode or validate the secret-key components.
+#[derive(Clone, PartialEq, Eq)]
+pub struct PublicKey<const N: usize> {
     bytes: [u8; N],
 }
 
@@ -42,12 +56,6 @@ pub struct SecretKey<const N: usize> {
 ///
 /// This type intentionally does not implement `Debug`, because it contains a
 /// secret key.
-#[derive(Clone, PartialEq, Eq)]
-pub struct PublicKey<const N: usize> {
-    bytes: [u8; N],
-}
-
-/// ML-DSA Keypair
 #[derive(Clone, PartialEq, Eq)]
 pub struct MlDsaKeypair<const SK_BYTES: usize, const PK_BYTES: usize> {
     sk: SecretKey<SK_BYTES>,
@@ -96,11 +104,17 @@ impl<const N: usize> SecretKey<N> {
     pub const fn as_bytes(&self) -> &[u8; N] {
         &self.bytes
     }
+}
 
-    /// Consumes the secret key and returns the serialized byte array.
-    #[must_use]
-    pub const fn into_bytes(self) -> [u8; N] {
-        self.bytes
+impl<const N: usize> Zeroize for SecretKey<N> {
+    fn zeroize(&mut self) {
+        self.bytes.zeroize();
+    }
+}
+
+impl<const N: usize> Drop for SecretKey<N> {
+    fn drop(&mut self) {
+        self.zeroize();
     }
 }
 
@@ -159,8 +173,11 @@ impl<const SK_BYTES: usize, const PK_BYTES: usize> MlDsaKeypair<SK_BYTES, PK_BYT
     }
 
     /// Splits the keypair into its secret and public keys.
+    ///
+    /// This consumes the keypair and transfers ownership of both serialized keys.
+    /// The secret key remains zeroized on drop.
     #[must_use]
-    pub const fn into_parts(self) -> (SecretKey<SK_BYTES>, PublicKey<PK_BYTES>) {
+    pub fn into_parts(self) -> (SecretKey<SK_BYTES>, PublicKey<PK_BYTES>) {
         (self.sk, self.pk)
     }
 

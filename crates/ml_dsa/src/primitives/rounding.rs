@@ -9,7 +9,7 @@
 
 use subtle::{Choice, ConstantTimeGreater};
 
-use mlrust_core::ct::i32::{ct_i32_gt, ct_i32_eq, ct_i32_ge, ct_i32_select};
+use mlrust_core::ct::i32::{ct_i32_eq, ct_i32_ge, ct_i32_gt, ct_i32_select};
 use mlrust_core::encode::ml_dsa::hint::HintVec;
 use mlrust_core::params::{N, Q8380417, RingParams};
 use mlrust_core::poly::{Poly, PolyVec};
@@ -20,7 +20,6 @@ const Q: i32 = Q8380417::Q;
 fn reduce_q_canonical(r: i32) -> i32 {
     Q8380417::freeze(r)
 }
-
 
 /// Centered reduction modulo `2^D`.
 ///

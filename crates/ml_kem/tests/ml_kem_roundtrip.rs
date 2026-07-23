@@ -1,6 +1,6 @@
 mod common;
 
-use common::rbg::{FixedChunksRbg, FailingRbg, RepeatingRbg};
+use common::rbg::{FailingRbg, FixedChunksRbg, RepeatingRbg};
 
 use ml_kem::{
     MlKemError, ml_kem512_decaps, ml_kem512_encaps, ml_kem512_encaps_with_rbg, ml_kem512_keygen,
@@ -80,8 +80,7 @@ fn ml_kem512_keygen_with_rbg_consumes_two_chunks() {
     let chunks: [&[u8]; 2] = [d.as_ref(), z.as_ref()];
     let mut rbg = FixedChunksRbg::new(&chunks);
 
-    let _keypair = ml_kem512_keygen_with_rbg(&mut rbg)
-        .expect("keygen succeeds");
+    let _keypair = ml_kem512_keygen_with_rbg(&mut rbg).expect("keygen succeeds");
 
     assert_eq!(rbg.consumed_chunks(), 2);
 }
@@ -95,16 +94,12 @@ fn ml_kem512_encaps_with_rbg_consumes_one_chunk() {
     let keygen_chunks: [&[u8]; 2] = [d.as_ref(), z.as_ref()];
     let mut keygen_rbg = FixedChunksRbg::new(&keygen_chunks);
 
-    let keypair = ml_kem512_keygen_with_rbg(&mut keygen_rbg)
-        .expect("keygen succeeds");
+    let keypair = ml_kem512_keygen_with_rbg(&mut keygen_rbg).expect("keygen succeeds");
 
     let encaps_chunks: [&[u8]; 1] = [m.as_ref()];
     let mut encaps_rbg = FixedChunksRbg::new(&encaps_chunks);
 
-    let _ = ml_kem512_encaps_with_rbg(
-        keypair.encapsulation_key(),
-        &mut encaps_rbg,
-    )
+    let _ = ml_kem512_encaps_with_rbg(keypair.encapsulation_key(), &mut encaps_rbg)
         .expect("encapsulation succeeds");
 
     assert_eq!(encaps_rbg.consumed_chunks(), 1);

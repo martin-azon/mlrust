@@ -33,7 +33,6 @@ impl RandomByteGenerator for FixedChunksRbg<'_> {
     }
 }
 
-
 pub struct RepeatingRbg {
     pub byte: u8,
 }
@@ -54,4 +53,3 @@ impl RandomByteGenerator for FailingRbg {
         Err(RandomError::GeneratorFailure)
     }
 }
-
