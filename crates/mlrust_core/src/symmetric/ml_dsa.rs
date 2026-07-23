@@ -84,6 +84,7 @@ pub fn g_squeeze(reader: &mut Shake128Reader, output: &mut [u8]) {
 mod tests {
     use super::*;
     use crate::symmetric::generic_funcs::{shake128, shake256};
+    use alloc::vec::Vec;
 
     #[test]
     fn h_matches_shake256() {

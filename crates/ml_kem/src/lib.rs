@@ -119,6 +119,8 @@
 // preserve fixed-array reference types such as `&[u8; 32]`.
 #![allow(clippy::explicit_auto_deref)]
 
+extern crate alloc;
+
 mod constants;
 mod error;
 mod kem;

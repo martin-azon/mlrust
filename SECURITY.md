@@ -16,8 +16,6 @@ Once versioned releases are published, this section will be updated to describe 
 
 ## Reporting a Vulnerability
 
-## Reporting a Vulnerability
-
 Please do not report security vulnerabilities through public GitHub issues.
 
 Please report vulnerabilities using GitHub’s private vulnerability reporting feature for this repository.

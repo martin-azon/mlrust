@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 pub(crate) fn try_hex_field<'a>(text: &'a str, name: &str) -> Option<&'a str> {
     for line in text.lines() {
         let line = line.trim();

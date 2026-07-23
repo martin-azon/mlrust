@@ -215,6 +215,7 @@ pub fn shake256(input: &[u8], output: &mut [u8]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec::Vec;
 
     fn hex_nibble(byte: u8) -> u8 {
         match byte {

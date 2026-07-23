@@ -19,4 +19,4 @@ subtle = "2.6.1"
 zeroize = { version = "1", default-features = false }
 
 [dev-dependencies]
-sha3 = "0.10" 
+sha3 = "0.10"

@@ -3,13 +3,28 @@ mod common;
 use common::rbg::{FailingRbg, FixedChunksRbg, RepeatingRbg};
 
 use ml_kem::{
-    MlKemError, ml_kem512_decaps, ml_kem512_encaps, ml_kem512_encaps_with_rbg, ml_kem512_keygen,
-    ml_kem512_keygen_with_rbg, ml_kem768_decaps, ml_kem768_encaps, ml_kem768_keygen,
-    ml_kem1024_decaps, ml_kem1024_encaps, ml_kem1024_keygen,
+    MlKemError,
+    ml_kem512_encaps_with_rbg,
+    ml_kem512_keygen_with_rbg,
 };
 
+#[cfg(feature = "getrandom")]
+use ml_kem::{
+    ml_kem512_decaps,
+    ml_kem512_encaps,
+    ml_kem512_keygen,
+    ml_kem768_decaps,
+    ml_kem768_encaps,
+    ml_kem768_keygen,
+    ml_kem1024_decaps,
+    ml_kem1024_encaps,
+    ml_kem1024_keygen,
+};
+
+#[cfg(feature = "getrandom")]
 const ROUNDS: usize = 10;
 
+#[cfg(feature = "getrandom")]
 #[test]
 fn ml_kem512_public_api_roundtrip() {
     for _ in 0..ROUNDS {
@@ -24,6 +39,7 @@ fn ml_kem512_public_api_roundtrip() {
     }
 }
 
+#[cfg(feature = "getrandom")]
 #[test]
 fn ml_kem768_public_api_roundtrip() {
     for _ in 0..ROUNDS {
@@ -38,6 +54,7 @@ fn ml_kem768_public_api_roundtrip() {
     }
 }
 
+#[cfg(feature = "getrandom")]
 #[test]
 fn ml_kem1024_public_api_roundtrip() {
     for _ in 0..ROUNDS {

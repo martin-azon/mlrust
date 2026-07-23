@@ -219,6 +219,7 @@ cargo doc --workspace --no-deps --open
 ```
 
 When published, crate documentation will be available on docs.rs:
+
 ```text
 mlrust_core
 ml_kem

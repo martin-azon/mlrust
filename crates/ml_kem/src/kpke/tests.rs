@@ -15,7 +15,8 @@ use mlrust_core::params::{Q3329, RingParams};
 use mlrust_core::poly::{Poly, PolyMat};
 use mlrust_core::symmetric::ml_kem::g;
 
-use std::vec::Vec;
+use alloc::vec::Vec;
+use alloc::vec;
 
 // -----------------------------------------------------
 // Parameter-set wrappers
