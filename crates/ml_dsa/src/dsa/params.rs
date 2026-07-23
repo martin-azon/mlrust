@@ -1,3 +1,14 @@
+//! ML-DSA parameter-set dispatch.
+//!
+//! This module binds the three ML-DSA marker types to their numeric
+//! parameters, serialized object wrappers, and deterministic internal
+//! algorithms.
+//!
+//! The public API calls through [`MlDsaParams`] from inside the crate, while
+//! users normally interact with concrete wrappers such as
+//! `ml_dsa44_sign_with_rbg`.
+//!
+
 use crate::constants::{
     ML_DSA_44_BETA, ML_DSA_44_BITLEN_2ETA, ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE,
     ML_DSA_44_BITLEN_2GAMMA1_MINUS_ONE_TIMES_32,

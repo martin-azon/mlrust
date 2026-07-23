@@ -1,10 +1,18 @@
 //! Public ML-KEM API.
 //!
 //! This module exposes randomized ML-KEM key generation and encapsulation,
-//! together with deterministic decapsulation. The generic functions are
-//! parameterized by an [`MlKemParams`] marker type, and the concrete wrappers
-//! expose the three standardized ML-KEM parameter sets.
-
+//! together with deterministic decapsulation.
+//!
+//! Generic functions are parameterized by an [`MlKemParams`] marker type.
+//! Concrete wrappers expose the three standardized ML-KEM parameter sets.
+//!
+//! OS-random functions are available when the `getrandom` feature is enabled.
+//! The `*_with_rbg` variants are always available and accept a caller-provided
+//! random byte generator.
+//!
+//! Decapsulation is infallible at the public API level. Invalid fixed-length
+//! ciphertexts are handled by implicit rejection and still produce a shared
+//! secret.
 
 use super::params::MlKemParams;
 use crate::constants::{MlKem512, MlKem768, MlKem1024};

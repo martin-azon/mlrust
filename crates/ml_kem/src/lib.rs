@@ -9,6 +9,21 @@
 //! - decapsulation keys;
 //! - ciphertexts;
 //! - shared secrets.
+//!
+//! The crate exposes two randomness entry points:
+//!
+//! - `*_with_rbg` functions accept a caller-provided random byte generator and
+//!   are available without the `getrandom` feature;
+//! - OS-random convenience functions are available when the `getrandom` feature
+//!   is enabled.
+//!
+//! Decapsulation is deterministic and infallible at the public API level.
+//! Invalid ciphertexts are handled internally by the ML-KEM implicit-rejection
+//! path and still produce a shared secret.
+//!
+//! Secret-bearing types such as decapsulation keys and shared secrets zeroize
+//! their contents on drop. Public values such as encapsulation keys and
+//! ciphertexts are ordinary serialized byte wrappers.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]

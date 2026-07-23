@@ -42,8 +42,8 @@ pub struct SecretKey<const N: usize> {
 
 /// Fixed-size serialized ML-DSA public key.
 ///
-/// This type owns the exact byte representation of a secret key for one
-/// parameter set. It does not decode or validate the secret-key components.
+/// This type owns the exact byte representation of a public key for one
+/// parameter set. It does not decode or validate the public-key components.
 #[derive(Clone, PartialEq, Eq)]
 pub struct PublicKey<const N: usize> {
     bytes: [u8; N],
@@ -54,8 +54,8 @@ pub struct PublicKey<const N: usize> {
 /// The keypair contains a serialized secret key and its corresponding
 /// serialized public key.
 ///
-/// This type intentionally does not implement `Debug`, because it contains a
-/// secret key.
+/// The secret key is secret material and zeroizes itself on drop. This keypair
+/// intentionally does not implement `Debug`, because it contains a secret key.
 #[derive(Clone, PartialEq, Eq)]
 pub struct MlDsaKeypair<const SK_BYTES: usize, const PK_BYTES: usize> {
     sk: SecretKey<SK_BYTES>,
@@ -131,7 +131,7 @@ impl<const N: usize> PublicKey<N> {
     /// Constructs a public key from a byte slice.
     ///
     /// This checks only that `bytes.len() == N`. It does not decode or
-    /// semantically validate the secret-key contents.
+    /// semantically validate the public-key contents.
     ///
     /// # Errors
     ///
@@ -200,7 +200,7 @@ impl<const N: usize> Signature<N> {
     /// Constructs a signature from a byte slice.
     ///
     /// This checks only that `bytes.len() == N`. It does not decode or
-    /// semantically validate the secret-key contents.
+    /// semantically validate the signature contents.
     ///
     /// # Errors
     ///

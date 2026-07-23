@@ -1,3 +1,13 @@
+//! ML-KEM parameter-set dispatch.
+//!
+//! This module binds the three ML-KEM marker types to their numeric
+//! parameters, serialized object wrappers, and deterministic internal
+//! algorithms.
+//!
+//! The generic public API calls through [`MlKemParams`], while users normally
+//! interact with concrete wrappers such as `ml_kem512_keygen_with_rbg`.
+//!
+
 use crate::keys::{
     MlKem512Ciphertext, MlKem512DecapsulationKey, MlKem512EncapsulationKey, MlKem512Keypair,
     MlKem768Ciphertext, MlKem768DecapsulationKey, MlKem768EncapsulationKey, MlKem768Keypair,
@@ -19,16 +29,19 @@ use crate::constants::{
 
 use super::internal::{ml_kem_decaps_internal, ml_kem_encaps_internal, ml_kem_keygen_internal};
 
-/// Public ML-KEM parameter-set trait.
+/// Parameter-set trait for the three standardized ML-KEM instantiations.
 ///
-/// This trait provides a stable, concise API over the three ML-KEM parameter
-/// sets without relying on associated constants in const-generic type
-/// positions in public generic function signatures.
+/// This trait binds the numeric parameters, serialized object sizes, concrete
+/// key/ciphertext wrapper types, and deterministic internal algorithms for one
+/// ML-KEM parameter set.
+///
+/// The deterministic seed-based methods are crate-internal building blocks for
+/// the public randomized APIs; they are not exposed as public seeded APIs.
 pub trait MlKemParams: Sized {
     /// Module rank `k`.
     const K: usize;
 
-    /// Noise parameter used for secret-vector sampling.
+    /// Noise parameter used for secret and key-generation error sampling.
     const ETA1: usize;
 
     /// Noise parameter used for encryption error sampling.
@@ -79,6 +92,9 @@ pub trait MlKemParams: Sized {
     ) -> (SharedSecret, Self::Ciphertext);
 
     /// Decapsulates a ciphertext using this parameter set.
+    ///
+    /// Invalid fixed-length ciphertexts are handled through implicit rejection
+    /// and still return a shared secret.
     fn decaps(dk: &Self::DecapsulationKey, ciphertext: &Self::Ciphertext) -> SharedSecret;
 }
 

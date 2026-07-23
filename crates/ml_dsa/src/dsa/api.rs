@@ -2,9 +2,15 @@
 //!
 //! This module exposes message-oriented pure ML-DSA functions.
 //!
-//! Public functions accept an application message, a context string, and
-//! explicit signing randomness for deterministic signing. The lower-level
-//! implementation formats the message as pure ML-DSA:
+//! Generic functions are parameterized by an [`MlDsaParams`] marker type.
+//! Concrete wrappers expose the three standardized ML-DSA parameter sets.
+//!
+//! OS-random functions are available when the `getrandom` feature is enabled.
+//! The `*_with_rbg` variants are always available and accept a caller-provided
+//! random byte generator.
+//!
+//! Signing and verification accept an application message and context. The
+//! lower-level implementation formats them as pure ML-DSA:
 //!
 //! ```text
 //! M' = IntegerToBytes(0, 1) || IntegerToBytes(|ctx|, 1) || ctx || message
@@ -31,8 +37,6 @@ use zeroize::Zeroizing;
 use mlrust_core::sampling::random::OsRandom;
 
 use mlrust_core::sampling::random::RandomByteGenerator;
-
-
 
 /// Generates an ML-DSA keypair using operating-system randomness.
 ///

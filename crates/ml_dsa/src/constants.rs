@@ -6,8 +6,10 @@
 //! - [`MlDsa65`];
 //! - [`MlDsa87`].
 //!
-//! It also exposes the numerical constants used by encoding, sampling,
-//! rounding, signing, and verification.
+//! It also defines the crate-internal numerical constants used by encoding,
+//! sampling, rounding, signing, and verification. The public constants in this
+//! module are the serialized object sizes that are part of the external ML-DSA
+//! API contract.
 //!
 //! The ML-DSA modulus is:
 //!

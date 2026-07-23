@@ -1,20 +1,34 @@
-//! ML-KEM parameter sets.
+//! ML-KEM parameter-set constants.
 //!
-//! This module defines the public parameter sets standardized for ML-KEM:
+//! This module defines the three standardized ML-KEM parameter sets:
 //!
 //! - [`MlKem512`];
 //! - [`MlKem768`];
 //! - [`MlKem1024`].
+//!
+//! It also defines the crate-internal numerical parameters used by sampling,
+//! compression, encoding, key generation, encapsulation, and decapsulation.
+//! The public constants in this module are the serialized object sizes that are
+//! part of the external ML-KEM API contract.
+//!
+//! The ML-KEM modulus is:
+//!
+//! ```text
+//! q = 3_329
+//! ```
+//!
+//! The marker types are zero-sized types used to select a parameter set at the
+//! type level.
 
-/// Marker type for ML-KEM-512.
+/// Zero-sized marker type for ML-KEM-512.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MlKem512 {}
 
-/// Marker type for ML-KEM-768.
+/// Zero-sized marker type for ML-KEM-768.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MlKem768 {}
 
-/// Marker type for ML-KEM-1024.
+/// Zero-sized marker type for ML-KEM-1024.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MlKem1024 {}
 

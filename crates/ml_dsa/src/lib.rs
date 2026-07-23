@@ -1,13 +1,28 @@
 //! ML-DSA implementation.
 //!
-//! This crate implements the ML-DSA digital signature algorithm specified in
-//! FIPS 204.
+//! This crate implements the pure ML-DSA digital signature algorithm specified
+//! in FIPS 204.
 //!
 //! The public API uses FIPS 204 terminology:
 //!
 //! - secret keys;
 //! - public keys;
 //! - signatures.
+//!
+//! The crate exposes two randomness entry points:
+//!
+//! - `*_with_rbg` functions accept a caller-provided random byte generator and
+//!   are available without the `getrandom` feature;
+//! - OS-random convenience functions are available when the `getrandom` feature
+//!   is enabled.
+//!
+//! Signing and verification accept an application message and context. The
+//! implementation formats them internally as pure ML-DSA; HashML-DSA is not
+//! implemented by this crate.
+//!
+//! Secret-bearing types such as secret keys zeroize their contents on drop.
+//! Public values such as public keys and signatures are ordinary serialized byte
+//! wrappers.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]

@@ -1,8 +1,17 @@
-//! Deterministic algorithms for ML-KEM key generation,
-//! encapsulation, and decapsulation.
+//! ML-KEM internal algorithms.
 //!
-//! All such algorithms are implemented on top of the internal
-//! K-PKE routines.
+//! This module implements the deterministic internal key generation,
+//! encapsulation, and decapsulation algorithms used by the public ML-KEM API.
+//!
+//! These routines are parameterized with const generics so the same code can be
+//! instantiated for ML-KEM-512, ML-KEM-768, and ML-KEM-1024.
+//!
+//! The functions in this module are not public API. Public callers should use
+//! [`crate::kem::api`] or the parameter-set dispatch layer in
+//! [`crate::kem::params`].
+//!
+//! Decapsulation performs the ML-KEM implicit-rejection check internally and
+//! selects the output shared secret without branching on ciphertext validity.
 
 use crate::keys::{
     Ciphertext, DecapsulationKey, EncapsulationKey, KpkeDecryptionKey, KpkeEncryptionKey,

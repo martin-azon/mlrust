@@ -1,12 +1,20 @@
-//! ML-KEM serialized object types.
+//! ML-KEM serialized object wrappers.
 //!
-//! This module defines fixed-size wrappers for ML-KEM encapsulation keys,
-//! decapsulation keys, ciphertexts, and shared secrets.
+//! This module defines fixed-size owned byte wrappers for ML-KEM encapsulation
+//! keys, decapsulation keys, keypairs, ciphertexts, and shared secrets.
 //!
-//! The generic wrappers enforce byte lengths at the type level. The public
-//! aliases correspond to the final ML-KEM object sizes. The same wrappers may
-//! also be reused internally for K-PKE objects, whose decapsulation-key lengths
-//! are smaller than final ML-KEM decapsulation-key lengths.
+//! These types store the standardized serialized representations. They do not
+//! eagerly decode or validate the algebraic contents. Length checking happens
+//! at construction boundaries such as [`EncapsulationKey::try_from_slice`],
+//! [`DecapsulationKey::try_from_slice`], and [`Ciphertext::try_from_slice`].
+//!
+//! Semantic validation is performed by the object decoders and by the ML-KEM
+//! key generation, encapsulation, and decapsulation algorithms. Invalid
+//! ciphertext contents are handled by implicit rejection during decapsulation.
+//!
+//! The same wrappers may also be reused internally for K-PKE objects, whose
+//! decapsulation-key lengths are smaller than final ML-KEM decapsulation-key
+//! lengths.
 
 use crate::MlKemError;
 use crate::constants::{
@@ -59,6 +67,10 @@ pub(crate) struct KpkeKeypair<const EK_PKE_BYTES: usize, const DK_PKE_BYTES: usi
 }
 
 /// Fixed-size serialized ML-KEM encapsulation key.
+///
+/// This type owns the exact byte representation of an encapsulation key for one
+/// parameter set. It does not decode or validate the encoded public-key
+/// material.
 #[derive(Clone, PartialEq, Eq)]
 pub struct EncapsulationKey<const N: usize> {
     bytes: [u8; N],
@@ -66,30 +78,54 @@ pub struct EncapsulationKey<const N: usize> {
 
 /// Fixed-size serialized ML-KEM decapsulation key.
 ///
-/// This type contains secret key material and zeroizes its contents on drop.
-/// It does not implement `Copy` or `Debug`.
+/// This type owns the exact byte representation of a decapsulation key for one
+/// parameter set. It does not decode or validate the encoded secret-key
+/// material.
+///
+/// # Secret material
+///
+/// This type contains decapsulation secret material, including the K-PKE
+/// decryption key and implicit-rejection fallback material. It zeroizes its
+/// contents on drop and does not implement `Copy` or `Debug`.
 ///
 /// Use [`Self::as_bytes`] to borrow the serialized representation. Callers that
-/// copy those bytes are responsible for protecting and clearing the copy.c
+/// copy those bytes are responsible for protecting and clearing the copy.
 #[derive(Clone, PartialEq, Eq)]
 pub struct DecapsulationKey<const N: usize> {
     bytes: [u8; N],
 }
 
-/// ML-KEM Keypair.
+/// Fixed-size ML-KEM keypair.
+///
+/// The keypair contains a serialized encapsulation key and its corresponding
+/// serialized decapsulation key.
+///
+/// The decapsulation key is secret material and zeroizes itself on drop. This
+/// keypair intentionally does not implement `Debug`, because it contains a
+/// decapsulation key.
 #[derive(Clone, PartialEq, Eq)]
 pub struct MlKemKeypair<const EK_BYTES: usize, const DK_BYTES: usize> {
     ek: EncapsulationKey<EK_BYTES>,
     dk: DecapsulationKey<DK_BYTES>,
 }
 
-/// Fixed-size KPKE / ML-KEM ciphertext.
+/// Fixed-size serialized ML-KEM ciphertext.
+///
+/// This type owns the exact byte representation of a ciphertext for one
+/// parameter set. It does not decode or validate the ciphertext contents.
+/// ML-KEM decapsulation handles invalid fixed-length ciphertexts through
+/// implicit rejection.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Ciphertext<const N: usize> {
     bytes: [u8; N],
 }
 
 /// ML-KEM shared secret.
+///
+/// This type owns the 32-byte shared secret output by encapsulation or
+/// decapsulation.
+///
+/// # Secret material
 ///
 /// This type contains shared secret key material and zeroizes its contents on
 /// drop. Copy it only into protocol state that provides equivalent secret
@@ -176,35 +212,28 @@ pub type MlKem1024Ciphertext = Ciphertext<ML_KEM_1024_CIPHERTEXT_BYTES>;
 // --------------------------------------------------------------------
 
 impl<const N: usize> KpkeEncryptionKey<N> {
-    /// Creates an encryption key from its serialized bytes
+    /// Creates a K-PKE encryption key from its serialized bytes.
     #[must_use]
     pub(crate) const fn from_bytes(bytes: [u8; N]) -> Self {
         Self { bytes }
     }
 
-    /// Returns the serialized encryption key
+    /// Returns the serialized K-PKE encryption key.
     #[must_use]
     pub(crate) const fn as_bytes(&self) -> &[u8; N] {
         &self.bytes
     }
 
-    /*
-    /// Consumes the key and returns the serialized bytes
-    #[must_use]
-    pub(crate) const fn into_bytes(self) -> [u8; N] {
-        self.bytes
-    }
-    */
 }
 
 impl<const N: usize> KpkeDecryptionKey<N> {
-    /// Creates an decryption key from its serialized bytes
+    /// Creates a K-PKE decryption key from its serialized bytes.
     #[must_use]
     pub(crate) const fn from_bytes(bytes: [u8; N]) -> Self {
         Self { bytes }
     }
 
-    /// Returns the serialized decryption key
+    /// Returns the serialized K-PKE decryption key.
     #[must_use]
     pub(crate) const fn as_bytes(&self) -> &[u8; N] {
         &self.bytes
@@ -212,19 +241,22 @@ impl<const N: usize> KpkeDecryptionKey<N> {
 }
 
 impl<const N: usize> EncapsulationKey<N> {
-    /// Creates an encapsulation key from its serialized bytes
+    /// Constructs an encapsulation key from an owned byte array.
+    ///
+    /// This performs no semantic validation. The byte array length is enforced
+    /// by the type parameter `N`.
     #[must_use]
     pub const fn from_bytes(bytes: [u8; N]) -> Self {
         Self { bytes }
     }
 
-    /// Returns the serialized encapsulation key
+    /// Returns the serialized encapsulation-key bytes.
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; N] {
         &self.bytes
     }
 
-    /// Consumes the key and returns the serialized bytes
+    /// Consumes the encapsulation key and returns the serialized byte array.
     #[must_use]
     pub const fn into_bytes(self) -> [u8; N] {
         self.bytes
@@ -234,7 +266,7 @@ impl<const N: usize> EncapsulationKey<N> {
     ///
     /// This is the checked slice-based counterpart to [`Self::from_bytes`].
     /// It checks only that `bytes.len() == N`; it does not perform semantic
-    /// validation of the encoded K-PKE public key material.
+    /// validation of the encoded encapsulation-key contents.
     ///
     /// # Errors
     ///
@@ -251,13 +283,16 @@ impl<const N: usize> EncapsulationKey<N> {
 }
 
 impl<const N: usize> DecapsulationKey<N> {
-    /// Creates a decapsulation key from its serialized bytes.
+    /// Constructs a decapsulation key from an owned byte array.
+    ///
+    /// This performs no semantic validation. The byte array length is enforced
+    /// by the type parameter `N`.
     #[must_use]
     pub const fn from_bytes(bytes: [u8; N]) -> Self {
         Self { bytes }
     }
 
-    /// Returns the serialized decapsulation key.
+    /// Returns the serialized decapsulation-key bytes.
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; N] {
         &self.bytes
@@ -267,7 +302,7 @@ impl<const N: usize> DecapsulationKey<N> {
     ///
     /// This is the checked slice-based counterpart to [`Self::from_bytes`].
     /// It checks only that `bytes.len() == N`; it does not perform semantic
-    /// validation of the encoded K-PKE public key material.
+    /// validation of the encoded decapsulation-key contents.
     ///
     /// # Errors
     ///
@@ -296,19 +331,22 @@ impl<const N: usize> Drop for DecapsulationKey<N> {
 }
 
 impl<const N: usize> Ciphertext<N> {
-    /// Creates a ciphertext from its serialized bytes.
+    /// Constructs a ciphertext from an owned byte array.
+    ///
+    /// This performs no semantic validation. The byte array length is enforced
+    /// by the type parameter `N`.
     #[must_use]
     pub const fn from_bytes(bytes: [u8; N]) -> Self {
         Self { bytes }
     }
 
-    /// Returns the serialized ciphertext.
+    /// Returns the serialized ciphertext bytes.
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; N] {
         &self.bytes
     }
 
-    /// Consumes the ciphertext and returns the serialized bytes.
+    /// Consumes the ciphertext and returns the serialized byte array.
     #[must_use]
     pub const fn into_bytes(self) -> [u8; N] {
         self.bytes
@@ -335,13 +373,16 @@ impl<const N: usize> Ciphertext<N> {
 }
 
 impl SharedSecret {
-    /// Creates a shared secret from its bytes.
+    /// Constructs a shared secret from an owned byte array.
     #[must_use]
     pub(crate) const fn from_bytes(bytes: [u8; ML_KEM_SHARED_SECRET_BYTES]) -> Self {
         Self { bytes }
     }
 
-    /// Returns the shared secret bytes.
+    /// Returns the shared-secret bytes.
+    ///
+    /// Callers that copy these bytes are responsible for protecting and
+    /// clearing the copy.
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; ML_KEM_SHARED_SECRET_BYTES] {
         &self.bytes
