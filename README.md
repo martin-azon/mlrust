@@ -1,13 +1,27 @@
 # mlrust
 
-Pure Rust implementation workspace for ML-KEM and ML-DSA.
+Pure Rust, correctness-oriented module-lattice cryptography workspace.
 
-This repository contains implementation crates for the NIST post-quantum cryptographic algorithms:
+`mlrust` provides implementations of the NIST-standardized post-quantum schemes **ML-KEM** and **ML-DSA**, together with reusable arithmetic, encoding, sampling, NTT, symmetric, randomness, and constant-time utilities for module-lattice-based constructions.
+
+The project is not primarily designed as a high-performance implementation. Its main goal is to provide clear, tested, reusable Rust building blocks for working with module-lattice cryptography.
+
+## Scope
+
+This repository currently implements:
 
 * **ML-KEM**, specified in FIPS 203;
 * **ML-DSA**, specified in FIPS 204.
 
-The workspace exposes a high-level facade crate, `mlrust`, plus lower-level implementation crates for ML-KEM, ML-DSA, and shared primitives.
+It also exposes a shared core crate, `mlrust_core`, containing routines that may be useful beyond these two schemes, for example when experimenting with:
+
+* hybrid post-quantum key agreement constructions;
+* ML-KEM-based protocol variants;
+* module-lattice-based proof systems;
+* lattice-oriented cryptographic prototypes;
+* educational or research implementations of related constructions.
+
+The project should be understood as a reusable, conformance-oriented implementation workspace rather than a platform-specific, highly optimized cryptographic backend.
 
 ## Status
 
@@ -15,7 +29,7 @@ This project is under active development.
 
 The current implementation is correctness- and conformance-oriented. It includes deterministic tests, public API roundtrips, malformed-input tests, feature-gating checks, CCTV vector coverage, long ignored conformance tests, and selected side-channel-sensitive implementation checks.
 
-It should **not** be described as formally audited, formally verified, masked, or fully hardened against local physical side-channel attacks.
+It has not been independently audited, formally verified, masked, or fully hardened against local physical side-channel attacks.
 
 ## Workspace layout
 
@@ -35,11 +49,24 @@ mlrust/
 
 ## Crates
 
-### `mlrust`
+### `mlrust_core`
 
-High-level application-facing API.
+Reusable module-lattice building blocks.
 
-Use this crate if you want a single dependency exposing both ML-KEM and ML-DSA.
+This crate contains shared implementation routines used by `ml_kem` and `ml_dsa`, including:
+
+* finite-field arithmetic for the ML-KEM and ML-DSA moduli;
+* polynomial, polynomial-vector, and polynomial-matrix types;
+* NTT routines and precomputed NTT tables;
+* bit-packing and byte-encoding helpers;
+* ML-KEM compression and decompression routines;
+* ML-DSA coefficient, hint, and `w1` encoding helpers;
+* sampling helpers;
+* SHAKE/SHA3-based symmetric helpers;
+* random byte generator abstractions;
+* selected constant-time byte and integer utilities.
+
+The goal of this crate is to make the low-level module-lattice routines reusable, rather than hiding all of them behind one monolithic ML-KEM or ML-DSA API.
 
 ### `ml_kem`
 
@@ -50,6 +77,10 @@ Supported parameter sets:
 * ML-KEM-512;
 * ML-KEM-768;
 * ML-KEM-1024.
+
+The crate exposes key generation, encapsulation, and decapsulation APIs, with both OS-random convenience functions and caller-provided randomness variants.
+
+ML-KEM decapsulation is infallible at the typed public API level. Invalid ciphertexts are handled through the ML-KEM implicit-rejection path and still produce a shared secret.
 
 ### `ml_dsa`
 
@@ -63,11 +94,24 @@ Supported parameter sets:
 
 The crate currently exposes pure ML-DSA. HashML-DSA is not exposed as the default signing API.
 
-### `mlrust_core`
+ML-DSA verification returns:
 
-Shared implementation primitives used by the protocol crates.
+* `Ok(true)` for a valid signature;
+* `Ok(false)` for a well-formed but cryptographically invalid signature;
+* an error for malformed public keys, malformed signatures, malformed secret keys, randomness failures, or invalid contexts.
 
-This crate contains finite-field arithmetic, polynomial and polynomial-vector types, NTT routines, encoding helpers, sampling helpers, symmetric SHAKE wrappers, constant-time utilities, and the random byte generator abstraction.
+### `mlrust`
+
+High-level facade crate.
+
+Use this crate if you want a single dependency exposing both ML-KEM and ML-DSA.
+
+The facade re-exports the user-facing APIs from `ml_kem` and `ml_dsa` under:
+
+```rust
+use mlrust::kem;
+use mlrust::dsa;
+```
 
 ## Installation
 
@@ -86,7 +130,7 @@ ml_kem = { path = "crates/ml_kem" }
 ml_dsa = { path = "crates/ml_dsa" }
 ```
 
-For caller-provided randomness, downstream code may also need:
+For direct use of the reusable module-lattice routines or the random byte generator abstraction:
 
 ```toml
 [dependencies]
@@ -160,16 +204,14 @@ fn main() {
         keypair.secret_key(),
         message,
         context,
-    )
-        .expect("signing succeeds");
+    ).expect("signing succeeds");
 
     let valid = ml_dsa44_verify(
         keypair.public_key(),
         message,
         context,
         &signature,
-    )
-        .expect("verification should not fail on well-formed inputs");
+    ).expect("verification should not fail on well-formed inputs");
 
     assert!(valid);
 }
@@ -180,6 +222,27 @@ ML-DSA verification returns:
 * `Ok(true)` for a valid signature;
 * `Ok(false)` for a well-formed but cryptographically invalid signature;
 * an error for malformed public keys, malformed signatures, malformed secret keys, randomness failures, or invalid contexts.
+
+## Reusable module-lattice routines
+
+The `mlrust_core` crate is intended to make the lower-level routines available for reuse.
+
+Examples of reusable components include:
+
+* field arithmetic;
+* polynomial arithmetic;
+* polynomial-vector and polynomial-matrix operations;
+* NTTs over the ML-KEM and ML-DSA rings;
+* ML-KEM coefficient compression;
+* ML-DSA bit-packing helpers;
+* sampling utilities;
+* SHAKE-based symmetric helpers;
+* random byte generator abstractions;
+* constant-time selection and equality helpers.
+
+This makes the workspace useful not only as an implementation of ML-KEM and ML-DSA, but also as a starting point for related module-lattice experiments.
+
+The low-level APIs should still be considered evolving while the project remains in the `0.x` version range.
 
 ## Secret handling
 
